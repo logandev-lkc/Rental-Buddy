@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './app.css'
 })
 export class App {
+  readonly storageKey = 'rental-buddy-records-v1';
   readonly categories = [
     { id: 'all', label: '全部' },
     { id: 'contract', label: '合約條件' },
@@ -59,9 +60,11 @@ export class App {
     { id: 'n4', cat: 'neighbor', title: '大樓管理員', tip: '有管理員通常更安全也更便利。' }
   ];
 
-  state: Record<string, ItemState> = {};
+  records: HouseRecord[] = [];
+  activeRecordId = '';
+  compareIds: string[] = [];
+  draftRecordName = '';
   currentCat = 'all';
-  address = '';
   showIntro = true;
   reportOpen = false;
 
@@ -71,6 +74,34 @@ export class App {
 
   startApp(): void {
     this.showIntro = false;
+  }
+
+  get activeRecord(): HouseRecord {
+    return this.records.find((record) => record.id === this.activeRecordId) ?? this.records[0];
+  }
+
+  get state(): Record<string, ItemState> {
+    return this.activeRecord?.state ?? {};
+  }
+
+  get address(): string {
+    return this.activeRecord?.address ?? '';
+  }
+
+  set address(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.address = value;
+    this.touchActiveRecord();
+  }
+
+  get compareRecords(): HouseRecord[] {
+    return this.compareIds
+      .map((id) => this.records.find((record) => record.id === id))
+      .filter((record): record is HouseRecord => Boolean(record));
+  }
+
+  get canCompare(): boolean {
+    return this.compareRecords.length >= 2;
   }
 
   get filteredItems(): ChecklistItem[] {
@@ -94,11 +125,11 @@ export class App {
   }
 
   get doneCount(): number {
-    return this.items.filter((item) => this.state[item.id]?.checked).length;
+    return this.countDoneForRecord(this.activeRecord);
   }
 
   get flaggedCount(): number {
-    return this.items.filter((item) => this.state[item.id]?.flagged).length;
+    return this.countFlaggedForRecord(this.activeRecord);
   }
 
   get leftCount(): number {
@@ -122,7 +153,7 @@ export class App {
     if (!current) return;
     current.checked = !current.checked;
     if (current.checked) current.flagged = false;
-    this.saveState();
+    this.touchActiveRecord();
   }
 
   toggleFlag(id: string, event: Event): void {
@@ -131,7 +162,7 @@ export class App {
     if (!current) return;
     current.flagged = !current.flagged;
     if (current.flagged) current.checked = false;
-    this.saveState();
+    this.touchActiveRecord();
   }
 
   toggleExpand(id: string, event: Event): void {
@@ -139,13 +170,58 @@ export class App {
     const current = this.state[id];
     if (!current) return;
     current.expanded = !current.expanded;
-    this.saveState();
+    this.touchActiveRecord();
   }
 
   countDoneByCategory(cat: string): string {
     const items = this.items.filter((item) => item.cat === cat);
     const done = items.filter((item) => this.state[item.id]?.checked).length;
     return `${done}/${items.length}`;
+  }
+
+  switchRecord(recordId: string): void {
+    if (!this.records.some((record) => record.id === recordId)) return;
+    this.activeRecordId = recordId;
+    this.saveState();
+  }
+
+  createRecord(): void {
+    const index = this.records.length + 1;
+    const name = this.draftRecordName.trim() || `看房紀錄 ${index}`;
+    const record: HouseRecord = {
+      id: this.createId(),
+      name,
+      address: '',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      state: this.createEmptyState()
+    };
+    this.records.unshift(record);
+    this.activeRecordId = record.id;
+    this.draftRecordName = '';
+    this.saveState();
+  }
+
+  deleteActiveRecord(): void {
+    if (this.records.length <= 1) {
+      window.alert('至少需要保留一筆看房紀錄。');
+      return;
+    }
+    if (!window.confirm(`確定要刪除「${this.activeRecord.name}」嗎？`)) return;
+    const removedId = this.activeRecordId;
+    this.records = this.records.filter((record) => record.id !== removedId);
+    this.compareIds = this.compareIds.filter((id) => id !== removedId);
+    this.activeRecordId = this.records[0].id;
+    this.saveState();
+  }
+
+  toggleCompareRecord(recordId: string): void {
+    if (this.compareIds.includes(recordId)) {
+      this.compareIds = this.compareIds.filter((id) => id !== recordId);
+    } else {
+      this.compareIds = [...this.compareIds, recordId];
+    }
+    this.saveState();
   }
 
   openReport(): void {
@@ -161,8 +237,8 @@ export class App {
     this.items.forEach((item) => {
       this.state[item.id] = { checked: false, flagged: false, expanded: false };
     });
-    this.address = '';
-    this.saveState();
+    this.activeRecord.address = '';
+    this.touchActiveRecord();
   }
 
   get reportLabel(): string {
@@ -180,32 +256,103 @@ export class App {
 
   private loadState(): void {
     try {
-      const saved = JSON.parse(localStorage.getItem('rental-buddy-state') ?? '{}') as {
-        state?: Record<string, ItemState>;
-        address?: string;
+      const saved = JSON.parse(localStorage.getItem(this.storageKey) ?? '{}') as {
+        records?: HouseRecord[];
+        activeRecordId?: string;
+        compareIds?: string[];
       };
-      this.state = saved.state ?? {};
-      this.address = saved.address ?? '';
+      this.records = (saved.records ?? []).map((record) => this.normalizeRecord(record));
+      this.activeRecordId = saved.activeRecordId ?? '';
+      this.compareIds = (saved.compareIds ?? []).filter((id) =>
+        this.records.some((record) => record.id === id)
+      );
     } catch {
-      this.state = {};
-      this.address = '';
+      this.records = [];
+      this.activeRecordId = '';
+      this.compareIds = [];
     }
 
-    this.items.forEach((item) => {
-      if (!this.state[item.id]) {
-        this.state[item.id] = { checked: false, flagged: false, expanded: false };
-      }
-    });
+    if (this.records.length === 0) {
+      const firstRecord: HouseRecord = {
+        id: this.createId(),
+        name: '看房紀錄 1',
+        address: '',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        state: this.createEmptyState()
+      };
+      this.records = [firstRecord];
+    }
+
+    if (!this.records.some((record) => record.id === this.activeRecordId)) {
+      this.activeRecordId = this.records[0].id;
+    }
+
+    this.saveState();
+  }
+
+  private touchActiveRecord(): void {
+    if (this.activeRecord) {
+      this.activeRecord.updatedAt = Date.now();
+    }
+    this.saveState();
   }
 
   private saveState(): void {
     localStorage.setItem(
-      'rental-buddy-state',
+      this.storageKey,
       JSON.stringify({
-        state: this.state,
-        address: this.address
+        records: this.records,
+        activeRecordId: this.activeRecordId,
+        compareIds: this.compareIds
       })
     );
+  }
+
+  private normalizeRecord(record: HouseRecord): HouseRecord {
+    return {
+      id: record.id,
+      name: record.name || '未命名',
+      address: record.address || '',
+      createdAt: record.createdAt || Date.now(),
+      updatedAt: record.updatedAt || Date.now(),
+      state: {
+        ...this.createEmptyState(),
+        ...(record.state ?? {})
+      }
+    };
+  }
+
+  private createEmptyState(): Record<string, ItemState> {
+    const nextState: Record<string, ItemState> = {};
+    this.items.forEach((item) => {
+      nextState[item.id] = { checked: false, flagged: false, expanded: false };
+    });
+    return nextState;
+  }
+
+  private countDoneForRecord(record: HouseRecord): number {
+    return this.items.filter((item) => record.state[item.id]?.checked).length;
+  }
+
+  private countFlaggedForRecord(record: HouseRecord): number {
+    return this.items.filter((item) => record.state[item.id]?.flagged).length;
+  }
+
+  getRecordDone(record: HouseRecord): number {
+    return this.countDoneForRecord(record);
+  }
+
+  getRecordFlagged(record: HouseRecord): number {
+    return this.countFlaggedForRecord(record);
+  }
+
+  getRecordScore(record: HouseRecord): number {
+    return Math.round((this.countDoneForRecord(record) / this.totalCount) * 100);
+  }
+
+  private createId(): string {
+    return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 }
 
@@ -220,4 +367,13 @@ interface ItemState {
   checked: boolean;
   flagged: boolean;
   expanded: boolean;
+}
+
+interface HouseRecord {
+  id: string;
+  name: string;
+  address: string;
+  createdAt: number;
+  updatedAt: number;
+  state: Record<string, ItemState>;
 }

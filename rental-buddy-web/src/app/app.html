@@ -14,12 +14,32 @@
 <header class="app-header">
   <div class="header-top">
     <div class="logo">Rental <span>Buddy</span></div>
-    <div class="progress-text">{{ doneCount }} / {{ totalCount }} 項已確認</div>
+    <div class="progress-text">{{ activeRecord.name }} · {{ doneCount }} / {{ totalCount }} 項已確認</div>
   </div>
   <div class="progress-bar-bg">
     <div class="progress-bar-fill" [style.width.%]="progressPercent"></div>
   </div>
 </header>
+
+<div class="record-card">
+  <div class="record-switch-row">
+    <select class="record-select" [ngModel]="activeRecordId" (ngModelChange)="switchRecord($event)">
+      @for (record of records; track record.id) {
+        <option [ngValue]="record.id">{{ record.name }}</option>
+      }
+    </select>
+    <button class="btn-outline small" (click)="deleteActiveRecord()">刪除</button>
+  </div>
+  <div class="record-create-row">
+    <input
+      class="record-name-input"
+      type="text"
+      [(ngModel)]="draftRecordName"
+      placeholder="新增看房紀錄名稱（例如：中山站套房）"
+    />
+    <button class="btn-primary small" (click)="createRecord()">新增</button>
+  </div>
+</div>
 
 <div class="address-card">
   <div class="address-icon">📍</div>
@@ -28,6 +48,7 @@
     type="text"
     placeholder="輸入看房地址（可選）"
     [(ngModel)]="address"
+    (ngModelChange)="address = $event"
   />
 </div>
 
@@ -49,6 +70,39 @@
     </button>
   }
 </div>
+
+<section class="compare-card">
+  <h3 class="compare-title">比較房源（可多選）</h3>
+  <div class="compare-pills">
+    @for (record of records; track record.id) {
+      <button
+        class="compare-pill"
+        [class.active]="compareIds.includes(record.id)"
+        (click)="toggleCompareRecord(record.id)"
+      >
+        {{ record.name }}
+      </button>
+    }
+  </div>
+
+  @if (canCompare) {
+    <div class="compare-grid">
+      @for (record of compareRecords; track record.id) {
+        <article class="compare-item">
+          <div class="compare-item-title">{{ record.name }}</div>
+          <div class="compare-item-sub">{{ record.address || '未填地址' }}</div>
+          <div class="compare-stats">
+            <span>完成 {{ getRecordDone(record) }}/{{ totalCount }}</span>
+            <span>問題 {{ getRecordFlagged(record) }}</span>
+            <span>分數 {{ getRecordScore(record) }}%</span>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <p class="compare-empty">至少選 2 間房才會顯示比較。</p>
+  }
+</section>
 
 <div class="content">
   @for (group of groupedItems; track group.cat) {
@@ -114,6 +168,7 @@
   <div class="modal-overlay" (click)="closeReport()">
     <div class="modal-sheet" (click)="$event.stopPropagation()">
       <h3 class="modal-title">看房評估報告</h3>
+      <p class="modal-subtitle">房源：{{ activeRecord.name }}</p>
       <p class="modal-subtitle">{{ address ? '📍 ' + address : '看房地點未填寫' }}</p>
       <div class="report-score">
         <div class="score-num">{{ progressPercent }}%</div>
