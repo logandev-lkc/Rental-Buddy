@@ -1,0 +1,134 @@
+@if (showIntro) {
+  <div class="intro-screen">
+    <div class="intro-icon">🏠</div>
+    <h1 class="intro-title">Rental Buddy<br /><span>看房不踩雷</span></h1>
+    <p class="intro-desc">
+      第一次租屋不知道要注意什麼？<br />
+      帶著這份清單去看房，逐項確認，讓你租得安心又放心。
+    </p>
+    <button class="intro-start" (click)="startApp()">開始看房</button>
+    <p class="intro-note">完全免費 · 不需要登入 · 資料存在本機</p>
+  </div>
+}
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="logo">Rental <span>Buddy</span></div>
+    <div class="progress-text">{{ doneCount }} / {{ totalCount }} 項已確認</div>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" [style.width.%]="progressPercent"></div>
+  </div>
+</header>
+
+<div class="address-card">
+  <div class="address-icon">📍</div>
+  <input
+    class="address-input"
+    type="text"
+    placeholder="輸入看房地址（可選）"
+    [(ngModel)]="address"
+  />
+</div>
+
+<div class="tabs-scroll">
+  @for (cat of categories; track cat.id) {
+    <button
+      class="tab-pill"
+      [class.active]="cat.id === currentCat"
+      (click)="setCategory(cat.id)"
+    >
+      {{ cat.label }}
+      <span class="tab-count">
+        @if (cat.id === 'all') {
+          {{ doneCount }}/{{ totalCount }}
+        } @else {
+          {{ countDoneByCategory(cat.id) }}
+        }
+      </span>
+    </button>
+  }
+</div>
+
+<div class="content">
+  @for (group of groupedItems; track group.cat) {
+    <section class="section">
+      @if (currentCat === 'all') {
+        <h2 class="section-title">{{ categoryMap[group.cat] }}</h2>
+      }
+      <div class="checklist">
+        @for (item of group.items; track item.id) {
+          <article
+            class="check-item"
+            [class.checked]="state[item.id].checked"
+            [class.flagged]="state[item.id].flagged"
+            [class.expanded]="state[item.id].expanded"
+            (click)="toggleCheck(item.id)"
+          >
+            <div class="check-box">
+              @if (state[item.id].checked) { ✓ }
+              @if (state[item.id].flagged) { ! }
+            </div>
+            <div class="item-content">
+              <div class="item-title">{{ item.title }}</div>
+              @if (state[item.id].expanded) {
+                <div class="item-tip">{{ item.tip }}</div>
+              }
+            </div>
+            <div class="item-actions">
+              <button
+                class="icon-btn"
+                [class.active]="state[item.id].flagged"
+                (click)="toggleFlag(item.id, $event)"
+              >
+                ⚑
+              </button>
+              <button
+                class="icon-btn"
+                [class.active]="state[item.id].expanded"
+                (click)="toggleExpand(item.id, $event)"
+              >
+                ?
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</div>
+
+<footer class="bottom-bar">
+  <div class="bottom-stats">
+    <div class="stat-chip good"><span class="num">{{ doneCount }}</span>已確認</div>
+    <div class="stat-chip danger"><span class="num">{{ flaggedCount }}</span>標記問題</div>
+    <div class="stat-chip"><span class="num">{{ leftCount }}</span>待確認</div>
+  </div>
+  <div class="action-row">
+    <button class="btn-outline" (click)="resetAll()">重置</button>
+    <button class="btn-primary" (click)="openReport()">查看報告</button>
+  </div>
+</footer>
+
+@if (reportOpen) {
+  <div class="modal-overlay" (click)="closeReport()">
+    <div class="modal-sheet" (click)="$event.stopPropagation()">
+      <h3 class="modal-title">看房評估報告</h3>
+      <p class="modal-subtitle">{{ address ? '📍 ' + address : '看房地點未填寫' }}</p>
+      <div class="report-score">
+        <div class="score-num">{{ progressPercent }}%</div>
+        <div class="score-label">{{ reportLabel }}</div>
+      </div>
+      @if (flaggedItems.length > 0) {
+        <div class="report-flags">
+          <div class="report-flag-title">需要注意的問題</div>
+          @for (item of flaggedItems; track item.id) {
+            <div class="flag-item">• {{ item.title }}</div>
+          }
+        </div>
+      }
+      <p class="report-summary">{{ reportSummary }}</p>
+      <button class="btn-primary" (click)="closeReport()">繼續看房</button>
+    </div>
+  </div>
+}

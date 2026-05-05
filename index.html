@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Rental Buddy — 看房不踩雷</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blush: #F9E8E0;
+      --blush-mid: #F0C4B0;
+      --rose: #D97B6C;
+      --rose-deep: #B05848;
+      --sage: #B5C4B1;
+      --sage-dark: #7A9275;
+      --cream: #FBF7F4;
+      --ink: #2C2420;
+      --ink-mid: #6B5A54;
+      --ink-light: #A8948E;
+      --white: #FFFFFF;
+      --border: rgba(44,36,32,0.08);
+      --shadow: 0 2px 20px rgba(44,36,32,0.08);
+      --radius-sm: 12px;
+      --radius: 20px;
+      --radius-lg: 28px;
+      --font-serif: 'Noto Serif TC', serif;
+      --font-sans: 'Noto Sans TC', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      padding-bottom: 120px;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(251,247,244,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px 12px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .logo {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--rose-deep);
+      letter-spacing: 0.02em;
+    }
+    .logo span { color: var(--ink); font-weight: 400; }
+
+    .progress-wrap { position: relative; }
+    .progress-bar-bg {
+      height: 6px;
+      background: var(--blush);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--rose), var(--rose-deep));
+      border-radius: 99px;
+      transition: width 0.4s cubic-bezier(.4,0,.2,1);
+    }
+    .progress-label {
+      font-size: 12px;
+      color: var(--ink-light);
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Address Input ── */
+    .address-card {
+      margin: 20px 16px 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow);
+    }
+    .address-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--blush);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+    .address-input {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--ink);
+      border: none;
+      outline: none;
+      background: transparent;
+      font-weight: 400;
+    }
+    .address-input::placeholder { color: var(--ink-light); }
+
+    /* ── Category Tabs ── */
+    .tabs-scroll {
+      display: flex;
+      gap: 8px;
+      padding: 16px 16px 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs-scroll::-webkit-scrollbar { display: none; }
+
+    .tab-pill {
+      flex-shrink: 0;
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-mid);
+      background: var(--white);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-pill.active {
+      background: var(--rose);
+      color: var(--white);
+      border-color: var(--rose);
+    }
+    .tab-pill .tab-count {
+      display: inline-block;
+      background: rgba(255,255,255,0.3);
+      border-radius: 99px;
+      padding: 0 6px;
+      margin-left: 4px;
+      font-size: 11px;
+    }
+    .tab-pill:not(.active) .tab-count {
+      background: var(--blush);
+      color: var(--rose-deep);
+    }
+
+    /* ── Section ── */
+    .section {
+      padding: 16px 16px 0;
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      color: var(--ink-mid);
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      padding-left: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      background: var(--rose);
+      border-radius: 99px;
+    }
+
+    /* ── Check Item ── */
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .check-item {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(.4,0,.2,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .check-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: transparent;
+      transition: background 0.2s;
+    }
+    .check-item.checked {
+      background: #F6FBF5;
+      border-color: var(--sage);
+    }
+    .check-item.checked::before { background: var(--sage-dark); }
+    .check-item.flagged {
+      background: #FEF6F4;
+      border-color: var(--rose);
+    }
+    .check-item.flagged::before { background: var(--rose); }
+
+    .check-item:active { transform: scale(0.98); }
+
+    .check-box {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1.5px solid var(--blush-mid);
+      background: var(--white);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      margin-top: 1px;
+    }
+    .check-item.checked .check-box {
+      background: var(--sage-dark);
+      border-color: var(--sage-dark);
+    }
+    .check-item.flagged .check-box {
+      background: var(--rose);
+      border-color: var(--rose);
+    }
+    .check-box svg { display: none; }
+    .check-item.checked .check-box svg,
+    .check-item.flagged .check-box svg { display: block; }
+
+    .item-content { flex: 1; min-width: 0; }
+    .item-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 3px;
+      line-height: 1.4;
+    }
+    .check-item.checked .item-title { color: var(--ink-mid); }
+    .item-tip {
+      font-size: 12px;
+      color: var(--ink-light);
+      line-height: 1.5;
+      display: none;
+    }
+    .check-item.expanded .item-tip { display: block; }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .flag-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: var(--ink-light);
+    }
+    .flag-btn:hover, .flag-btn.active { background: #FEF6F4; color: var(--rose); border-color: var(--blush-mid); }
+    .expand-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--ink-light);
+      font-size: 12px;
+    }
+    .expand-btn.active { background: var(--blush); color: var(--rose-deep); border-color: var(--blush-mid); }
+
+    /* ── Bottom Summary Bar ── */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(251,247,244,0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px 28px;
+    }
+    .bottom-stats {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .stat-chip {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      color: var(--ink-light);
+      background: var(--blush);
+    }
+    .stat-chip .num {
+      display: block;
+      font-size: 20px;
+      font-weight: 500;
+      font-family: var(--font-serif);
+      color: var(--ink);
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    .stat-chip.danger .num { color: var(--rose-deep); }
+    .stat-chip.good .num { color: var(--sage-dark); }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-outline {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--blush-mid);
+      background: transparent;
+      color: var(--rose-deep);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { background: var(--blush); }
+    .btn-primary {
+      flex: 2;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--rose);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: var(--rose-deep); }
+
+    /* ── Report Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(44,36,32,0.45);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      width: 100%;
+      max-height: 85dvh;
+      background: var(--cream);
+      border-radius: 28px 28px 0 0;
+      overflow-y: auto;
+      padding: 20px 20px 48px;
+      animation: slideUp 0.3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--blush-mid);
+      border-radius: 99px;
+      margin: 0 auto 20px;
+    }
+    .modal-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .modal-subtitle {
+      font-size: 13px;
+      color: var(--ink-light);
+      margin-bottom: 20px;
+    }
+    .report-score {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .score-ring {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 12px;
+      position: relative;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--rose-deep);
+    }
+    .report-flags {
+      background: #FEF6F4;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--blush-mid);
+    }
+    .report-flag-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--rose-deep);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .flag-item {
+      font-size: 13px;
+      color: var(--ink-mid);
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(209,121,108,0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flag-item:last-child { border-bottom: none; }
+    .flag-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--rose);
+      flex-shrink: 0;
+    }
+    .modal-close {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--rose);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ── Intro Screen ── */
+    .intro-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--cream);
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 32px;
+      text-align: center;
+    }
+    .intro-screen.hidden { display: none; }
+    .intro-icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+      line-height: 1;
+    }
+    .intro-title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      color: var(--ink);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .intro-title span { color: var(--rose-deep); }
+    .intro-desc {
+      font-size: 15px;
+      color: var(--ink-mid);
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+    .intro-start {
+      width: 100%;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--rose);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(217,123,108,0.4);
+    }
+    .intro-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--ink-light);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Intro Screen -->
+<div class="intro-screen" id="introScreen">
+  <div class="intro-icon">🏠</div>
+  <h1 class="intro-title">Rental Buddy<br /><span>看房不踩雷</span></h1>
+  <p class="intro-desc">
+    第一次租屋不知道要注意什麼？<br />
+    帶著這份清單去看房，<br />
+    逐項確認，讓你租得安心又放心。
+  </p>
+  <button class="intro-start" onclick="startApp()">開始看房 →</button>
+  <p class="intro-note">✦ 完全免費 · 不需要登入 · 資料存在本機</p>
+</div>
+
+<!-- Main App -->
+<header class="app-header">
+  <div class="header-top">
+    <div class="logo">Rental <span>Buddy</span></div>
+    <div style="font-size:12px;color:var(--ink-light)" id="progressText">0 / 0 項已確認</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+</header>
+
+<!-- Address -->
+<div class="address-card">
+  <div class="address-icon">📍</div>
+  <input class="address-input" type="text" placeholder="輸入看房地址（可選）" id="addressInput" />
+</div>
+
+<!-- Category Tabs -->
+<div class="tabs-scroll" id="tabsScroll">
+  <div class="tab-pill active" data-cat="all" onclick="filterCat('all', this)">全部 <span class="tab-count" id="cnt-all">0</span></div>
+  <div class="tab-pill" data-cat="contract" onclick="filterCat('contract', this)">合約條件 <span class="tab-count" id="cnt-contract">0</span></div>
+  <div class="tab-pill" data-cat="facility" onclick="filterCat('facility', this)">設備狀態 <span class="tab-count" id="cnt-facility">0</span></div>
+  <div class="tab-pill" data-cat="safety" onclick="filterCat('safety', this)">安全採光 <span class="tab-count" id="cnt-safety">0</span></div>
+  <div class="tab-pill" data-cat="living" onclick="filterCat('living', this)">生活機能 <span class="tab-count" id="cnt-living">0</span></div>
+  <div class="tab-pill" data-cat="neighbor" onclick="filterCat('neighbor', this)">環境鄰居 <span class="tab-count" id="cnt-neighbor">0</span></div>
+</div>
+
+<!-- Checklist will be rendered here -->
+<div id="checklistContainer"></div>
+
+<!-- Bottom Bar -->
+<div class="bottom-bar">
+  <div class="bottom-stats">
+    <div class="stat-chip good">
+      <span class="num" id="statDone">0</span>
+      已確認
+    </div>
+    <div class="stat-chip danger">
+      <span class="num" id="statFlag">0</span>
+      標記問題
+    </div>
+    <div class="stat-chip">
+      <span class="num" id="statLeft">0</span>
+      待確認
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="btn-outline" onclick="resetAll()">重置</button>
+    <button class="btn-primary" onclick="showReport()">查看報告 →</button>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal-overlay" id="reportModal" onclick="closeReport(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="reportTitle">看房評估報告</div>
+    <div class="modal-subtitle" id="reportAddr"></div>
+    <div class="report-score">
+      <div class="score-ring">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="#F9E8E0" stroke-width="7"/>
+          <circle cx="40" cy="40" r="34" fill="none" stroke="#D97B6C" stroke-width="7"
+            stroke-dasharray="213.6" id="scoreCircle" stroke-dashoffset="213.6"
+            stroke-linecap="round" style="transition:stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)"/>
+        </svg>
+        <div class="score-num" id="scoreNum">0%</div>
+      </div>
+      <div style="font-size:14px;color:var(--ink-mid)" id="scoreLabel">完成度</div>
+    </div>
+    <div class="report-flags" id="reportFlags" style="display:none">
+      <div class="report-flag-title">⚠️ 需要注意的問題</div>
+      <div id="flagList"></div>
+    </div>
+    <div id="reportSummary" style="font-size:14px;color:var(--ink-mid);line-height:1.7;padding:12px 0;"></div>
+    <button class="modal-close" onclick="closeModal()">繼續看房</button>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  // ── 合約條件 ──
+  { id:'c1', cat:'contract', title:'租屋補助資格', tip:'部分房東不願配合申請租屋補助，租前務必確認。目前有「青年租屋補貼」，最高每月補助 2,500 元。' },
+  { id:'c2', cat:'contract', title:'水電費計算方式', tip:'確認是「台電自訂價」還是「市價」，部分房東會以每度 5~8 元計算，遠高於台電標準價。' },
+  { id:'c3', cat:'contract', title:'押金金額', tip:'依法押金不得超過兩個月租金，超過即違法。簽約前確認押金上限與退還條件。' },
+  { id:'c4', cat:'contract', title:'管理費另計嗎', tip:'有些房子管理費要另外付，每月可能 1,000~3,000 元不等，要算入總費用。' },
+  { id:'c5', cat:'contract', title:'合約期限與違約金', tip:'確認最短租期與提前解約罰款，通常違約金為一個月租金，部分房東條件更嚴苛。' },
+  { id:'c6', cat:'contract', title:'網路費用', tip:'詢問是否含網路，若需自裝，確認大樓是否可拉線、費用誰負擔。' },
+  { id:'c7', cat:'contract', title:'可否養寵物 / 開伙', tip:'部分出租套房禁止寵物、明火炊煮，需提前確認，避免糾紛。' },
+
+  // ── 設備狀態 ──
+  { id:'f1', cat:'facility', title:'冷氣是否為變頻款', tip:'舊型定頻冷氣超耗電，一個月可能多花幾百元電費。確認品牌、型號和年份。' },
+  { id:'f2', cat:'facility', title:'熱水能持續多久', tip:'打開熱水等 30 秒，確認是否穩定。儲熱式熱水器容量小，多人使用時可能供不應求。' },
+  { id:'f3', cat:'facility', title:'飲水機 / 濾水設備', tip:'確認有無飲水機或淨水器，若無則需自購，或評估外出買水的成本。' },
+  { id:'f4', cat:'facility', title:'WiFi 是否穩定', tip:'用手機連看看速度，或詢問業者。部分老公寓牆厚，訊號差，需確認可否加裝設備。' },
+  { id:'f5', cat:'facility', title:'洗曬衣空間', tip:'確認是否有獨立洗衣機空間，若為共用洗衣機，使用時間與費用如何計算。' },
+  { id:'f6', cat:'facility', title:'廚房設備', tip:'確認有無冰箱、微波爐、瓦斯爐（或電磁爐），設備是否正常運作。' },
+  { id:'f7', cat:'facility', title:'工作空間', tip:'確認桌子大小、插座數量是否足夠，若常在家工作更要重視這點。' },
+  { id:'f8', cat:'facility', title:'停車空間', tip:'若有機車或汽車，確認停車位是否包含、費用多少，以及實際停車方便性。' },
+
+  // ── 安全採光 ──
+  { id:'s1', cat:'safety', title:'對外窗方向', tip:'避免對走廊、暗巷或通風不良的井字型格局。採光和通風直接影響居住品質。' },
+  { id:'s2', cat:'safety', title:'是否有壁癌 / 漏水', tip:'仔細檢查牆角、窗框附近是否有水漬、壁癌或油漆剝落，這是漏水的前兆。' },
+  { id:'s3', cat:'safety', title:'頂加 / 違建確認', tip:'頂樓加蓋雨天噪音大、夏天極熱，且為違建可能被拆除，租前需評估風險。' },
+  { id:'s4', cat:'safety', title:'門鎖安全性', tip:'確認大門、房門鎖的安全性，詢問是否可換鎖，以及鑰匙由誰保管。' },
+  { id:'s5', cat:'safety', title:'滅火器 / 逃生設備', tip:'公寓式社區應有滅火器，確認逃生路線是否暢通，頂樓門是否可開。' },
+  { id:'s6', cat:'safety', title:'隔音狀況', tip:'詢問鄰居作息，或實際測試聲音。薄牆隔音差，若愛睡晚或工作需要安靜需特別注意。' },
+
+  // ── 生活機能 ──
+  { id:'l1', cat:'living', title:'附近超市 / 便利商店', tip:'步行 5 分鐘內是否有採買地點，深夜是否有 24 小時便利商店，影響日常生活便利性。' },
+  { id:'l2', cat:'living', title:'通勤路線確認', tip:'實際從房子走到捷運站或公車站計時，看房最好在上下班時段，感受實際擁擠程度。' },
+  { id:'l3', cat:'living', title:'垃圾處理方式', tip:'確認垃圾車幾點來、幾天來一次，若需自己處理廚餘也要了解規定，避免衛生問題。' },
+  { id:'l4', cat:'living', title:'洗衣機排水問題', tip:'浴室是否有地排，排水是否順暢。堵塞問題非常麻煩，入住前要確認。' },
+  { id:'l5', cat:'living', title:'手機訊號強度', tip:'在房間內測試各大電信訊號，牆厚或地下樓層訊號可能很差。' },
+
+  // ── 環境鄰居 ──
+  { id:'n1', cat:'neighbor', title:'鄰居組成', tip:'詢問房東或觀察，了解鄰居是上班族、學生或長輩，作息習慣差異大可能影響睡眠。' },
+  { id:'n2', cat:'neighbor', title:'房東溝通風格', tip:'透過看房過程觀察房東是否好溝通，未來如有維修問題需要配合的對象就是他。' },
+  { id:'n3', cat:'neighbor', title:'周邊噪音來源', tip:'白天安靜不代表夜晚安靜，確認附近是否有夜市、酒吧、工地等噪音來源。' },
+  { id:'n4', cat:'neighbor', title:'大樓管理員', tip:'有管理員的社區安全性較高，也可確認包裹代收、訪客管理等服務。' },
+];
+
+let state = {};
+let currentCat = 'all';
+
+function startApp() {
+  document.getElementById('introScreen').classList.add('hidden');
+  loadState();
+  render();
+  updateStats();
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('rental-state') || '{}');
+    state = saved;
+  } catch(e) { state = {}; }
+  DATA.forEach(d => {
+    if (!state[d.id]) state[d.id] = { checked: false, flagged: false, expanded: false };
+  });
+}
+
+function saveState() {
+  try { localStorage.setItem('rental-state', JSON.stringify(state)); } catch(e) {}
+}
+
+function render() {
+  const container = document.getElementById('checklistContainer');
+  const cats = { contract:'合約條件', facility:'設備狀態', safety:'安全採光', living:'生活機能', neighbor:'環境鄰居' };
+  const filtered = currentCat === 'all' ? DATA : DATA.filter(d => d.cat === currentCat);
+
+  // Group by category
+  const groups = {};
+  filtered.forEach(d => {
+    if (!groups[d.cat]) groups[d.cat] = [];
+    groups[d.cat].push(d);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([cat, items]) => {
+    if (currentCat === 'all') {
+      html += `<div class="section"><div class="section-title">${cats[cat]}</div><div class="checklist">`;
+    } else {
+      html += `<div class="section"><div class="checklist">`;
+    }
+    items.forEach(item => {
+      const s = state[item.id] || {};
+      const checkedClass = s.checked ? 'checked' : '';
+      const flaggedClass = s.flagged ? 'flagged' : '';
+      const expandedClass = s.expanded ? 'expanded' : '';
+      const svgCheck = s.checked
+        ? `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        : s.flagged
+        ? `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v4M6 8.5v1" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>`
+        : '';
+      html += `
+        <div class="check-item ${checkedClass} ${flaggedClass} ${expandedClass}" id="item-${item.id}" onclick="toggleCheck('${item.id}')">
+          <div class="check-box">${svgCheck}</div>
+          <div class="item-content">
+            <div class="item-title">${item.title}</div>
+            <div class="item-tip">${item.tip}</div>
+          </div>
+          <div class="item-actions" onclick="event.stopPropagation()">
+            <button class="flag-btn ${s.flagged ? 'active' : ''}" onclick="toggleFlag('${item.id}')" title="標記問題">⚑</button>
+            <button class="expand-btn ${s.expanded ? 'active' : ''}" onclick="toggleExpand('${item.id}')" title="說明">?</button>
+          </div>
+        </div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `<div style="height:8px"></div>`;
+  container.innerHTML = html;
+  updateTabCounts();
+}
+
+function toggleCheck(id) {
+  const s = state[id];
+  s.checked = !s.checked;
+  if (s.checked) s.flagged = false;
+  saveState();
+  render();
+  updateStats();
+}
+
+function toggleFlag(id) {
+  const s = state[id];
+  s.flagged = !s.flagged;
+  if (s.flagged) s.checked = false;
+  saveState();
+  render();
+  updateStats();
+}
+
+function toggleExpand(id) {
+  state[id].expanded = !state[id].expanded;
+  saveState();
+  render();
+}
+
+function filterCat(cat, el) {
+  currentCat = cat;
+  document.querySelectorAll('.tab-pill').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function updateStats() {
+  const total = DATA.length;
+  const done = DATA.filter(d => state[d.id]?.checked).length;
+  const flags = DATA.filter(d => state[d.id]?.flagged).length;
+  const left = total - done - flags;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statFlag').textContent = flags;
+  document.getElementById('statLeft').textContent = left;
+  document.getElementById('progressText').textContent = `${done} / ${total} 項已確認`;
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function updateTabCounts() {
+  const cats = ['contract','facility','safety','living','neighbor'];
+  let allDone = 0;
+  cats.forEach(cat => {
+    const items = DATA.filter(d => d.cat === cat);
+    const done = items.filter(d => state[d.id]?.checked).length;
+    allDone += done;
+    document.getElementById(`cnt-${cat}`).textContent = `${done}/${items.length}`;
+  });
+  document.getElementById('cnt-all').textContent = `${allDone}/${DATA.length}`;
+}
+
+function showReport() {
+  const total = DATA.length;
+  const done = DATA.filter(d => state[d.id]?.checked).length;
+  const flagged = DATA.filter(d => state[d.id]?.flagged);
+  const pct = Math.round((done / total) * 100);
+  const addr = document.getElementById('addressInput').value;
+
+  document.getElementById('reportAddr').textContent = addr ? `📍 ${addr}` : '看房地點未填寫';
+  document.getElementById('scoreNum').textContent = pct + '%';
+  const circumference = 213.6;
+  const offset = circumference - (pct / 100) * circumference;
+  setTimeout(() => {
+    document.getElementById('scoreCircle').style.strokeDashoffset = offset;
+  }, 100);
+
+  let label = '';
+  if (pct >= 80) label = '✨ 確認相當完整，可以好好評估這間！';
+  else if (pct >= 50) label = '👍 已確認大半，記得補完剩餘項目';
+  else label = '⚠️ 還有許多項目未確認，繼續加油！';
+  document.getElementById('scoreLabel').textContent = label;
+
+  const flagsEl = document.getElementById('reportFlags');
+  const flagList = document.getElementById('flagList');
+  if (flagged.length > 0) {
+    flagsEl.style.display = 'block';
+    flagList.innerHTML = flagged.map(d => `<div class="flag-item"><div class="flag-dot"></div>${d.title}</div>`).join('');
+  } else {
+    flagsEl.style.display = 'none';
+  }
+
+  const summary = flagged.length === 0
+    ? `目前沒有標記任何問題，但請記得回頭確認所有項目。租屋是大事，每一項都值得仔細了解。`
+    : `有 ${flagged.length} 個項目被標記為需要注意，租屋前建議與房東進一步溝通確認，或考慮其他選項。`;
+  document.getElementById('reportSummary').textContent = summary;
+
+  document.getElementById('reportModal').classList.add('open');
+}
+
+function closeReport(e) {
+  if (e.target === e.currentTarget) closeModal();
+}
+function closeModal() {
+  document.getElementById('reportModal').classList.remove('open');
+}
+
+function resetAll() {
+  if (!confirm('確定要重置所有勾選記錄嗎？')) return;
+  DATA.forEach(d => { state[d.id] = { checked: false, flagged: false, expanded: false }; });
+  document.getElementById('addressInput').value = '';
+  saveState();
+  render();
+  updateStats();
+}
+</script>
+</body>
+</html>
