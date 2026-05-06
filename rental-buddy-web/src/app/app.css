@@ -1544,6 +1544,97 @@
     margin-right: auto;
     border-radius: 50%;
   }
+
+  .report-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .print-sheet--preview {
+    max-width: 100%;
+    padding: 10px;
+  }
+
+  .print-sheet--preview .print-head {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .print-sheet--preview .print-brand-name {
+    font-size: 28px;
+  }
+
+  .print-sheet--preview .print-meta {
+    border-left: 0;
+    border-top: 1px solid rgba(44, 36, 32, 0.35);
+    padding-left: 0;
+    padding-top: 8px;
+  }
+
+  .print-sheet--preview .print-meta-row {
+    grid-template-columns: 52px 1fr;
+    font-size: 11px;
+  }
+
+  .print-sheet--preview .print-score {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .print-sheet--preview .print-score-num {
+    font-size: 30px;
+  }
+
+  .print-sheet--preview .print-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .print-sheet--preview .print-card {
+    padding: 8px;
+    overflow-x: auto;
+  }
+
+  .print-sheet--preview .print-card-title {
+    margin: -8px -8px 8px;
+  }
+
+  .print-sheet--preview .print-kpis {
+    gap: 6px;
+  }
+
+  .print-sheet--preview .print-kpi .n {
+    font-size: 18px;
+  }
+
+  .print-sheet--preview .print-eval-main {
+    font-size: 16px;
+  }
+
+  .print-sheet--preview .print-table {
+    font-size: 11px;
+    min-width: 430px;
+  }
+
+  .print-sheet--preview .print-table th,
+  .print-sheet--preview .print-table td {
+    padding: 4px 5px;
+  }
+
+  .print-sheet--preview .print-radar-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .print-sheet--preview .print-radar {
+    display: flex;
+    justify-content: center;
+  }
+
+  .print-sheet--preview .print-radar-svg {
+    width: 220px;
+    height: 220px;
+  }
 }
 
 @media (min-width: 768px) {
