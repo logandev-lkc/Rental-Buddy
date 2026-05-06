@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "ng serve --poll 1000",
     "build": "ng build",
+    "build:gh": "BASE_HREF=${BASE_HREF:-/Rental-Buddy/} && ng build --configuration production --base-href \"$BASE_HREF\"",
+    "deploy:gh": "npm run build:gh && rm -rf ../docs && mkdir -p ../docs && cp -R dist/rental-buddy-web/browser/* ../docs/",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

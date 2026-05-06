@@ -36,8 +36,8 @@ rental-buddy/
 - **5 大分類**：合約條件、設備狀態、安全採光、生活機能、環境鄰居
 - **30 個檢查項目**：每項都有說明，點 `?` 展開
 - **三種狀態**：待確認 / 已確認（✓） / 標記問題（⚑）
-- **看房報告**：手機友善版房屋評價 + 可切換 InBody 精簡版
-- **PDF 匯出**：只匯出 InBody 精簡版，適合留存或分享
+- **看房報告**：手機友善版房屋評價 + 可切換 精簡版
+- **PDF 匯出**：只匯出 精簡版，適合留存或分享
 - **100 分制評等**：A/B/C 等級輔助判斷房源適配度
 - **本機儲存**：使用 localStorage，不需後端
 
@@ -45,7 +45,7 @@ rental-buddy/
 
 1. 在 `查核表` 填寫看房紀錄、地址、月租金與檢查項目。
 2. 點 `查看報告` 進入手機友善版報告。
-3. 在報告內切換 `InBody 精簡版` 可預覽正式文件版面。
+3. 在報告內切換 `精簡版` 可預覽正式文件版面。
 4. 點 `匯出文件（PDF）`，瀏覽器列印視窗會只輸出精簡版。
 
 ## 開發注意
@@ -102,11 +102,17 @@ rental-buddy/
 ## 部署
 
 ```bash
-# GitHub Pages
-git init && git add . && git commit -m "init"
-git remote add origin https://github.com/你的帳號/rental-buddy.git
-git push -u origin main
-# 到 Settings > Pages > Deploy from branch: main
+# GitHub Pages（main + /docs）
+# 1) 先到 Settings > Pages 設定 Source = main /docs
+# 2) 每次更新網頁只要跑：
+cd rental-buddy-web
+npm run deploy:gh
+
+# 3) 回到 repo root 後提交 docs
+cd ..
+git add docs
+git commit -m "deploy: update github pages build"
+git push
 
 # Vercel（推薦）
 npx vercel --prod

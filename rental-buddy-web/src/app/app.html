@@ -114,13 +114,13 @@
       [class.active]="reportViewMode === 'compact'"
       (click)="setReportViewMode('compact')"
     >
-      InBody 精簡版
+      精簡版
     </button>
   </div>
 </div>
 
 <section class="report-page" id="reportExportArea">
-  <!-- 列印/存 PDF 用：結構化文件版面（像 InBody 那種表格/分欄） -->
+  <!-- 列印/存 PDF 用：結構化文件版面（像檢驗單那種表格/分欄） -->
   <section class="print-sheet" [class.print-sheet--preview]="reportViewMode === 'compact'" aria-label="列印版報告">
     <header class="print-head">
       <div class="print-brand">
