@@ -27,6 +27,15 @@ export class App {
     neighbor: '環境鄰居'
   };
 
+  // 5 個分類對應到「五角形」雷達圖軸
+  readonly radarAxisIds = ['contract', 'facility', 'safety', 'living', 'neighbor'] as const;
+  readonly radarRingRatios = [0.25, 0.5, 0.75] as const;
+  /** 比較雷達圖：色相差距大，避免紅棕綠相近難辨識 */
+  readonly radarColors = ['#D97B6C', '#2563EB', '#059669', '#CA8A04', '#7C3AED'];
+
+  readonly radarCenter = 150;
+  readonly radarRadius = 86;
+
   readonly items: ChecklistItem[] = [
     { id: 'c1', cat: 'contract', title: '租屋補助資格', tip: '部分房東不願配合申請租屋補助，租前務必確認。' },
     { id: 'c2', cat: 'contract', title: '水電費計算方式', tip: '確認是台電計價或房東自訂價。' },
@@ -65,8 +74,8 @@ export class App {
   compareIds: string[] = [];
   draftRecordName = '';
   currentCat = 'all';
+  currentPage: 'checklist' | 'report' = 'checklist';
   showIntro = true;
-  reportOpen = false;
 
   constructor() {
     this.loadState();
@@ -102,6 +111,14 @@ export class App {
 
   get canCompare(): boolean {
     return this.compareRecords.length >= 2;
+  }
+
+  get chartRecords(): HouseRecord[] {
+    const ids = [this.activeRecord.id, ...this.compareRecords.map((r) => r.id)];
+    const uniqIds = Array.from(new Set(ids)).slice(0, 3);
+    return uniqIds
+      .map((id) => this.records.find((record) => record.id === id))
+      .filter((record): record is HouseRecord => Boolean(record));
   }
 
   get filteredItems(): ChecklistItem[] {
@@ -148,6 +165,10 @@ export class App {
     this.currentCat = cat;
   }
 
+  setPage(page: 'checklist' | 'report'): void {
+    this.currentPage = page;
+  }
+
   toggleCheck(id: string): void {
     const current = this.state[id];
     if (!current) return;
@@ -170,6 +191,13 @@ export class App {
     const current = this.state[id];
     if (!current) return;
     current.expanded = !current.expanded;
+    this.touchActiveRecord();
+  }
+
+  updateItemNote(id: string, note: string): void {
+    const current = this.state[id];
+    if (!current) return;
+    current.note = note;
     this.touchActiveRecord();
   }
 
@@ -224,18 +252,14 @@ export class App {
     this.saveState();
   }
 
-  openReport(): void {
-    this.reportOpen = true;
-  }
-
-  closeReport(): void {
-    this.reportOpen = false;
+  openReportPage(): void {
+    this.currentPage = 'report';
   }
 
   resetAll(): void {
     if (!window.confirm('確定要重置所有勾選記錄嗎？')) return;
     this.items.forEach((item) => {
-      this.state[item.id] = { checked: false, flagged: false, expanded: false };
+      this.state[item.id] = { checked: false, flagged: false, expanded: false, note: '' };
     });
     this.activeRecord.address = '';
     this.touchActiveRecord();
@@ -252,6 +276,130 @@ export class App {
       return '目前沒有標記問題，建議把剩餘項目也檢查完再做決定。';
     }
     return `目前有 ${this.flaggedCount} 個項目需注意，建議與房東逐項確認。`;
+  }
+
+  /** 報告頁螢幕版：根據房屋條件產生綜合評價（匯出正式版會隱藏） */
+  get reportEvaluationTitle(): string {
+    const weak = this.reportWeakCategoryLabels;
+    const strong = this.reportStrongCategoryLabels;
+
+    if (this.progressPercent < 35) return '資料不足，暫時不建議下結論';
+    if (this.flaggedCount === 0 && this.progressPercent >= 85) return '非常合適的租屋選項';
+    if (weak.length === 0 && strong.length >= 3 && this.progressPercent >= 70) return '整體條件均衡，值得優先考慮';
+    if (weak.length > 0 && strong.length > 0) return `${weak[0]}需留意，${strong[0]}表現不錯`;
+    if (weak.length > 0) return `${weak[0]}是主要風險`;
+    if (this.progressPercent >= 60) return '條件大致達標，可以列入候選';
+    return '條件尚未明朗，需要再確認';
+  }
+
+  get reportEvaluationDesc(): string {
+    const weak = this.reportWeakCategoryLabels;
+    const strong = this.reportStrongCategoryLabels;
+    const pendingText = this.leftCount > 0 ? `另有 ${this.leftCount} 項尚未確認，建議補齊後再做最後決定。` : '';
+
+    if (this.progressPercent < 35) {
+      return `目前只完成 ${this.doneCount} 項，資訊還不足以判斷這間房是否合適。建議先補完合約、設備、安全與生活機能等關鍵項目。`;
+    }
+
+    if (this.flaggedCount === 0 && this.progressPercent >= 85) {
+      return `各項標準大多達標，且目前沒有明顯問題，是非常合適的租屋選項。恭喜你，可以把這間列為高優先候選。${pendingText}`;
+    }
+
+    if (weak.includes('生活機能') && strong.length > 0) {
+      return `生活機能不佳，但${this.formatCategoryList(strong)}表現不錯；如果你有自己的交通工具，或能接受通勤與採買成本，仍是可以考慮的選擇。${pendingText}`;
+    }
+
+    if (weak.includes('環境鄰居') && strong.length > 0) {
+      return `環境與鄰居條件需要特別留意，但${this.formatCategoryList(strong)}相對加分；若噪音、鄰里或管理問題不是你的硬性地雷，可以列入備選。${pendingText}`;
+    }
+
+    if (weak.length > 0 && strong.length > 0) {
+      return `${this.formatCategoryList(weak)}較不理想，但${this.formatCategoryList(strong)}表現不錯。若這些缺點能接受或可改善，這間仍有考慮空間；反之建議優先比較其他房源。${pendingText}`;
+    }
+
+    if (weak.length > 0) {
+      return `${this.formatCategoryList(weak)}出現較多疑慮，這間房目前不宜直接決定。建議向房東確認原因、改善方式與是否能寫進合約。${pendingText}`;
+    }
+
+    if (strong.length > 0) {
+      return `${this.formatCategoryList(strong)}達標度高，整體條件不錯，可以列入候選名單。${pendingText}`;
+    }
+
+    return `目前沒有特別突出的優勢或重大缺點，屬於中性選項。建議用比較功能和其他房源並排評估。${pendingText}`;
+  }
+
+  private get reportStrongCategoryLabels(): string[] {
+    return this.getCategoryEvaluationStats()
+      .filter((stat) => stat.doneRatio >= 0.7 && stat.flaggedRatio <= 0.15)
+      .sort((a, b) => b.doneRatio - a.doneRatio)
+      .map((stat) => stat.label);
+  }
+
+  private get reportWeakCategoryLabels(): string[] {
+    return this.getCategoryEvaluationStats()
+      .filter((stat) => stat.flaggedRatio >= 0.25 || stat.flagged >= 2 || stat.doneRatio < 0.35)
+      .sort((a, b) => b.flaggedRatio - a.flaggedRatio || a.doneRatio - b.doneRatio)
+      .map((stat) => stat.label);
+  }
+
+  private getCategoryEvaluationStats(): CategoryEvaluationStat[] {
+    return this.radarAxisIds.map((axisId) => {
+      const items = this.items.filter((item) => item.cat === axisId);
+      const done = items.filter((item) => this.state[item.id]?.checked).length;
+      const flagged = items.filter((item) => this.state[item.id]?.flagged).length;
+      const total = Math.max(items.length, 1);
+      return {
+        label: this.categoryMap[axisId],
+        done,
+        flagged,
+        doneRatio: done / total,
+        flaggedRatio: flagged / total
+      };
+    });
+  }
+
+  private formatCategoryList(labels: string[]): string {
+    const picked = labels.slice(0, 2);
+    if (picked.length === 0) return '整體條件';
+    return picked.join('、');
+  }
+
+  /** 雷達強項拆成標籤，螢幕版快速閱讀用 */
+  get reportStrengthChips(): string[] {
+    const raw = this.getRadarStrengthText(this.activeRecord);
+    if (!raw || raw === '—') return [];
+    return raw
+      .split('、')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+  }
+
+  get reportPros(): ReportRow[] {
+    return this.items
+      .filter((item) => this.state[item.id]?.checked)
+      .map((item) => ({
+        title: item.title,
+        note: this.state[item.id]?.note?.trim() || ''
+      }));
+  }
+
+  get reportCons(): ReportRow[] {
+    return this.items
+      .filter((item) => this.state[item.id]?.flagged)
+      .map((item) => ({
+        title: item.title,
+        note: this.state[item.id]?.note?.trim() || ''
+      }));
+  }
+
+  get reportPending(): ReportRow[] {
+    return this.items
+      .filter((item) => !this.state[item.id]?.checked && !this.state[item.id]?.flagged)
+      .map((item) => ({
+        title: item.title,
+        note: this.state[item.id]?.note?.trim() || ''
+      }));
   }
 
   private loadState(): void {
@@ -326,7 +474,7 @@ export class App {
   private createEmptyState(): Record<string, ItemState> {
     const nextState: Record<string, ItemState> = {};
     this.items.forEach((item) => {
-      nextState[item.id] = { checked: false, flagged: false, expanded: false };
+      nextState[item.id] = { checked: false, flagged: false, expanded: false, note: '' };
     });
     return nextState;
   }
@@ -351,6 +499,163 @@ export class App {
     return Math.round((this.countDoneForRecord(record) / this.totalCount) * 100);
   }
 
+  getRadarValues(record: HouseRecord): number[] {
+    return this.radarAxisIds.map((axisId) => this.getRecordCategoryCompletionRatio(record, axisId));
+  }
+
+  getRadarPolygonPoints(values: number[]): string {
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    // SVG 座標 y 往下為正，所以用 -PI/2 讓第 1 軸朝上。
+    const start = -Math.PI / 2;
+    return values
+      .map((v, i) => {
+        const angle = start + i * step;
+        const r = this.radarRadius * v;
+        const x = this.radarCenter + r * Math.cos(angle);
+        const y = this.radarCenter + r * Math.sin(angle);
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(' ');
+  }
+
+  getRadarPointsAtRatio(ratio: number): string {
+    const n = this.radarAxisIds.length;
+    const values = Array.from({ length: n }, () => ratio);
+    return this.getRadarPolygonPoints(values);
+  }
+
+  getRecordCategoryCompletionRatio(record: HouseRecord, axisId: string): number {
+    const catItems = this.items.filter((item) => item.cat === axisId);
+    if (catItems.length === 0) return 0;
+    const done = catItems.filter((item) => record.state[item.id]?.checked).length;
+    return done / catItems.length;
+  }
+
+  getRadarAxisXEnd(axisId: string): number {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const x = this.radarCenter + this.radarRadius * Math.cos(angle);
+    return x;
+  }
+
+  getRadarAxisYEnd(axisId: string): number {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const y = this.radarCenter + this.radarRadius * Math.sin(angle);
+    return y;
+  }
+
+  getRadarAxisXLabel(axisId: string): number {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const labelR = this.radarRadius + 18;
+    return this.radarCenter + labelR * Math.cos(angle);
+  }
+
+  getRadarAxisYLabel(axisId: string): number {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const labelR = this.radarRadius + 18;
+    return this.radarCenter + labelR * Math.sin(angle);
+  }
+
+  getRadarAxisLabelAnchor(axisId: string): string {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const cos = Math.cos(angle);
+    if (cos > 0.35) return 'start';
+    if (cos < -0.35) return 'end';
+    return 'middle';
+  }
+
+  private getRadarRanked(record: HouseRecord): Array<{ axisId: string; pct: number }> {
+    return this.radarAxisIds
+      .map((axisId) => ({
+        axisId,
+        pct: Math.round(this.getRecordCategoryCompletionRatio(record, axisId) * 100)
+      }))
+      .sort((a, b) => b.pct - a.pct);
+  }
+
+  getRadarStrengthText(record: HouseRecord): string {
+    const ranked = this.getRadarRanked(record);
+    const top = ranked.slice(0, 2);
+    if (top.length === 0) return '—';
+    return top.map((x) => `${this.categoryMap[x.axisId]} ${x.pct}%`).join('、');
+  }
+
+  getRadarWeaknessText(record: HouseRecord): string {
+    const ranked = this.getRadarRanked(record);
+    const bottom = ranked.slice(-2).reverse();
+    if (bottom.length === 0) return '—';
+    return bottom.map((x) => `${this.categoryMap[x.axisId]} ${x.pct}%`).join('、');
+  }
+
+  /** 同一房源在所有區塊（pill / 雷達）固定同色，不依「目前選誰」改變 */
+  getRadarColorForRecord(record: HouseRecord): string {
+    const idx = this.records.findIndex((r) => r.id === record.id);
+    return this.radarColors[(idx >= 0 ? idx : 0) % this.radarColors.length];
+  }
+
+  /** 疊在一起時用虛線樣式再區分（第一條實線） */
+  getRadarStrokeDash(record: HouseRecord): string | null {
+    const idx = this.chartRecords.findIndex((r) => r.id === record.id);
+    if (idx <= 0) return null;
+    if (idx === 1) return '10 7';
+    if (idx === 2) return '4 5';
+    return '2 4';
+  }
+
+  getRadarStrokeWidth(record: HouseRecord): number {
+    const idx = this.chartRecords.findIndex((r) => r.id === record.id);
+    return idx === 0 ? 2.4 : 2;
+  }
+
+  async exportReportAsDocument(): Promise<void> {
+    const reportElement = document.getElementById('reportExportArea');
+    if (!reportElement) return;
+
+    reportElement.classList.add('report-export-formal');
+    document.body.classList.add('printing-report');
+    const previousTitle = document.title;
+    document.title = `${this.activeRecord.name}-report`;
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+
+    const cleanup = (): void => {
+      reportElement.classList.remove('report-export-formal');
+      document.body.classList.remove('printing-report');
+      document.title = previousTitle;
+      window.removeEventListener('afterprint', cleanup);
+    };
+
+    window.addEventListener('afterprint', cleanup, { once: true });
+
+    try {
+      window.print();
+    } catch {
+      cleanup();
+    }
+  }
+
   private createId(): string {
     return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
@@ -367,6 +672,7 @@ interface ItemState {
   checked: boolean;
   flagged: boolean;
   expanded: boolean;
+  note: string;
 }
 
 interface HouseRecord {
@@ -376,4 +682,17 @@ interface HouseRecord {
   createdAt: number;
   updatedAt: number;
   state: Record<string, ItemState>;
+}
+
+interface ReportRow {
+  title: string;
+  note: string;
+}
+
+interface CategoryEvaluationStat {
+  label: string;
+  done: number;
+  flagged: number;
+  doneRatio: number;
+  flaggedRatio: number;
 }

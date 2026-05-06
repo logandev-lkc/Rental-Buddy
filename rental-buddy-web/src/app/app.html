@@ -19,8 +19,13 @@
   <div class="progress-bar-bg">
     <div class="progress-bar-fill" [style.width.%]="progressPercent"></div>
   </div>
+  <div class="page-switch">
+    <button class="page-btn" [class.active]="currentPage === 'checklist'" (click)="setPage('checklist')">查核表</button>
+    <button class="page-btn" [class.active]="currentPage === 'report'" (click)="setPage('report')">報告</button>
+  </div>
 </header>
 
+@if (currentPage === 'checklist') {
 <div class="record-card">
   <div class="record-switch-row">
     <select class="record-select" [ngModel]="activeRecordId" (ngModelChange)="switchRecord($event)">
@@ -51,7 +56,9 @@
     (ngModelChange)="address = $event"
   />
 </div>
+}
 
+@if (currentPage === 'checklist') {
 <div class="tabs-scroll">
   @for (cat of categories; track cat.id) {
     <button
@@ -70,17 +77,82 @@
     </button>
   }
 </div>
+}
 
-<section class="compare-card">
-  <h3 class="compare-title">比較房源（可多選）</h3>
+@if (currentPage === 'report') {
+<div class="report-toolbar">
+  <div class="report-record-switch">
+    <label class="report-record-label">目前報告紀錄</label>
+    <select class="record-select" [ngModel]="activeRecordId" (ngModelChange)="switchRecord($event)">
+      @for (record of records; track record.id) {
+        <option [ngValue]="record.id">{{ record.name }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+<section class="report-page" id="reportExportArea">
+  <div class="report-hero">
+    <div class="report-hero-main">
+      <div class="report-kicker">
+        <span class="report-kicker-fun">這間房的綜合評價</span>
+        <span class="report-kicker-doc">Rental Buddy 看房報告</span>
+      </div>
+      <h2 class="report-name">{{ activeRecord.name }}</h2>
+      <div class="report-evaluation" aria-label="房屋綜合評價">
+        <p class="report-evaluation-label">房屋評價</p>
+        <p class="report-evaluation-type">{{ reportEvaluationTitle }}</p>
+        <p class="report-evaluation-desc">{{ reportEvaluationDesc }}</p>
+      </div>
+      <p class="report-address">{{ address || '看房地點未填寫' }}</p>
+      <p class="report-updated">最後更新：{{ activeRecord.updatedAt | date:'yyyy/MM/dd HH:mm' }}</p>
+    </div>
+    <div class="report-score-badge">
+      <span class="report-score-num">{{ progressPercent }}%</span>
+      <span class="report-score-text">完成度</span>
+    </div>
+  </div>
+
+  <div class="report-summary-grid">
+    <div class="report-summary-chip good">
+      <span>{{ doneCount }}</span>
+      已確認
+    </div>
+    <div class="report-summary-chip danger">
+      <span>{{ flaggedCount }}</span>
+      標記問題
+    </div>
+    <div class="report-summary-chip">
+      <span>{{ leftCount }}</span>
+      待確認
+    </div>
+  </div>
+
+  <p class="report-callout">{{ reportSummary }}</p>
+
+  @if (reportStrengthChips.length > 0) {
+    <div class="report-spark-row" aria-label="雷達強項摘要">
+      @for (chip of reportStrengthChips; track chip) {
+        <span class="report-spark-chip">{{ chip }}</span>
+      }
+    </div>
+  }
+
+  <section class="report-section">
+  <h3 class="compare-title">{{ canCompare ? '已選來比較的房源' : '比較房源（可多選）' }}</h3>
+  @if (!canCompare) {
+    <p class="compare-hint">勾選至少 2 間，就會顯示並列比較與雷達圖。</p>
+  }
   <div class="compare-pills">
     @for (record of records; track record.id) {
       <button
+        type="button"
         class="compare-pill"
         [class.active]="compareIds.includes(record.id)"
         (click)="toggleCompareRecord(record.id)"
       >
-        {{ record.name }}
+        <span class="compare-pill-dot" [style.backgroundColor]="getRadarColorForRecord(record)"></span>
+        <span class="compare-pill-label">{{ record.name }}</span>
       </button>
     }
   </div>
@@ -102,8 +174,207 @@
   } @else {
     <p class="compare-empty">至少選 2 間房才會顯示比較。</p>
   }
-</section>
+  </section>
 
+  <section class="report-section radar-wrap">
+    <h3 class="compare-title radar-section-title" style="margin-bottom: 10px;">
+      <span class="radar-title-fun">租屋五維雷達</span>
+      <span class="radar-title-doc">五角形分布圖（各分類完成度）</span>
+    </h3>
+
+    <div class="radar-legend">
+      @for (record of chartRecords; track record.id) {
+        <div class="radar-legend-item">
+          <span class="radar-swatch" [style.backgroundColor]="getRadarColorForRecord(record)"></span>
+          {{ record.name }}
+        </div>
+      }
+    </div>
+
+    <div class="radar-svg-wrap">
+      <svg class="radar-svg" viewBox="0 0 300 300" aria-label="Radar chart">
+        <!-- grid rings -->
+        <polygon
+          [attr.points]="getRadarPointsAtRatio(0.25)"
+          fill="none"
+          stroke="rgba(44,36,32,0.08)"
+          stroke-width="1"
+        />
+        <polygon
+          [attr.points]="getRadarPointsAtRatio(0.5)"
+          fill="none"
+          stroke="rgba(44,36,32,0.08)"
+          stroke-width="1"
+        />
+        <polygon
+          [attr.points]="getRadarPointsAtRatio(0.75)"
+          fill="none"
+          stroke="rgba(44,36,32,0.08)"
+          stroke-width="1"
+        />
+        <polygon
+          [attr.points]="getRadarPointsAtRatio(1)"
+          fill="none"
+          stroke="rgba(44,36,32,0.14)"
+          stroke-width="1.2"
+        />
+
+        <!-- axes + labels -->
+        @for (axisId of radarAxisIds; track axisId) {
+          <line
+            [attr.x1]="radarCenter"
+            [attr.y1]="radarCenter"
+            [attr.x2]="getRadarAxisXEnd(axisId)"
+            [attr.y2]="getRadarAxisYEnd(axisId)"
+            stroke="rgba(44,36,32,0.10)"
+            stroke-width="1"
+          />
+          <text
+            class="radar-label-text"
+            [attr.x]="getRadarAxisXLabel(axisId)"
+            [attr.y]="getRadarAxisYLabel(axisId)"
+            [attr.text-anchor]="getRadarAxisLabelAnchor(axisId)"
+          >
+            {{ categoryMap[axisId] }}
+          </text>
+        }
+
+        <!-- record polygons -->
+        @for (record of chartRecords; track record.id) {
+          <polygon
+            [attr.points]="getRadarPolygonPoints(getRadarValues(record))"
+            [attr.fill]="getRadarColorForRecord(record)"
+            fill-opacity="0.16"
+            [attr.stroke-width]="getRadarStrokeWidth(record)"
+            [attr.stroke]="getRadarColorForRecord(record)"
+            [attr.stroke-dasharray]="getRadarStrokeDash(record)"
+          />
+        }
+      </svg>
+    </div>
+
+    <div class="radar-analysis">
+      @for (record of chartRecords; track record.id) {
+        <div class="radar-analysis-item">
+          <div class="radar-analysis-name">{{ record.name }}</div>
+          <div class="radar-analysis-line">強項：{{ getRadarStrengthText(record) }}</div>
+          <div class="radar-analysis-line">弱點：{{ getRadarWeaknessText(record) }}</div>
+          <div class="radar-analysis-line sub">標記問題：{{ getRecordFlagged(record) }} 個</div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="report-section detail-report">
+    <div class="detail-report-head">
+      <h3 class="compare-title">詳細分析</h3>
+      <p class="detail-report-sub">
+        <span class="detail-sub-fun">像測驗結果一樣快速掃描；有寫備註的會幫你放大顯示。</span>
+        <span class="detail-sub-doc">依查核狀態與你寫的備註整理，匯出時也會一併帶出。</span>
+      </p>
+    </div>
+
+    <section class="detail-block detail-block--pro">
+      <div class="detail-block-head">
+        <div class="detail-block-title-wrap">
+          <span class="detail-block-icon" aria-hidden="true">✓</span>
+          <span class="detail-title">優點（已確認）</span>
+        </div>
+        <span class="detail-count">{{ reportPros.length }} 項</span>
+      </div>
+      @if (reportPros.length > 0) {
+        <div class="detail-list">
+          @for (row of reportPros; track row.title; let i = $index) {
+            <article class="detail-item detail-item--pro">
+              <div class="detail-item-title-row">
+                <span class="detail-item-index">{{ i + 1 }}</span>
+                <span class="detail-item-title-text">{{ row.title }}</span>
+              </div>
+              @if (row.note) {
+                <div class="detail-item-note-box">
+                  <span class="detail-item-note-label">現場備註</span>
+                  <p class="detail-item-note-text">{{ row.note }}</p>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="detail-empty">目前尚無已確認項目。</div>
+      }
+    </section>
+
+    <section class="detail-block detail-block--con">
+      <div class="detail-block-head">
+        <div class="detail-block-title-wrap">
+          <span class="detail-block-icon detail-block-icon--warn" aria-hidden="true">!</span>
+          <span class="detail-title danger">缺點（標記問題）</span>
+        </div>
+        <span class="detail-count detail-count--danger">{{ reportCons.length }} 項</span>
+      </div>
+      @if (reportCons.length > 0) {
+        <div class="detail-list">
+          @for (row of reportCons; track row.title; let i = $index) {
+            <article class="detail-item detail-item--con">
+              <div class="detail-item-title-row">
+                <span class="detail-item-index detail-item-index--con">{{ i + 1 }}</span>
+                <span class="detail-item-title-text">{{ row.title }}</span>
+              </div>
+              @if (row.note) {
+                <div class="detail-item-note-box detail-item-note-box--con">
+                  <span class="detail-item-note-label">現場備註</span>
+                  <p class="detail-item-note-text">{{ row.note }}</p>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="detail-empty">目前未標記缺點。</div>
+      }
+    </section>
+
+    <section class="detail-block detail-block--pending">
+      <div class="detail-block-head">
+        <div class="detail-block-title-wrap">
+          <span class="detail-block-icon detail-block-icon--pending" aria-hidden="true">?</span>
+          <span class="detail-title">待確認 / 改善建議</span>
+        </div>
+        <span class="detail-count">{{ reportPending.length }} 項</span>
+      </div>
+      @if (reportPending.length > 0) {
+        <div class="detail-list">
+          @for (row of reportPending; track row.title; let i = $index) {
+            <article class="detail-item detail-item--pending">
+              <div class="detail-item-title-row">
+                <span class="detail-item-index detail-item-index--pending">{{ i + 1 }}</span>
+                <span class="detail-item-title-text">{{ row.title }}</span>
+              </div>
+              @if (row.note) {
+                <div class="detail-item-note-box detail-item-note-box--pending">
+                  <span class="detail-item-note-label">已記下想再問的</span>
+                  <p class="detail-item-note-text">{{ row.note }}</p>
+                </div>
+              } @else {
+                <p class="detail-item-hint">建議回查核表補寫備註，或到現場再確認一次。</p>
+              }
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="detail-empty">所有項目都已完成確認或標記。</div>
+      }
+    </section>
+  </section>
+
+</section>
+<div class="action-row report-actions">
+  <button class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
+  <button class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
+</div>
+}
+
+@if (currentPage === 'checklist') {
 <div class="content">
   @for (group of groupedItems; track group.cat) {
     <section class="section">
@@ -127,6 +398,15 @@
               <div class="item-title">{{ item.title }}</div>
               @if (state[item.id].expanded) {
                 <div class="item-tip">{{ item.tip }}</div>
+                <div class="item-note-wrap" (click)="$event.stopPropagation()">
+                  <label class="item-note-label">備註</label>
+                  <textarea
+                    class="item-note-input"
+                    [ngModel]="state[item.id].note"
+                    (ngModelChange)="updateItemNote(item.id, $event)"
+                    placeholder="例如：浴室沒有抽風機，但有對外窗"
+                  ></textarea>
+                </div>
               }
             </div>
             <div class="item-actions">
@@ -151,7 +431,9 @@
     </section>
   }
 </div>
+}
 
+@if (currentPage === 'checklist') {
 <footer class="bottom-bar">
   <div class="bottom-stats">
     <div class="stat-chip good"><span class="num">{{ doneCount }}</span>已確認</div>
@@ -160,30 +442,7 @@
   </div>
   <div class="action-row">
     <button class="btn-outline" (click)="resetAll()">重置</button>
-    <button class="btn-primary" (click)="openReport()">查看報告</button>
+    <button class="btn-primary" (click)="openReportPage()">查看報告</button>
   </div>
 </footer>
-
-@if (reportOpen) {
-  <div class="modal-overlay" (click)="closeReport()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <h3 class="modal-title">看房評估報告</h3>
-      <p class="modal-subtitle">房源：{{ activeRecord.name }}</p>
-      <p class="modal-subtitle">{{ address ? '📍 ' + address : '看房地點未填寫' }}</p>
-      <div class="report-score">
-        <div class="score-num">{{ progressPercent }}%</div>
-        <div class="score-label">{{ reportLabel }}</div>
-      </div>
-      @if (flaggedItems.length > 0) {
-        <div class="report-flags">
-          <div class="report-flag-title">需要注意的問題</div>
-          @for (item of flaggedItems; track item.id) {
-            <div class="flag-item">• {{ item.title }}</div>
-          }
-        </div>
-      }
-      <p class="report-summary">{{ reportSummary }}</p>
-      <button class="btn-primary" (click)="closeReport()">繼續看房</button>
-    </div>
-  </div>
 }
