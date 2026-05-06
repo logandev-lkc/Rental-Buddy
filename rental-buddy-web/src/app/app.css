@@ -1638,27 +1638,46 @@
 }
 
 @media (min-width: 768px) {
+  :host {
+    --desktop-max: 980px;
+  }
+
   .app-header,
   .record-card,
   .address-card,
   .compare-card,
   .content,
-  .tabs-scroll {
-    max-width: 720px;
+  .tabs-scroll,
+  .report-toolbar,
+  .report-page,
+  .report-actions {
+    max-width: var(--desktop-max);
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .app-header {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .bottom-bar {
     left: 50%;
     transform: translateX(-50%);
-    max-width: 720px;
+    width: min(var(--desktop-max), calc(100vw - 24px));
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
   }
 
   .content {
-    padding-bottom: 190px;
+    padding-bottom: 170px;
+  }
+
+  .report-actions {
+    margin-top: 18px;
+    margin-bottom: 24px;
   }
 }
 
