@@ -30,7 +30,8 @@
             ],
             "allowedCommonJsDependencies": [
               "html2canvas"
-            ]
+            ],
+            "baseHref": "./"
           },
           "configurations": {
             "production": {
