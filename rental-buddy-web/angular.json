@@ -25,12 +25,8 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ],
-            "allowedCommonJsDependencies": [
-              "html2canvas"
-            ],
+            "styles": ["src/styles.css"],
+            "allowedCommonJsDependencies": ["html2canvas"],
             "baseHref": "./"
           },
           "configurations": {
@@ -47,7 +43,8 @@
                   "maximumError": "30kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "serviceWorker": "ngsw-config.json"
             },
             "development": {
               "optimization": false,
