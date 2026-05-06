@@ -23,12 +23,13 @@ npm run build
 
 ```
 rental-buddy/
-├── rental-buddy-web/  ← Angular 主應用程式
-│   ├── src/app/       ← UI 與互動邏輯
-│   └── dist/          ← build 產物（執行 build 後產生）
-├── index.html         ← 舊版靜態原型（保留參考）
-├── PRD.md        ← 產品需求文件（詳細規格）
-└── README.md     ← 本文件
+├── rental-buddy-web/      ← Angular 主應用程式
+│   ├── src/app/           ← UI 與互動邏輯
+│   └── dist/              ← build 產物（執行 build 後產生）
+├── docs/                  ← GitHub Pages 部署輸出
+├── project-docs/          ← 專案文件資料夾
+│   └── PROGRESS.md        ← 進度總表
+└── README.md              ← 本文件
 ```
 
 ## 功能說明
@@ -69,7 +70,7 @@ rental-buddy/
 幫 Rental Buddy 加入 PWA 支援：
 - 新增 manifest.json（app 名稱、圖示、顏色使用現有的 --rose 色）
 - 新增 service-worker.js 讓 app 可離線使用
-- 在 index.html 的 <head> 加入相關 meta tags
+- 在 Angular 的 src/index.html 加入相關 meta tags
 ```
 
 ```
