@@ -1,58 +1,52 @@
-# RentalBuddyWeb
+# Rental Buddy Web
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.9.
+Rental Buddy 的 Angular 前端。資料存在瀏覽器 `localStorage`，不需要後端。
 
 ## Development server
 
-To start a local development server, run:
+本專案的 `npm start` 已使用 polling 監看，避免 macOS/IDE 環境出現 `EMFILE: too many open files, watch` 後熱更新不穩。
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+啟動後開啟 `http://localhost:4200/`。
 
-## Code scaffolding
+## App flow
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
+- `查核表`：管理看房紀錄、地址、月租金與檢查項目。
+- `報告`：預設為手機友善版，適合現場快速閱讀。
+- 報告內可切換 `手機版檢視` / `InBody 精簡版`。
+- `匯出文件（PDF）` 只會輸出 InBody 精簡版，不輸出手機版畫面。
 
 ## Building
 
-To build the project run:
-
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+產物會輸出到 `dist/rental-buddy-web/`。Angular 的瀏覽器靜態檔在 `dist/rental-buddy-web/browser/`。
 
-## Running unit tests
+## Print / PDF export
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+1. 進入 `報告`。
+2. 可先切到 `InBody 精簡版` 檢查版面。
+3. 點 `匯出文件（PDF）`。
+4. 在瀏覽器列印視窗選 `另存為 PDF`。
 
-```bash
-ng test
-```
+## Scoring
 
-## Running end-to-end tests
+- 100 分制：完成度為主，標記問題會扣分。
+- `A`：85 分以上，條件完整，建議優先考慮。
+- `B`：65-84 分，條件中上，可列入候選。
+- `C`：64 分以下，風險偏高，需謹慎評估。
 
-For end-to-end (e2e) testing, run:
+## Tests
 
-```bash
-ng e2e
-```
+目前主要驗證方式：
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+- `npm run build`
+- 手動回歸：查核表填資料 -> 報告手機版 -> InBody 精簡版 -> 匯出 PDF
 
 ## Additional Resources
 

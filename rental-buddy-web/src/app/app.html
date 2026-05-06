@@ -56,6 +56,16 @@
     (ngModelChange)="address = $event"
   />
 </div>
+<div class="address-card">
+  <div class="address-icon">💰</div>
+  <input
+    class="address-input"
+    type="text"
+    placeholder="輸入月租金（例如：18000）"
+    [ngModel]="monthlyRent"
+    (ngModelChange)="monthlyRent = $event"
+  />
+</div>
 }
 
 @if (currentPage === 'checklist') {
@@ -89,9 +99,175 @@
       }
     </select>
   </div>
+  <div class="report-view-toggle" aria-label="報告檢視切換">
+    <button
+      type="button"
+      class="report-view-btn"
+      [class.active]="reportViewMode === 'friendly'"
+      (click)="setReportViewMode('friendly')"
+    >
+      手機版檢視
+    </button>
+    <button
+      type="button"
+      class="report-view-btn"
+      [class.active]="reportViewMode === 'compact'"
+      (click)="setReportViewMode('compact')"
+    >
+      InBody 精簡版
+    </button>
+  </div>
 </div>
 
 <section class="report-page" id="reportExportArea">
+  <!-- 列印/存 PDF 用：結構化文件版面（像 InBody 那種表格/分欄） -->
+  <section class="print-sheet" [class.print-sheet--preview]="reportViewMode === 'compact'" aria-label="列印版報告">
+    <header class="print-head">
+      <div class="print-brand">
+        <div class="print-brand-name">Rental Buddy</div>
+        <div class="print-brand-sub">看房報告（列印版）</div>
+      </div>
+      <div class="print-meta">
+        <div class="print-meta-row">
+          <span class="k">房源</span>
+          <span class="v">{{ activeRecord.name }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">地址</span>
+          <span class="v">{{ address || '未填寫' }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">月租金</span>
+          <span class="v">{{ monthlyRent || '未填寫' }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">更新</span>
+          <span class="v">{{ activeRecord.updatedAt | date:'yyyy/MM/dd HH:mm' }}</span>
+        </div>
+      </div>
+      <div class="print-score">
+        <div class="print-score-num">{{ reportScore100 }}</div>
+        <div class="print-score-sub">/ 100 分</div>
+        <div class="print-grade">等級 {{ reportGrade }}</div>
+      </div>
+    </header>
+
+    <section class="print-grid">
+      <section class="print-card">
+        <div class="print-card-title">總覽</div>
+        <div class="print-kpis">
+          <div class="print-kpi">
+            <div class="n good">{{ doneCount }}</div>
+            <div class="t">已確認</div>
+          </div>
+          <div class="print-kpi">
+            <div class="n danger">{{ flaggedCount }}</div>
+            <div class="t">標記問題</div>
+          </div>
+          <div class="print-kpi">
+            <div class="n">{{ leftCount }}</div>
+            <div class="t">待確認</div>
+          </div>
+        </div>
+
+        <div class="print-eval">
+          <div class="print-eval-title">房屋評價</div>
+          <div class="print-eval-main">{{ reportEvaluationTitle }}</div>
+          <div class="print-eval-grade">
+            評等：{{ reportGrade }}（{{ reportGradeText }}）
+          </div>
+          <div class="print-eval-desc">{{ reportEvaluationDesc }}</div>
+        </div>
+      </section>
+
+      <section class="print-card">
+        <div class="print-card-title">五分類體檢表</div>
+        <table class="print-table" aria-label="分類統計表">
+          <thead>
+            <tr>
+              <th>分類</th>
+              <th class="c">已確認</th>
+              <th class="c">問題</th>
+              <th class="c">待確認</th>
+              <th class="c">達成</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of reportCategoryStats; track row.label) {
+              <tr>
+                <td class="l">{{ row.label }}</td>
+                <td class="c">{{ row.done }}</td>
+                <td class="c">{{ row.flagged }}</td>
+                <td class="c">{{ row.pending }}</td>
+                <td class="c">{{ (row.doneRatio * 100) | number:'1.0-0' }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <section class="print-card print-card--wide">
+        <div class="print-card-title">五角形分布圖（各分類完成度）</div>
+        <div class="print-radar-row">
+          <div class="print-radar">
+            <svg class="radar-svg print-radar-svg" viewBox="0 0 300 300" aria-label="Radar chart print">
+              <polygon [attr.points]="getRadarPointsAtRatio(0.25)" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+              <polygon [attr.points]="getRadarPointsAtRatio(0.5)" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+              <polygon [attr.points]="getRadarPointsAtRatio(0.75)" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+              <polygon [attr.points]="getRadarPointsAtRatio(1)" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="1.2" />
+
+              @for (axisId of radarAxisIds; track axisId) {
+                <line
+                  [attr.x1]="radarCenter"
+                  [attr.y1]="radarCenter"
+                  [attr.x2]="getRadarAxisXEnd(axisId)"
+                  [attr.y2]="getRadarAxisYEnd(axisId)"
+                  stroke="rgba(0,0,0,0.12)"
+                  stroke-width="1"
+                />
+                <text
+                  class="radar-label-text"
+                  [attr.x]="getRadarAxisXLabel(axisId)"
+                  [attr.y]="getRadarAxisYLabel(axisId)"
+                  [attr.text-anchor]="getRadarAxisLabelAnchor(axisId)"
+                >
+                  {{ categoryMap[axisId] }}
+                </text>
+              }
+
+              <polygon
+                [attr.points]="getRadarPolygonPoints(getRadarValues(activeRecord))"
+                fill="rgba(0,0,0,0.08)"
+                stroke="rgba(0,0,0,0.55)"
+                stroke-width="2"
+              />
+            </svg>
+          </div>
+
+          <div class="print-notes">
+            <div class="print-notes-title">重點備註（節錄）</div>
+            <ol class="print-notes-list">
+              @for (row of reportCons.slice(0, 6); track row.title; let i = $index) {
+                <li>
+                  <span class="t">{{ row.title }}</span>
+                  @if (row.note) { <span class="n">（{{ row.note }}）</span> }
+                </li>
+              }
+              @if (reportCons.length === 0) {
+                <li class="muted">目前未標記缺點。</li>
+              }
+            </ol>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <footer class="print-foot">
+      <span>Rental Buddy · 本報告由本機資料產生 · {{ activeRecord.updatedAt | date:'yyyy/MM/dd' }}</span>
+    </footer>
+  </section>
+
+  @if (reportViewMode === 'friendly') {
   <div class="report-hero">
     <div class="report-hero-main">
       <div class="report-kicker">
@@ -214,7 +390,7 @@
         />
         <polygon
           [attr.points]="getRadarPointsAtRatio(1)"
-          fill="none"
+        fill="none"
           stroke="rgba(44,36,32,0.14)"
           stroke-width="1.2"
         />
@@ -366,10 +542,15 @@
       }
     </section>
   </section>
-
+  }
 </section>
 <div class="action-row report-actions">
   <button class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
+  @if (reportViewMode === 'friendly') {
+    <button class="btn-outline" (click)="setReportViewMode('compact')">切換精簡版</button>
+  } @else {
+    <button class="btn-outline" (click)="setReportViewMode('friendly')">切換手機版</button>
+  }
   <button class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
 </div>
 }
@@ -439,7 +620,7 @@
     <div class="stat-chip good"><span class="num">{{ doneCount }}</span>已確認</div>
     <div class="stat-chip danger"><span class="num">{{ flaggedCount }}</span>標記問題</div>
     <div class="stat-chip"><span class="num">{{ leftCount }}</span>待確認</div>
-  </div>
+    </div>
   <div class="action-row">
     <button class="btn-outline" (click)="resetAll()">重置</button>
     <button class="btn-primary" (click)="openReportPage()">查看報告</button>

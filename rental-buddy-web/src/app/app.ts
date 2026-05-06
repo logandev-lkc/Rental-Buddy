@@ -75,6 +75,7 @@ export class App {
   draftRecordName = '';
   currentCat = 'all';
   currentPage: 'checklist' | 'report' = 'checklist';
+  reportViewMode: 'friendly' | 'compact' = 'friendly';
   showIntro = true;
 
   constructor() {
@@ -100,6 +101,16 @@ export class App {
   set address(value: string) {
     if (!this.activeRecord) return;
     this.activeRecord.address = value;
+    this.touchActiveRecord();
+  }
+
+  get monthlyRent(): string {
+    return this.activeRecord?.monthlyRent ?? '';
+  }
+
+  set monthlyRent(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.monthlyRent = value;
     this.touchActiveRecord();
   }
 
@@ -157,6 +168,28 @@ export class App {
     return Math.round((this.doneCount / this.totalCount) * 100);
   }
 
+  /** 100 分制：完成度為主，問題數作為扣分 */
+  get reportScore100(): number {
+    const doneRatio = this.doneCount / Math.max(this.totalCount, 1);
+    const flaggedRatio = this.flaggedCount / Math.max(this.totalCount, 1);
+    const score = doneRatio * 100 - flaggedRatio * 40;
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  /** A/B/C：A = 可優先、B = 可考慮、C = 需謹慎 */
+  get reportGrade(): 'A' | 'B' | 'C' {
+    const score = this.reportScore100;
+    if (score >= 85) return 'A';
+    if (score >= 65) return 'B';
+    return 'C';
+  }
+
+  get reportGradeText(): string {
+    if (this.reportGrade === 'A') return '條件完整，建議優先考慮';
+    if (this.reportGrade === 'B') return '條件中上，可列入候選';
+    return '風險偏高，需謹慎評估';
+  }
+
   get flaggedItems(): ChecklistItem[] {
     return this.items.filter((item) => this.state[item.id]?.flagged);
   }
@@ -167,6 +200,10 @@ export class App {
 
   setPage(page: 'checklist' | 'report'): void {
     this.currentPage = page;
+  }
+
+  setReportViewMode(mode: 'friendly' | 'compact'): void {
+    this.reportViewMode = mode;
   }
 
   toggleCheck(id: string): void {
@@ -220,6 +257,7 @@ export class App {
       id: this.createId(),
       name,
       address: '',
+      monthlyRent: '',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       state: this.createEmptyState()
@@ -254,6 +292,7 @@ export class App {
 
   openReportPage(): void {
     this.currentPage = 'report';
+    this.reportViewMode = 'friendly';
   }
 
   resetAll(): void {
@@ -262,6 +301,7 @@ export class App {
       this.state[item.id] = { checked: false, flagged: false, expanded: false, note: '' };
     });
     this.activeRecord.address = '';
+    this.activeRecord.monthlyRent = '';
     this.touchActiveRecord();
   }
 
@@ -350,8 +390,10 @@ export class App {
       const total = Math.max(items.length, 1);
       return {
         label: this.categoryMap[axisId],
+        total,
         done,
         flagged,
+        pending: Math.max(total - done - flagged, 0),
         doneRatio: done / total,
         flaggedRatio: flagged / total
       };
@@ -362,6 +404,26 @@ export class App {
     const picked = labels.slice(0, 2);
     if (picked.length === 0) return '整體條件';
     return picked.join('、');
+  }
+
+  /** 列印版：分類統計表（像報告表格一樣呈現） */
+  get reportCategoryStats(): CategoryEvaluationStat[] {
+    return this.radarAxisIds.map((axisId) => {
+      const items = this.items.filter((item) => item.cat === axisId);
+      const done = items.filter((item) => this.state[item.id]?.checked).length;
+      const flagged = items.filter((item) => this.state[item.id]?.flagged).length;
+      const total = Math.max(items.length, 1);
+      const pending = Math.max(total - done - flagged, 0);
+      return {
+        label: this.categoryMap[axisId],
+        total,
+        done,
+        flagged,
+        pending,
+        doneRatio: done / total,
+        flaggedRatio: flagged / total
+      };
+    });
   }
 
   /** 雷達強項拆成標籤，螢幕版快速閱讀用 */
@@ -425,6 +487,7 @@ export class App {
         id: this.createId(),
         name: '看房紀錄 1',
         address: '',
+        monthlyRent: '',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         state: this.createEmptyState()
@@ -462,6 +525,7 @@ export class App {
       id: record.id,
       name: record.name || '未命名',
       address: record.address || '',
+      monthlyRent: record.monthlyRent || '',
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
       state: {
@@ -644,16 +708,17 @@ export class App {
       reportElement.classList.remove('report-export-formal');
       document.body.classList.remove('printing-report');
       document.title = previousTitle;
-      window.removeEventListener('afterprint', cleanup);
     };
-
-    window.addEventListener('afterprint', cleanup, { once: true });
 
     try {
       window.print();
     } catch {
       cleanup();
+      return;
     }
+
+    // 等列印視窗結束後再還原，避免預覽階段提早回到螢幕版樣式。
+    cleanup();
   }
 
   private createId(): string {
@@ -679,6 +744,7 @@ interface HouseRecord {
   id: string;
   name: string;
   address: string;
+  monthlyRent: string;
   createdAt: number;
   updatedAt: number;
   state: Record<string, ItemState>;
@@ -691,8 +757,10 @@ interface ReportRow {
 
 interface CategoryEvaluationStat {
   label: string;
+  total: number;
   done: number;
   flagged: number;
+  pending: number;
   doneRatio: number;
   flaggedRatio: number;
 }
