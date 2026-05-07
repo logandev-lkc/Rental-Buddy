@@ -123,34 +123,6 @@
 
 @if (currentPage === 'report') {
 <div class="report-toolbar">
-  <div class="report-record-switch">
-    <label class="report-record-label">目前報告紀錄</label>
-    <div class="custom-select">
-      <button
-        type="button"
-        class="custom-select-trigger"
-        [class.open]="isReportRecordMenuOpen"
-        (click)="toggleReportRecordMenu($event)"
-      >
-        <span class="custom-select-value">{{ activeRecord.name }}</span>
-        <span class="custom-select-arrow">▾</span>
-      </button>
-      @if (isReportRecordMenuOpen) {
-        <div class="custom-select-menu" role="listbox" aria-label="報告紀錄選單">
-          @for (record of records; track record.id) {
-            <button
-              type="button"
-              class="custom-select-option"
-              [class.active]="record.id === activeRecordId"
-              (click)="selectReportRecordOption(record.id)"
-            >
-              {{ record.name }}
-            </button>
-          }
-        </div>
-      }
-    </div>
-  </div>
   <div class="report-view-toggle" aria-label="報告檢視切換">
     <button
       type="button"
@@ -229,10 +201,19 @@
             評等：{{ reportGrade }}（{{ reportGradeText }}）
           </div>
           <div class="print-eval-desc">{{ reportEvaluationDesc }}</div>
+          <div class="print-risk-strip" [class.low]="reportRiskLevel === 'low'" [class.medium]="reportRiskLevel === 'medium'" [class.high]="reportRiskLevel === 'high'">
+            <span class="risk-label">風險等級</span>
+            <strong>{{ reportRiskLevelLabel }}</strong>
+            <span class="risk-key">重點：{{ reportKeyRiskSummary }}</span>
+          </div>
+          <div class="print-decision-box">
+            <div class="decision-title">{{ reportDecisionTitle }}</div>
+            <div class="decision-desc">{{ reportDecisionDesc }}</div>
+          </div>
         </div>
       </section>
 
-      <section class="print-card">
+      <section class="print-card print-card--table">
         <div class="print-card-title">五分類體檢表</div>
         <table class="print-table" aria-label="分類統計表">
           <thead>
@@ -258,7 +239,7 @@
         </table>
       </section>
 
-      <section class="print-card print-card--wide">
+      <section class="print-card print-card--wide print-card--chart">
         <div class="print-card-title">五角形分布圖（各分類完成度）</div>
         <div class="print-radar-row">
           <div class="print-radar">

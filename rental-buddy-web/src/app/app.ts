@@ -76,7 +76,6 @@ export class App {
   editingRecordName = '';
   isRecordMenuOpen = false;
   isCategoryMenuOpen = false;
-  isReportRecordMenuOpen = false;
   currentCat = 'all';
   currentPage: 'checklist' | 'report' = 'checklist';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
@@ -199,6 +198,43 @@ export class App {
     return '風險偏高，需謹慎評估';
   }
 
+  get reportRiskLevel(): 'low' | 'medium' | 'high' {
+    const flaggedRatio = this.flaggedCount / Math.max(this.totalCount, 1);
+    if (this.reportScore100 >= 80 && flaggedRatio <= 0.15) return 'low';
+    if (this.reportScore100 >= 60 && flaggedRatio <= 0.3) return 'medium';
+    return 'high';
+  }
+
+  get reportRiskLevelLabel(): string {
+    if (this.reportRiskLevel === 'low') return '低風險';
+    if (this.reportRiskLevel === 'medium') return '中風險';
+    return '高風險';
+  }
+
+  get reportKeyRiskSummary(): string {
+    const weak = this.reportWeakCategoryLabels.slice(0, 3);
+    if (weak.length === 0) return '目前未出現明顯高風險分類';
+    return weak.join('、');
+  }
+
+  get reportDecisionTitle(): string {
+    if (this.reportRiskLevel === 'low') return '建議：優先考慮';
+    if (this.reportRiskLevel === 'medium') return '建議：列入候選，議價後再決定';
+    return '建議：暫緩決定，優先比較其他房源';
+  }
+
+  get reportDecisionDesc(): string {
+    if (this.reportRiskLevel === 'low') {
+      return this.leftCount > 0
+        ? `整體條件穩定，建議補完剩餘 ${this.leftCount} 項確認後進入談約。`
+        : '整體條件穩定，可優先進入談約與租約條款確認。';
+    }
+    if (this.reportRiskLevel === 'medium') {
+      return `主要風險在 ${this.reportKeyRiskSummary}，建議先談可改善項目與租金條件再評估。`;
+    }
+    return `風險集中在 ${this.reportKeyRiskSummary}，建議避免直接簽約，先找替代房源比對。`;
+  }
+
   get flaggedItems(): ChecklistItem[] {
     return this.items.filter((item) => this.state[item.id]?.flagged);
   }
@@ -265,7 +301,6 @@ export class App {
     this.activeRecordId = recordId;
     this.syncEditingRecordName();
     this.isRecordMenuOpen = false;
-    this.isReportRecordMenuOpen = false;
     this.saveState();
   }
 
@@ -285,27 +320,12 @@ export class App {
     this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
     if (this.isCategoryMenuOpen) {
       this.isRecordMenuOpen = false;
-      this.isReportRecordMenuOpen = false;
     }
   }
 
   selectCategoryOption(catId: string): void {
     this.setCategory(catId);
     this.isCategoryMenuOpen = false;
-  }
-
-  toggleReportRecordMenu(event: Event): void {
-    event.stopPropagation();
-    this.isReportRecordMenuOpen = !this.isReportRecordMenuOpen;
-    if (this.isReportRecordMenuOpen) {
-      this.isRecordMenuOpen = false;
-      this.isCategoryMenuOpen = false;
-    }
-  }
-
-  selectReportRecordOption(recordId: string): void {
-    this.switchRecord(recordId);
-    this.isReportRecordMenuOpen = false;
   }
 
   createRecord(): void {
@@ -773,6 +793,7 @@ export class App {
 
     reportElement.classList.add('report-export-formal');
     document.body.classList.add('printing-report');
+    document.documentElement.classList.add('printing-report');
     const previousTitle = document.title;
     document.title = `${this.activeRecord.name}-report`;
 
@@ -783,17 +804,28 @@ export class App {
     const cleanup = (): void => {
       reportElement.classList.remove('report-export-formal');
       document.body.classList.remove('printing-report');
+      document.documentElement.classList.remove('printing-report');
       document.title = previousTitle;
     };
 
     try {
-      window.print();
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = (): void => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        window.addEventListener('afterprint', finish, { once: true });
+        window.print();
+        // 某些瀏覽器不一定觸發 afterprint，避免卡住。
+        window.setTimeout(finish, 1200);
+      });
     } catch {
       cleanup();
       return;
     }
 
-    // 等列印視窗結束後再還原，避免預覽階段提早回到螢幕版樣式。
     cleanup();
   }
 
@@ -811,7 +843,6 @@ export class App {
     if (!target?.closest('.custom-select') && !target?.closest('.record-menu')) {
       this.isRecordMenuOpen = false;
       this.isCategoryMenuOpen = false;
-      this.isReportRecordMenuOpen = false;
     }
   }
 }

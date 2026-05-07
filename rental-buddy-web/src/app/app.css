@@ -1760,6 +1760,67 @@
   color: var(--ink-mid);
 }
 
+.print-sheet--preview .print-risk-strip {
+  margin-top: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(44, 36, 32, 0.2);
+  padding: 8px 10px;
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  background: #f8f6f4;
+}
+
+.print-sheet--preview .print-risk-strip.low {
+  border-color: rgba(11, 93, 59, 0.35);
+  background: rgba(11, 93, 59, 0.08);
+}
+
+.print-sheet--preview .print-risk-strip.medium {
+  border-color: rgba(202, 138, 4, 0.38);
+  background: rgba(202, 138, 4, 0.1);
+}
+
+.print-sheet--preview .print-risk-strip.high {
+  border-color: rgba(159, 42, 30, 0.35);
+  background: rgba(159, 42, 30, 0.1);
+}
+
+.print-sheet--preview .print-risk-strip .risk-label {
+  color: var(--ink-light);
+  font-weight: 700;
+}
+
+.print-sheet--preview .print-risk-strip strong {
+  font-size: 13px;
+  color: #8d2b1e;
+}
+
+.print-sheet--preview .print-risk-strip .risk-key {
+  color: var(--ink-mid);
+}
+
+.print-sheet--preview .print-decision-box {
+  margin-top: 8px;
+  border: 1px solid rgba(44, 36, 32, 0.22);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.print-sheet--preview .print-decision-box .decision-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #8d2b1e;
+}
+
+.print-sheet--preview .print-decision-box .decision-desc {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--ink-mid);
+  line-height: 1.45;
+}
+
 .print-sheet--preview .print-table {
   width: 100%;
   border-collapse: collapse;
@@ -2088,7 +2149,7 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 4mm 8mm 8mm;
   }
 
   body.printing-report {
@@ -2096,28 +2157,28 @@
   }
 
   /* 只印「列印版」結構化文件，避免螢幕版卡片看起來像截圖 */
-  body.printing-report #reportExportArea > :not(.print-sheet) {
+  #reportExportArea > :not(.print-sheet) {
     display: none !important;
   }
 
-  body.printing-report .print-sheet {
+  .print-sheet {
     display: block !important;
   }
 
-  body.printing-report .app-header,
-  body.printing-report .record-card,
-  body.printing-report .checklist-overview-card,
-  body.printing-report .address-card,
-  body.printing-report .category-toolbar,
-  body.printing-report .content,
-  body.printing-report .bottom-bar,
-  body.printing-report .report-toolbar,
-  body.printing-report .report-actions,
-  body.printing-report .intro-screen {
+  .app-header,
+  .record-card,
+  .checklist-overview-card,
+  .address-card,
+  .category-toolbar,
+  .content,
+  .bottom-bar,
+  .report-toolbar,
+  .report-actions,
+  .intro-screen {
     display: none !important;
   }
 
-  body.printing-report .report-page {
+  .report-page {
     margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
@@ -2125,10 +2186,41 @@
     background: #ffffff !important;
   }
 
-  body.printing-report .print-sheet {
+  .print-sheet {
     color: #111 !important;
     font-size: 11px;
     line-height: 1.35;
+  }
+
+  /* 匯出 PDF 僅保留表格區塊，並去除上方視覺留白 */
+  .print-foot,
+  .print-card--table-only-hidden {
+    display: none !important;
+  }
+
+  .print-grid {
+    margin-top: 8px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .print-card--table {
+    border: 1px solid #1f1f1f !important;
+    padding: 0 !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+
+  .print-card--table .print-card-title {
+    margin: 0 !important;
+    padding: 8px 10px !important;
+  }
+
+  .print-card--chart {
+    margin-top: 8px !important;
+    border: 1px solid #1f1f1f !important;
+    background: #fff !important;
   }
 
   body.printing-report .print-head {
@@ -2279,6 +2371,45 @@
 
   body.printing-report .print-eval-desc {
     color: #111;
+  }
+
+  body.printing-report .print-risk-strip {
+    margin-top: 6px;
+    border: 1px solid #1f1f1f;
+    padding: 6px 8px;
+    background: #fff;
+    font-size: 10px;
+    display: grid;
+    gap: 2px;
+  }
+
+  body.printing-report .print-risk-strip .risk-label {
+    color: #444;
+    font-weight: 700;
+  }
+
+  body.printing-report .print-risk-strip strong {
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  body.printing-report .print-decision-box {
+    margin-top: 6px;
+    border: 1px solid #1f1f1f;
+    padding: 6px 8px;
+    background: #fff;
+  }
+
+  body.printing-report .print-decision-box .decision-title {
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  body.printing-report .print-decision-box .decision-desc {
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: #222;
   }
 
   body.printing-report .print-table {
