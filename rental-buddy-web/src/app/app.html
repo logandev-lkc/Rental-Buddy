@@ -14,7 +14,46 @@
 <header class="app-header">
   <div class="header-top">
     <div class="logo">Rental <span>Buddy</span></div>
-    <div class="progress-text">{{ activeRecord.name }} · {{ doneCount }} / {{ totalCount }} 項已確認</div>
+    <div class="header-right">
+      <div class="progress-text">{{ confirmedCount }} / {{ totalCount }} 項已確認</div>
+      <div class="record-menu">
+        <button type="button" class="record-menu-trigger" (click)="toggleRecordMenu($event)">
+          <span class="record-menu-name">{{ activeRecord.name }}</span>
+          <span class="record-menu-arrow">▾</span>
+        </button>
+        @if (isRecordMenuOpen) {
+          <div class="record-menu-panel">
+            <div class="record-menu-title">紀錄管理</div>
+            <div class="record-menu-list">
+              @for (record of records; track record.id) {
+                <button
+                  type="button"
+                  class="record-menu-option"
+                  [class.active]="record.id === activeRecordId"
+                  (click)="selectRecordOption(record.id)"
+                >
+                  {{ record.name }}
+                </button>
+              }
+            </div>
+            <div class="record-menu-edit-row">
+              <input
+                class="record-menu-input"
+                type="text"
+                [ngModel]="editingRecordName"
+                (ngModelChange)="editingRecordName = $event"
+                placeholder="修改目前紀錄名稱"
+              />
+              <button type="button" class="btn-primary small" (click)="renameActiveRecord()">儲存</button>
+            </div>
+            <div class="record-menu-actions">
+              <button type="button" class="btn-outline small" (click)="createRecord()">新增</button>
+              <button type="button" class="btn-outline small danger" (click)="deleteActiveRecord()">刪除</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   </div>
   <div class="progress-bar-bg">
     <div class="progress-bar-fill" [style.width.%]="progressPercent"></div>
@@ -26,66 +65,59 @@
 </header>
 
 @if (currentPage === 'checklist') {
-<div class="record-card">
-  <div class="record-switch-row">
-    <select class="record-select" [ngModel]="activeRecordId" (ngModelChange)="switchRecord($event)">
-      @for (record of records; track record.id) {
-        <option [ngValue]="record.id">{{ record.name }}</option>
-      }
-    </select>
-    <button class="btn-outline small" (click)="deleteActiveRecord()">刪除</button>
+<section class="checklist-overview-card">
+  <div class="overview-head">
+    <div class="overview-title">現場快速摘要</div>
+    <div class="overview-record">{{ activeRecord.name }}</div>
   </div>
-  <div class="record-create-row">
-    <input
-      class="record-name-input"
-      type="text"
-      [(ngModel)]="draftRecordName"
-      placeholder="新增看房紀錄名稱（例如：中山站套房）"
-    />
-    <button class="btn-primary small" (click)="createRecord()">新增</button>
+  <div class="overview-meta-grid">
+    <div class="overview-meta-item">
+      <span class="k">地址</span>
+      <input
+        class="overview-input"
+        type="text"
+        placeholder="輸入看房地址（可選）"
+        [(ngModel)]="address"
+        (ngModelChange)="address = $event"
+      />
+    </div>
+    <div class="overview-meta-item">
+      <span class="k">月租</span>
+      <input
+        class="overview-input"
+        type="text"
+        placeholder="輸入月租金（例如：18000）"
+        [ngModel]="monthlyRent"
+        (ngModelChange)="monthlyRent = $event"
+      />
+    </div>
   </div>
-</div>
+</section>
 
-<div class="address-card">
-  <div class="address-icon">📍</div>
-  <input
-    class="address-input"
-    type="text"
-    placeholder="輸入看房地址（可選）"
-    [(ngModel)]="address"
-    (ngModelChange)="address = $event"
-  />
-</div>
-<div class="address-card">
-  <div class="address-icon">💰</div>
-  <input
-    class="address-input"
-    type="text"
-    placeholder="輸入月租金（例如：18000）"
-    [ngModel]="monthlyRent"
-    (ngModelChange)="monthlyRent = $event"
-  />
-</div>
 }
 
 @if (currentPage === 'checklist') {
-<div class="tabs-scroll">
-  @for (cat of categories; track cat.id) {
-    <button
-      class="tab-pill"
-      [class.active]="cat.id === currentCat"
-      (click)="setCategory(cat.id)"
-    >
-      {{ cat.label }}
-      <span class="tab-count">
-        @if (cat.id === 'all') {
-          {{ doneCount }}/{{ totalCount }}
-        } @else {
-          {{ countDoneByCategory(cat.id) }}
-        }
-      </span>
-    </button>
-  }
+<div class="category-toolbar">
+  <label class="category-label">分類切換</label>
+  <div class="category-chips" role="tablist" aria-label="分類切換">
+    @for (cat of categories; track cat.id) {
+      <button
+        type="button"
+        class="category-chip"
+        [class.active]="cat.id === currentCat"
+        (click)="setCategory(cat.id)"
+      >
+        <span class="name">{{ cat.label }}</span>
+        <span class="count">
+          @if (cat.id === 'all') {
+            {{ confirmedCount }}/{{ totalCount }}
+          } @else {
+            {{ countDoneByCategory(cat.id) }}
+          }
+        </span>
+      </button>
+    }
+  </div>
 </div>
 }
 
@@ -93,11 +125,31 @@
 <div class="report-toolbar">
   <div class="report-record-switch">
     <label class="report-record-label">目前報告紀錄</label>
-    <select class="record-select" [ngModel]="activeRecordId" (ngModelChange)="switchRecord($event)">
-      @for (record of records; track record.id) {
-        <option [ngValue]="record.id">{{ record.name }}</option>
+    <div class="custom-select">
+      <button
+        type="button"
+        class="custom-select-trigger"
+        [class.open]="isReportRecordMenuOpen"
+        (click)="toggleReportRecordMenu($event)"
+      >
+        <span class="custom-select-value">{{ activeRecord.name }}</span>
+        <span class="custom-select-arrow">▾</span>
+      </button>
+      @if (isReportRecordMenuOpen) {
+        <div class="custom-select-menu" role="listbox" aria-label="報告紀錄選單">
+          @for (record of records; track record.id) {
+            <button
+              type="button"
+              class="custom-select-option"
+              [class.active]="record.id === activeRecordId"
+              (click)="selectReportRecordOption(record.id)"
+            >
+              {{ record.name }}
+            </button>
+          }
+        </div>
       }
-    </select>
+    </div>
   </div>
   <div class="report-view-toggle" aria-label="報告檢視切換">
     <button
@@ -157,7 +209,7 @@
         <div class="print-card-title">總覽</div>
         <div class="print-kpis">
           <div class="print-kpi">
-            <div class="n good">{{ doneCount }}</div>
+            <div class="n good">{{ confirmedCount }}</div>
             <div class="t">已確認</div>
           </div>
           <div class="print-kpi">
@@ -291,7 +343,7 @@
 
   <div class="report-summary-grid">
     <div class="report-summary-chip good">
-      <span>{{ doneCount }}</span>
+      <span>{{ confirmedCount }}</span>
       已確認
     </div>
     <div class="report-summary-chip danger">
@@ -616,14 +668,15 @@
 
 @if (currentPage === 'checklist') {
 <footer class="bottom-bar">
-  <div class="bottom-stats">
-    <div class="stat-chip good"><span class="num">{{ doneCount }}</span>已確認</div>
-    <div class="stat-chip danger"><span class="num">{{ flaggedCount }}</span>標記問題</div>
+  <div class="bottom-stats compact">
+    <div class="stat-chip good"><span class="num">{{ confirmedCount }}</span>已確認</div>
+    <div class="stat-chip danger"><span class="num">{{ flaggedCount }}</span>問題</div>
     <div class="stat-chip"><span class="num">{{ leftCount }}</span>待確認</div>
-    </div>
+  </div>
+  <div class="autosave-note">已自動儲存到本機</div>
   <div class="action-row">
-    <button class="btn-outline" (click)="resetAll()">重置</button>
     <button class="btn-primary" (click)="openReportPage()">查看報告</button>
+    <button class="btn-outline" (click)="resetAll()">重置</button>
   </div>
 </footer>
 }

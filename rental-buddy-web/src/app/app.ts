@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -73,6 +73,10 @@ export class App {
   activeRecordId = '';
   compareIds: string[] = [];
   draftRecordName = '';
+  editingRecordName = '';
+  isRecordMenuOpen = false;
+  isCategoryMenuOpen = false;
+  isReportRecordMenuOpen = false;
   currentCat = 'all';
   currentPage: 'checklist' | 'report' = 'checklist';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
@@ -160,12 +164,17 @@ export class App {
     return this.countFlaggedForRecord(this.activeRecord);
   }
 
+  /** 已確認 = 已勾選 + 已標記問題 */
+  get confirmedCount(): number {
+    return this.doneCount + this.flaggedCount;
+  }
+
   get leftCount(): number {
-    return this.totalCount - this.doneCount - this.flaggedCount;
+    return this.totalCount - this.confirmedCount;
   }
 
   get progressPercent(): number {
-    return Math.round((this.doneCount / this.totalCount) * 100);
+    return Math.round((this.confirmedCount / this.totalCount) * 100);
   }
 
   /** 100 分制：完成度為主，問題數作為扣分 */
@@ -196,6 +205,13 @@ export class App {
 
   setCategory(cat: string): void {
     this.currentCat = cat;
+  }
+
+  getCategoryDisplayLabel(catId: string): string {
+    const cat = this.categories.find((item) => item.id === catId);
+    if (!cat) return '全部';
+    if (cat.id === 'all') return `${cat.label}（${this.doneCount}/${this.totalCount}）`;
+    return `${cat.label}（${this.countDoneByCategory(cat.id)}）`;
   }
 
   setPage(page: 'checklist' | 'report'): void {
@@ -240,14 +256,56 @@ export class App {
 
   countDoneByCategory(cat: string): string {
     const items = this.items.filter((item) => item.cat === cat);
-    const done = items.filter((item) => this.state[item.id]?.checked).length;
-    return `${done}/${items.length}`;
+    const confirmed = items.filter((item) => this.state[item.id]?.checked || this.state[item.id]?.flagged).length;
+    return `${confirmed}/${items.length}`;
   }
 
   switchRecord(recordId: string): void {
     if (!this.records.some((record) => record.id === recordId)) return;
     this.activeRecordId = recordId;
+    this.syncEditingRecordName();
+    this.isRecordMenuOpen = false;
+    this.isReportRecordMenuOpen = false;
     this.saveState();
+  }
+
+  toggleRecordMenu(event: Event): void {
+    event.stopPropagation();
+    this.isRecordMenuOpen = !this.isRecordMenuOpen;
+    if (this.isRecordMenuOpen) this.isCategoryMenuOpen = false;
+  }
+
+  selectRecordOption(recordId: string): void {
+    this.switchRecord(recordId);
+    this.isRecordMenuOpen = false;
+  }
+
+  toggleCategoryMenu(event: Event): void {
+    event.stopPropagation();
+    this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
+    if (this.isCategoryMenuOpen) {
+      this.isRecordMenuOpen = false;
+      this.isReportRecordMenuOpen = false;
+    }
+  }
+
+  selectCategoryOption(catId: string): void {
+    this.setCategory(catId);
+    this.isCategoryMenuOpen = false;
+  }
+
+  toggleReportRecordMenu(event: Event): void {
+    event.stopPropagation();
+    this.isReportRecordMenuOpen = !this.isReportRecordMenuOpen;
+    if (this.isReportRecordMenuOpen) {
+      this.isRecordMenuOpen = false;
+      this.isCategoryMenuOpen = false;
+    }
+  }
+
+  selectReportRecordOption(recordId: string): void {
+    this.switchRecord(recordId);
+    this.isReportRecordMenuOpen = false;
   }
 
   createRecord(): void {
@@ -265,7 +323,19 @@ export class App {
     this.records.unshift(record);
     this.activeRecordId = record.id;
     this.draftRecordName = '';
+    this.syncEditingRecordName();
     this.saveState();
+  }
+
+  renameActiveRecord(): void {
+    if (!this.activeRecord) return;
+    const nextName = this.editingRecordName.trim();
+    if (!nextName) {
+      this.editingRecordName = this.activeRecord.name;
+      return;
+    }
+    this.activeRecord.name = nextName;
+    this.touchActiveRecord();
   }
 
   deleteActiveRecord(): void {
@@ -278,6 +348,7 @@ export class App {
     this.records = this.records.filter((record) => record.id !== removedId);
     this.compareIds = this.compareIds.filter((id) => id !== removedId);
     this.activeRecordId = this.records[0].id;
+    this.syncEditingRecordName();
     this.saveState();
   }
 
@@ -293,6 +364,10 @@ export class App {
   openReportPage(): void {
     this.currentPage = 'report';
     this.reportViewMode = 'friendly';
+  }
+
+  saveNow(): void {
+    this.touchActiveRecord();
   }
 
   resetAll(): void {
@@ -499,6 +574,7 @@ export class App {
       this.activeRecordId = this.records[0].id;
     }
 
+    this.syncEditingRecordName();
     this.saveState();
   }
 
@@ -723,6 +799,20 @@ export class App {
 
   private createId(): string {
     return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  private syncEditingRecordName(): void {
+    this.editingRecordName = this.activeRecord?.name ?? '';
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest('.custom-select') && !target?.closest('.record-menu')) {
+      this.isRecordMenuOpen = false;
+      this.isCategoryMenuOpen = false;
+      this.isReportRecordMenuOpen = false;
+    }
   }
 }
 
