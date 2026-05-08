@@ -256,6 +256,41 @@ export class App {
     n6: ['無明顯痕跡', '蟑螂跡象', '螞蟻', '排水孔可疑']
   };
 
+  readonly riskOptionKeywords = [
+    '需確認',
+    '需測試',
+    '需複查',
+    '需注意',
+    '不明',
+    '偏弱',
+    '偏慢',
+    '不便',
+    '不足',
+    '老舊',
+    '鬆動',
+    '潮濕',
+    '水痕',
+    '異常',
+    '車流',
+    '鄰戶',
+    '噪音',
+    '霉味',
+    '異味',
+    '菸味',
+    '油煙',
+    '寵物味',
+    '蟑螂',
+    '螞蟻',
+    '可疑',
+    '條件模糊',
+    '態度保留',
+    '通勤偏久',
+    '轉乘',
+    '追垃圾車',
+    '排水慢',
+    '延長線'
+  ];
+
   records: HouseRecord[] = [];
   activeRecordId = '';
   compareIds: string[] = [];
@@ -631,7 +666,12 @@ export class App {
       selected.add(option);
     }
     current.selectedOptions = Array.from(selected);
+    this.syncQuickStatusFromOptions(current);
     this.touchActiveRecord();
+  }
+
+  isRiskOption(option: string): boolean {
+    return this.riskOptionKeywords.some((keyword) => option.includes(keyword));
   }
 
   countDoneByCategory(cat: string): string {
@@ -1292,6 +1332,24 @@ export class App {
       return `快速狀態：${this.getQuickStatusLabel(state.quickStatus)}`;
     }
     return this.getDefaultChecklistNote(status);
+  }
+
+  private syncQuickStatusFromOptions(state: ItemState): void {
+    if (state.selectedOptions.length === 0) {
+      state.quickStatus = 'unknown';
+      state.checked = false;
+      state.flagged = false;
+      return;
+    }
+    if (state.selectedOptions.some((option) => this.isRiskOption(option))) {
+      state.quickStatus = 'attention';
+      state.checked = false;
+      state.flagged = true;
+      return;
+    }
+    state.quickStatus = 'ok';
+    state.checked = true;
+    state.flagged = false;
   }
 
   private getStrengthDescription(item: ChecklistItem): string {

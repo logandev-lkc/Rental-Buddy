@@ -686,6 +686,12 @@
   color: var(--ink);
 }
 
+.detail-option-chip.risk.active {
+  border-color: rgba(217, 123, 108, 0.45);
+  background: rgba(217, 123, 108, 0.14);
+  color: var(--rose-deep);
+}
+
 .item-note-wrap {
   margin-top: 8px;
 }

@@ -790,6 +790,7 @@
                           type="button"
                           class="detail-option-chip"
                           [class.active]="state[item.id].selectedOptions.includes(option)"
+                          [class.risk]="isRiskOption(option)"
                           (click)="toggleItemOption(item.id, option, $event)"
                         >
                           {{ option }}
