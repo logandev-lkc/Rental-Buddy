@@ -735,6 +735,7 @@
     <button class="btn-outline" (click)="setReportViewMode('friendly')">切換手機版</button>
   }
   <button class="btn-outline" (click)="copyReportDataJson()">複製 AI JSON</button>
+  <button class="btn-outline" (click)="copyAiReportPrompt()">複製 ChatGPT Prompt</button>
   @if (reportDataCopyState) {
     <span class="report-copy-state">{{ reportDataCopyState }}</span>
   }

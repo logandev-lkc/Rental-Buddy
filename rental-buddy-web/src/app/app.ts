@@ -1217,17 +1217,51 @@ export class App {
     return JSON.stringify(this.reportDataForAi, null, 2);
   }
 
+  get aiReportPrompt(): string {
+    return `你是一位「租屋決策顧問」。請依我提供的 JSON，產出一份 InBody 風格的看房報告。
+
+【輸出要求】
+1) 使用繁體中文。
+2) 版型要結構化、短句、可直接轉 PDF。
+3) 嚴格使用以下章節順序：
+   - 報告抬頭
+   - Overview（總覽）
+   - 風險等級摘要條
+   - 決策建議區
+   - 戶型配置
+   - 分類分數摘要（可對應雷達圖）
+   - Checklist 明細表
+   - 結論與下一步
+4) 「confirmed」= checked + flagged。
+5) 對 flagged 項目要有風險提示語。
+6) 不要輸出多餘前言，不要解釋你怎麼思考。
+
+【輸出格式細節】
+- 報告抬頭：顯示紀錄名稱、地址、月租金、更新時間。
+- Overview：顯示 overall score、grade、confirmed/total、pending、confidence。
+- 風險等級摘要條：用一句話描述風險等級與重點風險。
+- 決策建議區：顯示 decisionTitle + 2~3 句 decisionDescription。
+- 戶型配置：列出 layoutType、房/廳/衛、kitchenType、areaPing、layout notes。
+- 房源基本條件：用 property.summary 補充建物、押金、租期、開伙、寵物與補助條件。
+- 分類分數摘要：以條列列出各分類 score 與 confirmed/total，並補一句高低分解讀。
+- Checklist 明細表：欄位為「分類｜項目｜狀態｜備註」，狀態顯示「通過/風險/待確認」。
+- 結論與下一步：提供 3 點可執行建議（例如二次看房、談判條件、補件清單）。
+
+【注意】
+- checklistTable 是完整原始資料；importantChecklistTable 是前端已挑出的重要項目。
+- selectedOptions 是現場快速點選的細節，請優先引用具體內容。
+- 若資料不足，請明確提醒 confidence 與 pending 項目，不要過度下結論。
+
+以下是資料 JSON：
+${this.reportDataJson}`;
+  }
+
   async copyReportDataJson(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(this.reportDataJson);
-      this.reportDataCopyState = '已複製 AI JSON';
-    } catch {
-      this.copyTextWithFallback(this.reportDataJson);
-      this.reportDataCopyState = '已複製 AI JSON';
-    }
-    window.setTimeout(() => {
-      this.reportDataCopyState = '';
-    }, 1800);
+    await this.copyReportText(this.reportDataJson, '已複製 AI JSON');
+  }
+
+  async copyAiReportPrompt(): Promise<void> {
+    await this.copyReportText(this.aiReportPrompt, '已複製 ChatGPT Prompt');
   }
 
   private loadState(): void {
@@ -1678,6 +1712,18 @@ export class App {
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
+  }
+
+  private async copyReportText(text: string, successMessage: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      this.copyTextWithFallback(text);
+    }
+    this.reportDataCopyState = successMessage;
+    window.setTimeout(() => {
+      this.reportDataCopyState = '';
+    }, 1800);
   }
 
   private formatDateTime(timestamp: number): string {
