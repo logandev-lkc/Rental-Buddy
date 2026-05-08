@@ -234,6 +234,28 @@ export class App {
     }
   };
 
+  readonly itemOptionConfig: Record<string, string[]> = {
+    c2: ['台水台電', '房東自訂', '包水電', '需確認'],
+    c3: ['1個月', '2個月', '超過2個月', '需確認'],
+    c5: ['一年約', '半年約', '可提前解約', '違約金需確認'],
+    f2: ['熱水穩定', '水壓偏弱', '忽冷忽熱', '需現場測試'],
+    f4: ['訊號穩定', '速度偏慢', '需測速', '可自行申辦'],
+    f6: ['有冰箱', '有爐具', '抽風佳', '油煙需注意'],
+    f9: ['插座足夠', '位置不便', '線路老舊', '需延長線'],
+    f10: ['衣櫃足夠', '鞋櫃不足', '雜物空間少', '可接受'],
+    s2: ['無明顯痕跡', '牆角潮濕', '窗框水痕', '天花板異常'],
+    s4: ['門鎖穩固', '可換鎖', '門框鬆動', '需加強'],
+    s6: ['安靜', '車流聲', '鄰戶聲', '晚上需複查'],
+    s7: ['有對外窗', '有抽風機', '霉味明顯', '排水需確認'],
+    l2: ['步行可到捷運', '需轉乘', '通勤偏久', '尖峰需測試'],
+    l3: ['垃圾代收', '追垃圾車', '固定時段', '需確認'],
+    l4: ['排水順', '排水慢', '有異味', '需測試'],
+    n2: ['回覆清楚', '態度保留', '條件模糊', '需白紙黑字'],
+    n3: ['環境安靜', '車流噪音', '店家噪音', '夜間需複查'],
+    n5: ['無異味', '菸味', '霉味', '油煙味', '寵物味'],
+    n6: ['無明顯痕跡', '蟑螂跡象', '螞蟻', '排水孔可疑']
+  };
+
   records: HouseRecord[] = [];
   activeRecordId = '';
   compareIds: string[] = [];
@@ -594,6 +616,24 @@ export class App {
     this.touchActiveRecord();
   }
 
+  getItemOptions(id: string): string[] {
+    return this.itemOptionConfig[id] ?? [];
+  }
+
+  toggleItemOption(id: string, option: string, event: Event): void {
+    event.stopPropagation();
+    const current = this.state[id];
+    if (!current) return;
+    const selected = new Set(current.selectedOptions ?? []);
+    if (selected.has(option)) {
+      selected.delete(option);
+    } else {
+      selected.add(option);
+    }
+    current.selectedOptions = Array.from(selected);
+    this.touchActiveRecord();
+  }
+
   countDoneByCategory(cat: string): string {
     const items = this.items.filter((item) => item.cat === cat);
     const confirmed = items.filter((item) => this.state[item.id]?.checked || this.state[item.id]?.flagged).length;
@@ -715,7 +755,14 @@ export class App {
   resetAll(): void {
     if (!window.confirm('確定要重置所有勾選記錄嗎？')) return;
     this.items.forEach((item) => {
-      this.state[item.id] = { checked: false, flagged: false, expanded: false, note: '', quickStatus: 'unknown' };
+      this.state[item.id] = {
+        checked: false,
+        flagged: false,
+        expanded: false,
+        note: '',
+        quickStatus: 'unknown',
+        selectedOptions: []
+      };
     });
     this.activeRecord.address = '';
     this.activeRecord.monthlyRent = '';
@@ -1116,6 +1163,7 @@ export class App {
       if (!state.quickStatus) {
         state.quickStatus = state.flagged ? 'attention' : state.checked ? 'good' : 'unknown';
       }
+      state.selectedOptions = state.selectedOptions ?? [];
     });
 
     return {
@@ -1150,7 +1198,14 @@ export class App {
   private createEmptyState(): Record<string, ItemState> {
     const nextState: Record<string, ItemState> = {};
     this.items.forEach((item) => {
-      nextState[item.id] = { checked: false, flagged: false, expanded: false, note: '', quickStatus: 'unknown' };
+      nextState[item.id] = {
+        checked: false,
+        flagged: false,
+        expanded: false,
+        note: '',
+        quickStatus: 'unknown',
+        selectedOptions: []
+      };
     });
     return nextState;
   }
@@ -1229,7 +1284,10 @@ export class App {
 
   private formatChecklistNote(state: ItemState | undefined, status: ReportChecklistStatus): string {
     const note = state?.note?.trim();
+    const selectedOptions = state?.selectedOptions?.length ? `細節：${state.selectedOptions.join('、')}` : '';
+    if (note && selectedOptions) return `${note}（${selectedOptions}）`;
     if (note) return note;
+    if (selectedOptions) return selectedOptions;
     if (state?.quickStatus && state.quickStatus !== 'unknown') {
       return `快速狀態：${this.getQuickStatusLabel(state.quickStatus)}`;
     }
@@ -1484,6 +1542,7 @@ interface ItemState {
   expanded: boolean;
   note: string;
   quickStatus: QuickStatus;
+  selectedOptions: string[];
 }
 
 type QuickStatus = 'good' | 'ok' | 'attention' | 'unknown';

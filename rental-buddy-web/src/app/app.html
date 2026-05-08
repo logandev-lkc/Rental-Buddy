@@ -781,6 +781,23 @@
                     }
                   </div>
                 </div>
+                @if (getItemOptions(item.id).length > 0) {
+                  <div class="detail-options-wrap" (click)="$event.stopPropagation()">
+                    <div class="quick-status-label">細節選項</div>
+                    <div class="quick-status-chips" aria-label="細節選項">
+                      @for (option of getItemOptions(item.id); track option) {
+                        <button
+                          type="button"
+                          class="detail-option-chip"
+                          [class.active]="state[item.id].selectedOptions.includes(option)"
+                          (click)="toggleItemOption(item.id, option, $event)"
+                        >
+                          {{ option }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
                 <div class="item-note-wrap" (click)="$event.stopPropagation()">
                   <label class="item-note-label">備註</label>
                   <textarea
