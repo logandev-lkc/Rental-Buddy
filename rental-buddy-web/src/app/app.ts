@@ -71,12 +71,15 @@ export class App {
     { id: 'f6', cat: 'facility', title: '廚房設備', tip: '確認冰箱、爐具、抽風等是否正常。' },
     { id: 'f7', cat: 'facility', title: '工作空間', tip: '若常在家工作，桌面與插座很重要。' },
     { id: 'f8', cat: 'facility', title: '停車空間', tip: '確認位置、費用、進出動線。' },
+    { id: 'f9', cat: 'facility', title: '插座與電力配置', tip: '確認插座數量、位置與是否老舊，避免延長線過多。' },
+    { id: 'f10', cat: 'facility', title: '收納空間', tip: '確認衣櫃、鞋櫃與雜物空間是否足夠。' },
     { id: 's1', cat: 'safety', title: '對外窗方向', tip: '採光與通風會直接影響居住舒適度。' },
     { id: 's2', cat: 'safety', title: '是否有壁癌 / 漏水', tip: '注意牆角、窗框與天花板痕跡。' },
     { id: 's3', cat: 'safety', title: '頂加 / 違建確認', tip: '評估噪音、熱度與潛在風險。' },
     { id: 's4', cat: 'safety', title: '門鎖安全性', tip: '確認鎖具狀況，是否可換鎖。' },
     { id: 's5', cat: 'safety', title: '滅火器 / 逃生設備', tip: '確認逃生動線與設施可用性。' },
     { id: 's6', cat: 'safety', title: '隔音狀況', tip: '現場安靜不代表夜晚安靜，建議多問。' },
+    { id: 's7', cat: 'safety', title: '浴室通風與乾濕狀況', tip: '確認是否有對外窗或抽風設備，並觀察潮濕與霉味。' },
     { id: 'l1', cat: 'living', title: '附近超市 / 便利商店', tip: '步行 5 分鐘內有採買點最方便。' },
     { id: 'l2', cat: 'living', title: '通勤路線確認', tip: '建議實際走一趟通勤路線。' },
     { id: 'l3', cat: 'living', title: '垃圾處理方式', tip: '確認垃圾車時間與分類方式。' },
@@ -85,7 +88,9 @@ export class App {
     { id: 'n1', cat: 'neighbor', title: '鄰居組成', tip: '觀察生活作息是否與自己相容。' },
     { id: 'n2', cat: 'neighbor', title: '房東溝通風格', tip: '看房互動能反映未來溝通品質。' },
     { id: 'n3', cat: 'neighbor', title: '周邊噪音來源', tip: '注意夜市、酒吧、工地等噪音風險。' },
-    { id: 'n4', cat: 'neighbor', title: '大樓管理員', tip: '有管理員通常更安全也更便利。' }
+    { id: 'n4', cat: 'neighbor', title: '大樓管理員', tip: '有管理員通常更安全也更便利。' },
+    { id: 'n5', cat: 'neighbor', title: '室內氣味', tip: '留意菸味、油煙味、霉味或寵物味，這些通常不容易短期改善。' },
+    { id: 'n6', cat: 'neighbor', title: '蟲害跡象', tip: '檢查廚房、浴室、排水孔與櫃體角落是否有蟑螂、螞蟻或蟲卵痕跡。' }
   ];
 
   readonly itemRiskConfig: Record<string, ItemRiskConfig> = {
@@ -104,12 +109,15 @@ export class App {
     f6: { weight: 3, riskLevel: 'medium' },
     f7: { weight: 2, riskLevel: 'low' },
     f8: { weight: 2, riskLevel: 'low' },
+    f9: { weight: 3, riskLevel: 'medium' },
+    f10: { weight: 2, riskLevel: 'low' },
     s1: { weight: 3, riskLevel: 'medium' },
     s2: { weight: 5, riskLevel: 'high' },
     s3: { weight: 5, riskLevel: 'high' },
     s4: { weight: 5, riskLevel: 'high' },
     s5: { weight: 5, riskLevel: 'high' },
     s6: { weight: 4, riskLevel: 'medium' },
+    s7: { weight: 4, riskLevel: 'medium' },
     l1: { weight: 2, riskLevel: 'low' },
     l2: { weight: 4, riskLevel: 'medium' },
     l3: { weight: 3, riskLevel: 'medium' },
@@ -118,7 +126,9 @@ export class App {
     n1: { weight: 3, riskLevel: 'medium' },
     n2: { weight: 4, riskLevel: 'high' },
     n3: { weight: 4, riskLevel: 'high' },
-    n4: { weight: 3, riskLevel: 'medium' }
+    n4: { weight: 3, riskLevel: 'medium' },
+    n5: { weight: 4, riskLevel: 'medium' },
+    n6: { weight: 5, riskLevel: 'high' }
   };
 
   readonly itemReportCopyConfig: Record<string, ItemReportCopyConfig> = {
@@ -147,6 +157,16 @@ export class App {
       riskText: '廚房設備不明可能帶來油煙、用電與維修責任問題。',
       nextAction: '確認爐具、抽風、冰箱與維修責任。'
     },
+    f9: {
+      positiveText: '插座與電力配置足夠，日常使用與工作需求較穩定。',
+      riskText: '插座不足或線路老舊可能造成使用不便與用電安全疑慮。',
+      nextAction: '檢查主要使用區的插座數量、位置與是否有燒焦或鬆動痕跡。'
+    },
+    f10: {
+      positiveText: '收納空間已確認，長住時物品擺放壓力較小。',
+      riskText: '收納不足會讓小坪數房源更容易雜亂，影響長住舒適度。',
+      nextAction: '確認衣櫃、鞋櫃與床下或高處收納是否足夠。'
+    },
     s2: {
       positiveText: '目前未見明顯漏水或壁癌，屋況風險較低。',
       riskText: '壁癌或漏水屬重大屋況風險，可能影響健康與修繕成本。',
@@ -172,6 +192,11 @@ export class App {
       riskText: '隔音問題可能長期影響睡眠與生活品質。',
       nextAction: '建議晚上或尖峰時段再訪，確認車流與鄰戶噪音。'
     },
+    s7: {
+      positiveText: '浴室通風狀況已確認，潮濕與霉味風險較低。',
+      riskText: '浴室通風不佳容易造成潮濕、霉味與清潔負擔。',
+      nextAction: '確認是否有對外窗或抽風機，並觀察天花板、矽利康與牆角是否發霉。'
+    },
     l2: {
       positiveText: '通勤路線已確認，日常移動成本較可預期。',
       riskText: '通勤不明會放大時間成本，入住後較難改善。',
@@ -196,6 +221,16 @@ export class App {
       positiveText: '周邊噪音來源已確認，生活品質較可預期。',
       riskText: '周邊噪音可能長期影響睡眠與居住舒適度。',
       nextAction: '晚上 20:00 後再訪一次，並確認附近是否有酒吧、工地或車流。'
+    },
+    n5: {
+      positiveText: '室內氣味狀況可接受，入住後清潔與適應成本較低。',
+      riskText: '菸味、油煙味、霉味或寵物味通常不容易短期改善。',
+      nextAction: '關窗停留數分鐘後再次確認氣味來源，必要時詢問是否可深度清潔。'
+    },
+    n6: {
+      positiveText: '目前未見明顯蟲害跡象，衛生風險較低。',
+      riskText: '蟲害通常代表環境或管線問題，入住後處理成本高。',
+      nextAction: '檢查廚房、浴室、排水孔與櫃體角落，並詢問是否定期消毒。'
     }
   };
 
