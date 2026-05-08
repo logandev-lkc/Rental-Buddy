@@ -342,20 +342,22 @@ ChatGPT 輸出時，必須依照下列順序：
 - 建議不是泛泛而談，必須能回到該房源的實際檢查結果。
 - 使用者知道下一次看房或談租約要做什麼。
 
-### Slice 8：ChatGPT 生成內容整合（後續）
+### Slice 8：ChatGPT 生成內容整合（已完成第一版）
 
 目標：讓 AI 文字可以接進固定版型。
 
 實作內容：
-- 前端先產生 `reportData JSON`。
-- 將 JSON 丟給 ChatGPT prompt。
-- ChatGPT 回傳結構化 Markdown 或 JSON。
-- 前端將結果塞回固定報告區塊。
+- 前端可產生完整 `reportData JSON`。
+- 前端可複製一般 ChatGPT 報告 prompt。
+- 前端可複製「可匯入 Prompt」，要求 ChatGPT 只回傳固定 JSON。
+- 前端提供「貼上 AI 回傳」面板，將 JSON 套用到固定報告區塊。
+- AI 內容只覆蓋 `AI 分析總結` 與 `下一步建議`；分數、分類統計與 checklist 明細仍由前端規則產生。
 
 驗收標準：
-- 同一份資料每次生成的章節順序一致。
-- AI 文字不破壞 PDF 版面。
-- 即使 AI 內容缺漏，前端仍可用規則產生 fallback。
+- 同一份資料可複製固定格式 prompt。
+- ChatGPT 回傳 JSON 後可貼回前端並套用到報告。
+- AI 文字不破壞 PDF 版面，操作面板不會出現在列印輸出。
+- 即使 AI 內容缺漏或被清除，前端仍可用規則產生 fallback。
 
 ---
 
@@ -418,7 +420,52 @@ Checklist 明細表建議最多顯示 8~10 筆。
 
 若仍不足，可補上各分類中最關鍵的 checked 項目。
 
-### 8.3 戶型配置規則
+### 8.3 AI 內容匯入規則
+
+第一版不直接串接 API，而是採「複製 prompt → 貼到 ChatGPT → 貼回 JSON」流程。
+
+前端提供三種 AI 輔助操作：
+- `複製 AI JSON`：只複製目前房源資料，方便除錯或自行調整 prompt。
+- `複製 ChatGPT Prompt`：複製一般 InBody 風格報告生成 prompt。
+- `複製可匯入 Prompt`：要求 ChatGPT 只回傳固定 JSON，方便貼回前端。
+
+可匯入 JSON schema：
+
+```json
+{
+  "conclusion": {
+    "title": "整體結論標題",
+    "description": "2 到 3 句決策說明"
+  },
+  "strengths": [
+    { "title": "主要優勢", "description": "具體原因" }
+  ],
+  "risks": [
+    { "title": "主要風險", "description": "具體風險提示" }
+  ],
+  "nextActions": [
+    { "title": "下一步標題", "description": "具體可執行建議" }
+  ]
+}
+```
+
+匯入後套用範圍：
+- `AI 分析總結` 的整體結論、主要優勢、主要風險。
+- `下一步建議` 的 3 個行動項。
+
+不交給 AI 覆蓋的內容：
+- `Rental Score`
+- `Confidence`
+- `Grade`
+- `分類分數`
+- `Checklist 明細表`
+
+原因：
+- 分數與狀態必須由前端規則穩定產生，避免 AI 幻覺或改動數字。
+- AI 只負責文字解讀與建議，降低版面與資料一致性風險。
+- 若 AI JSON 缺漏、格式錯誤或使用者清除內容，前端會回到規則版 fallback。
+
+### 8.4 戶型配置規則
 
 戶型配置在 PDF 中出現兩次：
 
@@ -427,7 +474,7 @@ Checklist 明細表建議最多顯示 8~10 筆。
 
 若欄位未填，顯示 `未填寫`，但不要讓空欄位撐出版面。
 
-### 8.4 PDF 版面限制
+### 8.5 PDF 版面限制
 
 - 目標：單頁 A4。
 - Checklist 明細不是全量資料，完整資料可留在網頁報告頁。
