@@ -1,7 +1,7 @@
 {
   "configVersion": 1,
-  "timestamp": 1778059725096,
-  "index": "./index.html",
+  "timestamp": 1778256559860,
+  "index": "/Rental-Buddy/index.html",
   "assetGroups": [
     {
       "name": "app",
@@ -11,11 +11,11 @@
         "ignoreVary": true
       },
       "urls": [
-        "./favicon.ico",
-        "./index.html",
-        "./main-BBTAQM35.js",
-        "./manifest.webmanifest",
-        "./styles-3GWQ34QW.css"
+        "/Rental-Buddy/favicon.ico",
+        "/Rental-Buddy/index.html",
+        "/Rental-Buddy/main-YIHJTHEG.js",
+        "/Rental-Buddy/manifest.webmanifest",
+        "/Rental-Buddy/styles-PVAASDTR.css"
       ],
       "patterns": []
     },
@@ -27,33 +27,39 @@
         "ignoreVary": true
       },
       "urls": [
-        "./icons/icon-128x128.png",
-        "./icons/icon-144x144.png",
-        "./icons/icon-152x152.png",
-        "./icons/icon-192x192.png",
-        "./icons/icon-384x384.png",
-        "./icons/icon-512x512.png",
-        "./icons/icon-72x72.png",
-        "./icons/icon-96x96.png"
+        "/Rental-Buddy/icons/icon-128x128.png",
+        "/Rental-Buddy/icons/icon-144x144.png",
+        "/Rental-Buddy/icons/icon-152x152.png",
+        "/Rental-Buddy/icons/icon-192x192.png",
+        "/Rental-Buddy/icons/icon-384x384.png",
+        "/Rental-Buddy/icons/icon-512x512.png",
+        "/Rental-Buddy/icons/icon-72x72.png",
+        "/Rental-Buddy/icons/icon-96x96.png",
+        "/Rental-Buddy/media/layers-2x-TBM42ERR.png",
+        "/Rental-Buddy/media/layers-55W3Q4RM.png",
+        "/Rental-Buddy/media/marker-icon-2V3QKKVC.png"
       ],
       "patterns": []
     }
   ],
   "dataGroups": [],
   "hashTable": {
-    "./favicon.ico": "9c39f434fe1261f68c5e3eefdf734630d99c5670",
-    "./icons/icon-128x128.png": "f912963bdc6d5a38d8f1dd0afbaab2ce8d657acb",
-    "./icons/icon-144x144.png": "b155fd5f2fd5d2ea7760721063003c4cd95fd783",
-    "./icons/icon-152x152.png": "eae6e0f0c8afb8aaae339e2a569b43e9238e5e6c",
-    "./icons/icon-192x192.png": "15c4180454633880d98674aa7394656196c91584",
-    "./icons/icon-384x384.png": "94a915751ef6c9282df9aea405ad679230631814",
-    "./icons/icon-512x512.png": "1de182f76f7329dfa8f9fcdd1fdcdd695bea6a99",
-    "./icons/icon-72x72.png": "aa88a6096bd973be7f6d7a5489bfa6bc2463f8c4",
-    "./icons/icon-96x96.png": "7fb8f59c30ce2ff12c700321a0b39e14b3dc8f95",
-    "./index.html": "ddf3afdee26ce7684e897ccf64d386625d039ff0",
-    "./main-BBTAQM35.js": "99b8fc2747986f51674b79b7a3d7730015c23432",
-    "./manifest.webmanifest": "6a850e7e0bd752455e4fcc024bee1ea7cc5b9845",
-    "./styles-3GWQ34QW.css": "9172d5a267ae3242bd67533e6a3d00c5c4bbf7fb"
+    "/Rental-Buddy/favicon.ico": "9c39f434fe1261f68c5e3eefdf734630d99c5670",
+    "/Rental-Buddy/icons/icon-128x128.png": "f912963bdc6d5a38d8f1dd0afbaab2ce8d657acb",
+    "/Rental-Buddy/icons/icon-144x144.png": "b155fd5f2fd5d2ea7760721063003c4cd95fd783",
+    "/Rental-Buddy/icons/icon-152x152.png": "eae6e0f0c8afb8aaae339e2a569b43e9238e5e6c",
+    "/Rental-Buddy/icons/icon-192x192.png": "15c4180454633880d98674aa7394656196c91584",
+    "/Rental-Buddy/icons/icon-384x384.png": "94a915751ef6c9282df9aea405ad679230631814",
+    "/Rental-Buddy/icons/icon-512x512.png": "1de182f76f7329dfa8f9fcdd1fdcdd695bea6a99",
+    "/Rental-Buddy/icons/icon-72x72.png": "aa88a6096bd973be7f6d7a5489bfa6bc2463f8c4",
+    "/Rental-Buddy/icons/icon-96x96.png": "7fb8f59c30ce2ff12c700321a0b39e14b3dc8f95",
+    "/Rental-Buddy/index.html": "c7e16f89bd22360e5caee3e14875e837c341deba",
+    "/Rental-Buddy/main-YIHJTHEG.js": "5ebd3adeca6cc1ee0e2f4e5f38d007a4ac2ff389",
+    "/Rental-Buddy/manifest.webmanifest": "6a850e7e0bd752455e4fcc024bee1ea7cc5b9845",
+    "/Rental-Buddy/media/layers-2x-TBM42ERR.png": "152a162333e46d24f9d89f566312fc0c64011dee",
+    "/Rental-Buddy/media/layers-55W3Q4RM.png": "c9e7528e491a39232ba24a2706c6c739d6fb0f06",
+    "/Rental-Buddy/media/marker-icon-2V3QKKVC.png": "60a90bcbb2b42b7ddb4556db94eb7c1084b0e5da",
+    "/Rental-Buddy/styles-PVAASDTR.css": "733befe0a043b74130e9e2ac8206d6c637ba8c67"
   },
   "navigationUrls": [
     {
