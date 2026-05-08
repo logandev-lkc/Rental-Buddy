@@ -122,6 +122,28 @@
     <span class="k">戶型備註</span>
     <textarea class="overview-textarea" placeholder="例如：動線順，但客廳採光較弱" [ngModel]="layoutNotes" (ngModelChange)="layoutNotes = $event"></textarea>
   </div>
+  <div class="overview-property-panel">
+    <div class="overview-property-title">房源條件</div>
+    <div class="overview-property-grid">
+      @for (group of propertyChoiceGroups; track group.field) {
+        <div class="property-choice-group">
+          <div class="property-choice-label">{{ group.label }}</div>
+          <div class="property-choice-chips">
+            @for (option of group.options; track option) {
+              <button
+                type="button"
+                class="property-choice-chip"
+                [class.active]="getPropertyChoiceValue(group.field) === option"
+                (click)="setPropertyChoice(group.field, option)"
+              >
+                {{ option }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
 </section>
 
 }
@@ -205,6 +227,10 @@
         <div class="print-meta-row">
           <span class="k">廚房/坪數</span>
           <span class="v">{{ (layoutKitchenType || '未填') + ' / ' + (layoutAreaPing || '未填') }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">條件</span>
+          <span class="v">{{ propertySummaryText }}</span>
         </div>
         <div class="print-meta-row">
           <span class="k">更新</span>

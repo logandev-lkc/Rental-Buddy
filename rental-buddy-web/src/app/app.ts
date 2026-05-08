@@ -41,6 +41,19 @@ export class App {
     { value: 'attention', label: '需注意' },
     { value: 'unknown', label: '尚未確認' }
   ];
+  readonly propertyChoiceGroups: Array<{ field: PropertyChoiceField; label: string; options: string[] }> = [
+    { field: 'buildingType', label: '建物類型', options: ['電梯大樓', '公寓', '套房', '雅房', '分租'] },
+    { field: 'floorLevel', label: '樓層', options: ['低樓層', '中樓層', '高樓層', '頂樓', '地下/半地下'] },
+    { field: 'buildingAgeRange', label: '屋齡', options: ['5年內', '5-15年', '15-30年', '30年以上', '不確定'] },
+    { field: 'hasElevator', label: '電梯', options: ['有', '無', '不確定'] },
+    { field: 'hasManager', label: '管理員', options: ['有', '無', '不確定'] },
+    { field: 'managementFeeType', label: '管理費', options: ['含租金', '另計', '無', '需確認'] },
+    { field: 'depositMonths', label: '押金', options: ['1個月', '2個月', '超過2個月', '需確認'] },
+    { field: 'minLeaseTerm', label: '最短租期', options: ['半年', '一年', '兩年', '可談', '需確認'] },
+    { field: 'canCook', label: '開伙', options: ['可', '不可', '需確認'] },
+    { field: 'canPet', label: '寵物', options: ['可', '不可', '需確認'] },
+    { field: 'subsidyAvailable', label: '租補', options: ['可申請', '不可', '需確認'] }
+  ];
 
   readonly items: ChecklistItem[] = [
     { id: 'c1', cat: 'contract', title: '租屋補助資格', tip: '部分房東不願配合申請租屋補助，租前務必確認。' },
@@ -224,6 +237,33 @@ export class App {
     if (!this.activeRecord) return;
     this.activeRecord.layoutNotes = value;
     this.touchActiveRecord();
+  }
+
+  getPropertyChoiceValue(field: PropertyChoiceField): string {
+    return this.activeRecord?.[field] ?? '';
+  }
+
+  setPropertyChoice(field: PropertyChoiceField, value: string): void {
+    if (!this.activeRecord) return;
+    this.activeRecord[field] = this.activeRecord[field] === value ? '' : value;
+    this.touchActiveRecord();
+  }
+
+  get propertySummaryText(): string {
+    const parts = [
+      this.activeRecord?.buildingType,
+      this.activeRecord?.floorLevel,
+      this.activeRecord?.buildingAgeRange ? `屋齡${this.activeRecord.buildingAgeRange}` : '',
+      this.activeRecord?.hasElevator ? `電梯${this.activeRecord.hasElevator}` : '',
+      this.activeRecord?.hasManager ? `管理員${this.activeRecord.hasManager}` : '',
+      this.activeRecord?.managementFeeType ? `管理費${this.activeRecord.managementFeeType}` : '',
+      this.activeRecord?.depositMonths ? `押金${this.activeRecord.depositMonths}` : '',
+      this.activeRecord?.minLeaseTerm ? `租期${this.activeRecord.minLeaseTerm}` : '',
+      this.activeRecord?.canCook ? `開伙${this.activeRecord.canCook}` : '',
+      this.activeRecord?.canPet ? `寵物${this.activeRecord.canPet}` : '',
+      this.activeRecord?.subsidyAvailable || ''
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' / ') : '未填寫';
   }
 
   get compareRecords(): HouseRecord[] {
@@ -480,6 +520,17 @@ export class App {
       layoutKitchenType: '',
       layoutAreaPing: '',
       layoutNotes: '',
+      buildingType: '',
+      floorLevel: '',
+      buildingAgeRange: '',
+      hasElevator: '',
+      hasManager: '',
+      managementFeeType: '',
+      depositMonths: '',
+      minLeaseTerm: '',
+      canCook: '',
+      canPet: '',
+      subsidyAvailable: '',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       state: this.createEmptyState()
@@ -548,6 +599,17 @@ export class App {
     this.activeRecord.layoutKitchenType = '';
     this.activeRecord.layoutAreaPing = '';
     this.activeRecord.layoutNotes = '';
+    this.activeRecord.buildingType = '';
+    this.activeRecord.floorLevel = '';
+    this.activeRecord.buildingAgeRange = '';
+    this.activeRecord.hasElevator = '';
+    this.activeRecord.hasManager = '';
+    this.activeRecord.managementFeeType = '';
+    this.activeRecord.depositMonths = '';
+    this.activeRecord.minLeaseTerm = '';
+    this.activeRecord.canCook = '';
+    this.activeRecord.canPet = '';
+    this.activeRecord.subsidyAvailable = '';
     this.touchActiveRecord();
   }
 
@@ -867,6 +929,17 @@ export class App {
         layoutKitchenType: '',
         layoutAreaPing: '',
         layoutNotes: '',
+        buildingType: '',
+        floorLevel: '',
+        buildingAgeRange: '',
+        hasElevator: '',
+        hasManager: '',
+        managementFeeType: '',
+        depositMonths: '',
+        minLeaseTerm: '',
+        canCook: '',
+        canPet: '',
+        subsidyAvailable: '',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         state: this.createEmptyState()
@@ -924,6 +997,17 @@ export class App {
       layoutKitchenType: record.layoutKitchenType || '',
       layoutAreaPing: record.layoutAreaPing || '',
       layoutNotes: record.layoutNotes || '',
+      buildingType: record.buildingType || '',
+      floorLevel: record.floorLevel || '',
+      buildingAgeRange: record.buildingAgeRange || '',
+      hasElevator: record.hasElevator || '',
+      hasManager: record.hasManager || '',
+      managementFeeType: record.managementFeeType || '',
+      depositMonths: record.depositMonths || '',
+      minLeaseTerm: record.minLeaseTerm || '',
+      canCook: record.canCook || '',
+      canPet: record.canPet || '',
+      subsidyAvailable: record.subsidyAvailable || '',
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
       state: normalizedState
@@ -1261,6 +1345,19 @@ interface ItemState {
 
 type QuickStatus = 'good' | 'ok' | 'attention' | 'unknown';
 
+type PropertyChoiceField =
+  | 'buildingType'
+  | 'floorLevel'
+  | 'buildingAgeRange'
+  | 'hasElevator'
+  | 'hasManager'
+  | 'managementFeeType'
+  | 'depositMonths'
+  | 'minLeaseTerm'
+  | 'canCook'
+  | 'canPet'
+  | 'subsidyAvailable';
+
 interface HouseRecord {
   id: string;
   name: string;
@@ -1273,6 +1370,17 @@ interface HouseRecord {
   layoutKitchenType: string;
   layoutAreaPing: string;
   layoutNotes: string;
+  buildingType: string;
+  floorLevel: string;
+  buildingAgeRange: string;
+  hasElevator: string;
+  hasManager: string;
+  managementFeeType: string;
+  depositMonths: string;
+  minLeaseTerm: string;
+  canCook: string;
+  canPet: string;
+  subsidyAvailable: string;
   createdAt: number;
   updatedAt: number;
   state: Record<string, ItemState>;
