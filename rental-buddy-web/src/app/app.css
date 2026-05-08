@@ -2389,6 +2389,27 @@
 }
 
 @media (max-width: 640px) {
+  .record-menu-input,
+  .overview-input,
+  .overview-textarea,
+  .record-name-input,
+  .address-input,
+  .category-select,
+  .custom-select-trigger,
+  .item-note-input,
+  .ai-import-input {
+    line-height: 1.35;
+  }
+
+  .record-menu-input,
+  .overview-input,
+  .record-name-input,
+  .address-input,
+  .category-select,
+  .custom-select-trigger {
+    min-height: 42px;
+  }
+
   .header-right {
     max-width: 62%;
   }
