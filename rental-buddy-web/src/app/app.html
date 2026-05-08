@@ -80,6 +80,11 @@
         [(ngModel)]="address"
         (ngModelChange)="address = $event"
       />
+      @if (hasAddressForMap) {
+        <a class="overview-map-link" [href]="googleMapsUrl" target="_blank" rel="noopener noreferrer">開啟 Google 地圖</a>
+      } @else {
+        <span class="overview-map-hint">填寫地址後可快速開啟地圖</span>
+      }
     </div>
     <div class="overview-meta-item">
       <span class="k">月租</span>
@@ -729,6 +734,9 @@
 </section>
 <div class="action-row report-actions">
   <button class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
+  @if (hasAddressForMap) {
+    <a class="btn-outline action-link" [href]="googleMapsUrl" target="_blank" rel="noopener noreferrer">開啟地圖</a>
+  }
   @if (reportViewMode === 'friendly') {
     <button class="btn-outline" (click)="setReportViewMode('compact')">切換精簡版</button>
   } @else {

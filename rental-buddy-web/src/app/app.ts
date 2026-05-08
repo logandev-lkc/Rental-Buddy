@@ -333,6 +333,15 @@ export class App {
     this.touchActiveRecord();
   }
 
+  get hasAddressForMap(): boolean {
+    return this.address.trim().length > 0;
+  }
+
+  get googleMapsUrl(): string {
+    const query = this.address.trim();
+    return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : '';
+  }
+
   get monthlyRent(): string {
     return this.activeRecord?.monthlyRent ?? '';
   }
