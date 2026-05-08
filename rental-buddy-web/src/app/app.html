@@ -94,6 +94,21 @@
       />
     </div>
   </div>
+  @if (showMapPicker) {
+    <section class="map-picker-panel">
+      <div class="map-picker-head">
+        <div>
+          <div class="map-picker-title">地圖選址</div>
+          <p class="map-picker-desc">點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。</p>
+        </div>
+        <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
+      </div>
+      <div id="mapPickerCanvas" class="map-picker-canvas" aria-label="地圖選址"></div>
+      <div class="map-picker-footer">
+        <span [class.loading]="isReverseGeocoding">{{ mapPickerStatus }}</span>
+      </div>
+    </section>
+  }
   <div class="overview-layout-grid">
     <div class="overview-meta-item">
       <span class="k">戶型類型</span>
@@ -146,21 +161,6 @@
       }
     </div>
   </div>
-  @if (showMapPicker) {
-    <section class="map-picker-panel">
-      <div class="map-picker-head">
-        <div>
-          <div class="map-picker-title">地圖選址</div>
-          <p class="map-picker-desc">點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。</p>
-        </div>
-        <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
-      </div>
-      <div id="mapPickerCanvas" class="map-picker-canvas" aria-label="地圖選址"></div>
-      <div class="map-picker-footer">
-        <span [class.loading]="isReverseGeocoding">{{ mapPickerStatus }}</span>
-      </div>
-    </section>
-  }
 </section>
 
 }

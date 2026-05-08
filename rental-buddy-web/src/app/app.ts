@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy } from '@angular/core';
+import { Component, HostListener, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 
@@ -314,7 +314,7 @@ export class App implements OnDestroy {
   private mapInstance: L.Map | null = null;
   private mapMarker: L.CircleMarker | null = null;
 
-  constructor() {
+  constructor(private readonly zone: NgZone) {
     this.loadState();
   }
 
@@ -740,7 +740,10 @@ export class App implements OnDestroy {
   openMapPicker(): void {
     this.showMapPicker = true;
     this.mapPickerStatus = this.hasMapLocation ? '可重新點選地圖更新位置。' : '點一下地圖，會自動帶入相似地址。';
-    window.setTimeout(() => this.initMapPicker(), 0);
+    window.setTimeout(() => {
+      this.initMapPicker();
+      document.querySelector('.map-picker-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
   }
 
   openMapPickerFromReport(): void {
@@ -779,7 +782,9 @@ export class App implements OnDestroy {
     }).addTo(this.mapInstance);
 
     this.mapInstance.on('click', (event: L.LeafletMouseEvent) => {
-      void this.selectMapPoint(event.latlng.lat, event.latlng.lng);
+      this.zone.run(() => {
+        void this.selectMapPoint(event.latlng.lat, event.latlng.lng);
+      });
     });
 
     this.syncMapMarker();
