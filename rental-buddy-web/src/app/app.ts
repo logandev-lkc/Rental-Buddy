@@ -69,6 +69,39 @@ export class App {
     { id: 'n4', cat: 'neighbor', title: '大樓管理員', tip: '有管理員通常更安全也更便利。' }
   ];
 
+  readonly itemRiskConfig: Record<string, ItemRiskConfig> = {
+    c1: { weight: 3, riskLevel: 'medium' },
+    c2: { weight: 4, riskLevel: 'medium' },
+    c3: { weight: 4, riskLevel: 'high' },
+    c4: { weight: 3, riskLevel: 'medium' },
+    c5: { weight: 5, riskLevel: 'high' },
+    c6: { weight: 2, riskLevel: 'low' },
+    c7: { weight: 3, riskLevel: 'medium' },
+    f1: { weight: 3, riskLevel: 'medium' },
+    f2: { weight: 4, riskLevel: 'high' },
+    f3: { weight: 1, riskLevel: 'low' },
+    f4: { weight: 2, riskLevel: 'medium' },
+    f5: { weight: 3, riskLevel: 'medium' },
+    f6: { weight: 3, riskLevel: 'medium' },
+    f7: { weight: 2, riskLevel: 'low' },
+    f8: { weight: 2, riskLevel: 'low' },
+    s1: { weight: 3, riskLevel: 'medium' },
+    s2: { weight: 5, riskLevel: 'high' },
+    s3: { weight: 5, riskLevel: 'high' },
+    s4: { weight: 5, riskLevel: 'high' },
+    s5: { weight: 5, riskLevel: 'high' },
+    s6: { weight: 4, riskLevel: 'medium' },
+    l1: { weight: 2, riskLevel: 'low' },
+    l2: { weight: 4, riskLevel: 'medium' },
+    l3: { weight: 3, riskLevel: 'medium' },
+    l4: { weight: 4, riskLevel: 'high' },
+    l5: { weight: 2, riskLevel: 'low' },
+    n1: { weight: 3, riskLevel: 'medium' },
+    n2: { weight: 4, riskLevel: 'high' },
+    n3: { weight: 4, riskLevel: 'high' },
+    n4: { weight: 3, riskLevel: 'medium' }
+  };
+
   records: HouseRecord[] = [];
   activeRecordId = '';
   compareIds: string[] = [];
@@ -114,6 +147,76 @@ export class App {
   set monthlyRent(value: string) {
     if (!this.activeRecord) return;
     this.activeRecord.monthlyRent = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutType(): string {
+    return this.activeRecord?.layoutType ?? '';
+  }
+
+  set layoutType(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutType = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutRooms(): string {
+    return this.activeRecord?.layoutRooms ?? '';
+  }
+
+  set layoutRooms(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutRooms = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutLivingRooms(): string {
+    return this.activeRecord?.layoutLivingRooms ?? '';
+  }
+
+  set layoutLivingRooms(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutLivingRooms = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutBathrooms(): string {
+    return this.activeRecord?.layoutBathrooms ?? '';
+  }
+
+  set layoutBathrooms(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutBathrooms = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutKitchenType(): string {
+    return this.activeRecord?.layoutKitchenType ?? '';
+  }
+
+  set layoutKitchenType(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutKitchenType = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutAreaPing(): string {
+    return this.activeRecord?.layoutAreaPing ?? '';
+  }
+
+  set layoutAreaPing(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutAreaPing = value;
+    this.touchActiveRecord();
+  }
+
+  get layoutNotes(): string {
+    return this.activeRecord?.layoutNotes ?? '';
+  }
+
+  set layoutNotes(value: string) {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutNotes = value;
     this.touchActiveRecord();
   }
 
@@ -176,12 +279,28 @@ export class App {
     return Math.round((this.confirmedCount / this.totalCount) * 100);
   }
 
-  /** 100 分制：完成度為主，問題數作為扣分 */
+  /** 100 分制：房源品質分數，風險扣分為主，資料不足只針對高權重項目少量扣分 */
   get reportScore100(): number {
-    const doneRatio = this.doneCount / Math.max(this.totalCount, 1);
-    const flaggedRatio = this.flaggedCount / Math.max(this.totalCount, 1);
-    const score = doneRatio * 100 - flaggedRatio * 40;
-    return Math.max(0, Math.min(100, Math.round(score)));
+    return this.getRecordScore(this.activeRecord);
+  }
+
+  get reportConfidencePercent(): number {
+    return this.getRecordConfidencePercent(this.activeRecord);
+  }
+
+  get reportConfidenceLabel(): string {
+    if (this.reportConfidencePercent >= 80) return '資料完整';
+    if (this.reportConfidencePercent >= 50) return '資料尚可';
+    return '資料不足';
+  }
+
+  get reportConfidenceHint(): string {
+    const pendingHighRiskCount = this.getRecordPendingHighRiskItems(this.activeRecord).length;
+    if (pendingHighRiskCount > 0) {
+      return `仍有 ${pendingHighRiskCount} 個高權重項目待確認`;
+    }
+    if (this.reportConfidencePercent >= 80) return '目前資料足以支撐初步判斷';
+    return '建議補齊關鍵項目後再下結論';
   }
 
   /** A/B/C：A = 可優先、B = 可考慮、C = 需謹慎 */
@@ -336,6 +455,13 @@ export class App {
       name,
       address: '',
       monthlyRent: '',
+      layoutType: '',
+      layoutRooms: '',
+      layoutLivingRooms: '',
+      layoutBathrooms: '',
+      layoutKitchenType: '',
+      layoutAreaPing: '',
+      layoutNotes: '',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       state: this.createEmptyState()
@@ -397,6 +523,13 @@ export class App {
     });
     this.activeRecord.address = '';
     this.activeRecord.monthlyRent = '';
+    this.activeRecord.layoutType = '';
+    this.activeRecord.layoutRooms = '';
+    this.activeRecord.layoutLivingRooms = '';
+    this.activeRecord.layoutBathrooms = '';
+    this.activeRecord.layoutKitchenType = '';
+    this.activeRecord.layoutAreaPing = '';
+    this.activeRecord.layoutNotes = '';
     this.touchActiveRecord();
   }
 
@@ -465,34 +598,20 @@ export class App {
 
   private get reportStrongCategoryLabels(): string[] {
     return this.getCategoryEvaluationStats()
-      .filter((stat) => stat.doneRatio >= 0.7 && stat.flaggedRatio <= 0.15)
-      .sort((a, b) => b.doneRatio - a.doneRatio)
+      .filter((stat) => stat.score >= 80 && stat.flaggedRatio <= 0.15)
+      .sort((a, b) => b.score - a.score)
       .map((stat) => stat.label);
   }
 
   private get reportWeakCategoryLabels(): string[] {
     return this.getCategoryEvaluationStats()
-      .filter((stat) => stat.flaggedRatio >= 0.25 || stat.flagged >= 2 || stat.doneRatio < 0.35)
-      .sort((a, b) => b.flaggedRatio - a.flaggedRatio || a.doneRatio - b.doneRatio)
+      .filter((stat) => stat.score < 65 || stat.flaggedRatio >= 0.25 || stat.flagged >= 2)
+      .sort((a, b) => a.score - b.score || b.flaggedRatio - a.flaggedRatio)
       .map((stat) => stat.label);
   }
 
   private getCategoryEvaluationStats(): CategoryEvaluationStat[] {
-    return this.radarAxisIds.map((axisId) => {
-      const items = this.items.filter((item) => item.cat === axisId);
-      const done = items.filter((item) => this.state[item.id]?.checked).length;
-      const flagged = items.filter((item) => this.state[item.id]?.flagged).length;
-      const total = Math.max(items.length, 1);
-      return {
-        label: this.categoryMap[axisId],
-        total,
-        done,
-        flagged,
-        pending: Math.max(total - done - flagged, 0),
-        doneRatio: done / total,
-        flaggedRatio: flagged / total
-      };
-    });
+    return this.radarAxisIds.map((axisId) => this.getCategoryEvaluationStat(axisId));
   }
 
   private formatCategoryList(labels: string[]): string {
@@ -501,24 +620,57 @@ export class App {
     return picked.join('、');
   }
 
+  private getCategoryEvaluationStat(axisId: string): CategoryEvaluationStat {
+    const items = this.items.filter((item) => item.cat === axisId);
+    const total = Math.max(items.length, 1);
+    const done = items.filter((item) => this.state[item.id]?.checked).length;
+    const flagged = items.filter((item) => this.state[item.id]?.flagged).length;
+    const pending = Math.max(total - done - flagged, 0);
+    const confirmed = done + flagged;
+    const score = this.getCategoryScore(axisId);
+    const pendingHighRiskCount = items.filter((item) => {
+      const state = this.state[item.id];
+      const config = this.getItemRiskConfig(item);
+      return !state?.checked && !state?.flagged && config.weight >= 4;
+    }).length;
+
+    return {
+      label: this.categoryMap[axisId],
+      total,
+      done,
+      flagged,
+      pending,
+      confirmed,
+      score,
+      analysis: this.getCategoryAnalysisText(score, flagged, pendingHighRiskCount),
+      doneRatio: done / total,
+      flaggedRatio: flagged / total
+    };
+  }
+
+  private getCategoryScore(axisId: string): number {
+    const items = this.items.filter((item) => item.cat === axisId);
+    const penalty = items.reduce((sum, item) => {
+      const state = this.state[item.id];
+      const config = this.getItemRiskConfig(item);
+      if (state?.flagged) return sum + config.weight * this.getRiskPenaltyMultiplier(config.riskLevel);
+      if (!state?.checked && config.weight >= 4) return sum + Math.ceil(config.weight * 0.8);
+      return sum;
+    }, 0);
+    return Math.max(0, Math.min(100, Math.round(100 - penalty)));
+  }
+
+  private getCategoryAnalysisText(score: number, flagged: number, pendingHighRiskCount: number): string {
+    if (flagged >= 2 || score < 60) return '風險偏高，建議優先複查';
+    if (pendingHighRiskCount > 0) return '關鍵項目待確認';
+    if (score >= 85) return '條件良好';
+    if (score >= 70) return '可列入候選';
+    return '尚可，但需補查';
+  }
+
   /** 列印版：分類統計表（像報告表格一樣呈現） */
   get reportCategoryStats(): CategoryEvaluationStat[] {
-    return this.radarAxisIds.map((axisId) => {
-      const items = this.items.filter((item) => item.cat === axisId);
-      const done = items.filter((item) => this.state[item.id]?.checked).length;
-      const flagged = items.filter((item) => this.state[item.id]?.flagged).length;
-      const total = Math.max(items.length, 1);
-      const pending = Math.max(total - done - flagged, 0);
-      return {
-        label: this.categoryMap[axisId],
-        total,
-        done,
-        flagged,
-        pending,
-        doneRatio: done / total,
-        flaggedRatio: flagged / total
-      };
-    });
+    return this.radarAxisIds.map((axisId) => this.getCategoryEvaluationStat(axisId));
   }
 
   /** 雷達強項拆成標籤，螢幕版快速閱讀用 */
@@ -559,6 +711,113 @@ export class App {
       }));
   }
 
+  get reportImportantChecklistRows(): ReportChecklistRow[] {
+    return this.items
+      .map((item) => {
+        const state = this.state[item.id];
+        const config = this.getItemRiskConfig(item);
+        const status: ReportChecklistStatus = state?.flagged ? 'flagged' : state?.checked ? 'checked' : 'pending';
+        const priority =
+          (status === 'flagged' ? 300 : status === 'pending' ? 200 : 100) +
+          config.weight * 10 +
+          (state?.note?.trim() ? 5 : 0);
+        return {
+          category: this.categoryMap[item.cat] ?? item.cat,
+          title: item.title,
+          status,
+          statusLabel: this.getChecklistStatusLabel(status),
+          note: state?.note?.trim() || this.getDefaultChecklistNote(status),
+          priority
+        };
+      })
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 8);
+  }
+
+  get reportSummaryStrengths(): ReportSummaryBullet[] {
+    const strengths = this.items
+      .filter((item) => this.state[item.id]?.checked)
+      .map((item) => {
+        const config = this.getItemRiskConfig(item);
+        return {
+          title: item.title,
+          description: this.state[item.id]?.note?.trim() || this.getStrengthDescription(item),
+          priority: config.weight
+        };
+      })
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 3);
+
+    if (strengths.length > 0) return strengths;
+
+    return [{
+      title: '尚未形成明確優勢',
+      description: '建議先完成高權重項目，報告會更容易判斷優勢。',
+      priority: 0
+    }];
+  }
+
+  get reportSummaryRisks(): ReportSummaryBullet[] {
+    const risks = this.items
+      .filter((item) => this.state[item.id]?.flagged)
+      .map((item) => {
+        const config = this.getItemRiskConfig(item);
+        return {
+          title: item.title,
+          description: this.state[item.id]?.note?.trim() || this.getRiskDescription(item),
+          priority: config.weight
+        };
+      })
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 3);
+
+    if (risks.length > 0) return risks;
+
+    return [{
+      title: '目前未標記重大風險',
+      description: '仍需留意待確認項目，特別是高權重安全與合約題。',
+      priority: 0
+    }];
+  }
+
+  get reportNextActions(): ReportNextAction[] {
+    const flaggedRows = this.reportImportantChecklistRows.filter((row) => row.status === 'flagged');
+    const pendingRows = this.reportImportantChecklistRows.filter((row) => row.status === 'pending');
+    const actions: ReportNextAction[] = [];
+
+    flaggedRows.slice(0, 2).forEach((row) => {
+      actions.push({
+        title: `複查：${row.title}`,
+        description: row.note === '已標記風險，建議與房東確認改善方式。'
+          ? '針對此風險與房東確認原因、改善方式，必要時寫進租約。'
+          : row.note
+      });
+    });
+
+    pendingRows.slice(0, 2).forEach((row) => {
+      actions.push({
+        title: `補查：${row.title}`,
+        description: '下次看房或簽約前補齊確認，避免分數建立在資料不足上。'
+      });
+    });
+
+    if (actions.length < 3 && this.reportWeakCategoryLabels.length > 0) {
+      actions.push({
+        title: `比較：${this.reportWeakCategoryLabels[0]}`,
+        description: '把這個弱項和其他候選房源並排比較，確認是否為可接受缺點。'
+      });
+    }
+
+    if (actions.length < 3) {
+      actions.push({
+        title: '確認租約條件',
+        description: '簽約前再次確認費用、押金、提前解約與設備維修責任。'
+      });
+    }
+
+    return actions.slice(0, 3);
+  }
+
   private loadState(): void {
     try {
       const saved = JSON.parse(localStorage.getItem(this.storageKey) ?? '{}') as {
@@ -583,6 +842,13 @@ export class App {
         name: '看房紀錄 1',
         address: '',
         monthlyRent: '',
+        layoutType: '',
+        layoutRooms: '',
+        layoutLivingRooms: '',
+        layoutBathrooms: '',
+        layoutKitchenType: '',
+        layoutAreaPing: '',
+        layoutNotes: '',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         state: this.createEmptyState()
@@ -622,6 +888,13 @@ export class App {
       name: record.name || '未命名',
       address: record.address || '',
       monthlyRent: record.monthlyRent || '',
+      layoutType: record.layoutType || '',
+      layoutRooms: record.layoutRooms || '',
+      layoutLivingRooms: record.layoutLivingRooms || '',
+      layoutBathrooms: record.layoutBathrooms || '',
+      layoutKitchenType: record.layoutKitchenType || '',
+      layoutAreaPing: record.layoutAreaPing || '',
+      layoutNotes: record.layoutNotes || '',
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
       state: {
@@ -647,6 +920,77 @@ export class App {
     return this.items.filter((item) => record.state[item.id]?.flagged).length;
   }
 
+  private getItemRiskConfig(item: ChecklistItem): ItemRiskConfig {
+    return this.itemRiskConfig[item.id] ?? { weight: 2, riskLevel: 'medium' };
+  }
+
+  private getRiskPenaltyMultiplier(riskLevel: RiskLevel): number {
+    if (riskLevel === 'high') return 5;
+    if (riskLevel === 'medium') return 4;
+    return 3;
+  }
+
+  private getTotalWeight(): number {
+    return this.items.reduce((sum, item) => sum + this.getItemRiskConfig(item).weight, 0);
+  }
+
+  private getRecordConfirmedWeight(record: HouseRecord): number {
+    return this.items.reduce((sum, item) => {
+      const state = record.state[item.id];
+      if (!state?.checked && !state?.flagged) return sum;
+      return sum + this.getItemRiskConfig(item).weight;
+    }, 0);
+  }
+
+  private getRecordFlaggedPenalty(record: HouseRecord): number {
+    return this.items.reduce((sum, item) => {
+      if (!record.state[item.id]?.flagged) return sum;
+      const config = this.getItemRiskConfig(item);
+      return sum + config.weight * this.getRiskPenaltyMultiplier(config.riskLevel);
+    }, 0);
+  }
+
+  private getRecordPendingHighRiskItems(record: HouseRecord): ChecklistItem[] {
+    return this.items.filter((item) => {
+      const state = record.state[item.id];
+      const config = this.getItemRiskConfig(item);
+      return !state?.checked && !state?.flagged && config.weight >= 4;
+    });
+  }
+
+  private getRecordPendingPenalty(record: HouseRecord): number {
+    return this.getRecordPendingHighRiskItems(record).reduce((sum, item) => {
+      return sum + Math.ceil(this.getItemRiskConfig(item).weight * 0.8);
+    }, 0);
+  }
+
+  private getRecordConfidencePercent(record: HouseRecord): number {
+    return Math.round((this.getRecordConfirmedWeight(record) / Math.max(this.getTotalWeight(), 1)) * 100);
+  }
+
+  private getChecklistStatusLabel(status: ReportChecklistStatus): string {
+    if (status === 'checked') return '通過';
+    if (status === 'flagged') return '風險';
+    return '待確認';
+  }
+
+  private getDefaultChecklistNote(status: ReportChecklistStatus): string {
+    if (status === 'checked') return '已確認通過';
+    if (status === 'flagged') return '已標記風險，建議與房東確認改善方式。';
+    return '尚未確認';
+  }
+
+  private getStrengthDescription(item: ChecklistItem): string {
+    return `${this.categoryMap[item.cat] ?? '此分類'}條件已確認，對整體評估有加分。`;
+  }
+
+  private getRiskDescription(item: ChecklistItem): string {
+    const config = this.getItemRiskConfig(item);
+    if (config.riskLevel === 'high') return '屬於高權重風險，建議簽約前優先複查。';
+    if (config.riskLevel === 'medium') return '此項可能影響居住品質，建議與房東確認改善方式。';
+    return '此項影響較小，但仍建議納入比較。';
+  }
+
   getRecordDone(record: HouseRecord): number {
     return this.countDoneForRecord(record);
   }
@@ -656,11 +1000,12 @@ export class App {
   }
 
   getRecordScore(record: HouseRecord): number {
-    return Math.round((this.countDoneForRecord(record) / this.totalCount) * 100);
+    const score = 100 - this.getRecordFlaggedPenalty(record) - this.getRecordPendingPenalty(record);
+    return Math.max(0, Math.min(100, Math.round(score)));
   }
 
   getRadarValues(record: HouseRecord): number[] {
-    return this.radarAxisIds.map((axisId) => this.getRecordCategoryCompletionRatio(record, axisId));
+    return this.radarAxisIds.map((axisId) => this.getRecordCategoryScoreRatio(record, axisId));
   }
 
   getRadarPolygonPoints(values: number[]): string {
@@ -685,11 +1030,17 @@ export class App {
     return this.getRadarPolygonPoints(values);
   }
 
-  getRecordCategoryCompletionRatio(record: HouseRecord, axisId: string): number {
+  getRecordCategoryScoreRatio(record: HouseRecord, axisId: string): number {
     const catItems = this.items.filter((item) => item.cat === axisId);
     if (catItems.length === 0) return 0;
-    const done = catItems.filter((item) => record.state[item.id]?.checked).length;
-    return done / catItems.length;
+    const penalty = catItems.reduce((sum, item) => {
+      const state = record.state[item.id];
+      const config = this.getItemRiskConfig(item);
+      if (state?.flagged) return sum + config.weight * this.getRiskPenaltyMultiplier(config.riskLevel);
+      if (!state?.checked && config.weight >= 4) return sum + Math.ceil(config.weight * 0.8);
+      return sum;
+    }, 0);
+    return Math.max(0, Math.min(1, (100 - penalty) / 100));
   }
 
   getRadarAxisXEnd(axisId: string): number {
@@ -748,7 +1099,7 @@ export class App {
     return this.radarAxisIds
       .map((axisId) => ({
         axisId,
-        pct: Math.round(this.getRecordCategoryCompletionRatio(record, axisId) * 100)
+        pct: Math.round(this.getRecordCategoryScoreRatio(record, axisId) * 100)
       }))
       .sort((a, b) => b.pct - a.pct);
   }
@@ -854,6 +1205,13 @@ interface ChecklistItem {
   tip: string;
 }
 
+type RiskLevel = 'low' | 'medium' | 'high';
+
+interface ItemRiskConfig {
+  weight: number;
+  riskLevel: RiskLevel;
+}
+
 interface ItemState {
   checked: boolean;
   flagged: boolean;
@@ -866,6 +1224,13 @@ interface HouseRecord {
   name: string;
   address: string;
   monthlyRent: string;
+  layoutType: string;
+  layoutRooms: string;
+  layoutLivingRooms: string;
+  layoutBathrooms: string;
+  layoutKitchenType: string;
+  layoutAreaPing: string;
+  layoutNotes: string;
   createdAt: number;
   updatedAt: number;
   state: Record<string, ItemState>;
@@ -876,12 +1241,37 @@ interface ReportRow {
   note: string;
 }
 
+type ReportChecklistStatus = 'checked' | 'flagged' | 'pending';
+
+interface ReportChecklistRow {
+  category: string;
+  title: string;
+  status: ReportChecklistStatus;
+  statusLabel: string;
+  note: string;
+  priority: number;
+}
+
+interface ReportNextAction {
+  title: string;
+  description: string;
+}
+
+interface ReportSummaryBullet {
+  title: string;
+  description: string;
+  priority: number;
+}
+
 interface CategoryEvaluationStat {
   label: string;
   total: number;
   done: number;
   flagged: number;
   pending: number;
+  confirmed: number;
+  score: number;
+  analysis: string;
   doneRatio: number;
   flaggedRatio: number;
 }

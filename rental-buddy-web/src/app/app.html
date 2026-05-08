@@ -92,6 +92,36 @@
       />
     </div>
   </div>
+  <div class="overview-layout-grid">
+    <div class="overview-meta-item">
+      <span class="k">戶型類型</span>
+      <input class="overview-input" type="text" placeholder="例如：1房1廳1衛" [ngModel]="layoutType" (ngModelChange)="layoutType = $event" />
+    </div>
+    <div class="overview-meta-item">
+      <span class="k">房</span>
+      <input class="overview-input" type="text" placeholder="例如：1" [ngModel]="layoutRooms" (ngModelChange)="layoutRooms = $event" />
+    </div>
+    <div class="overview-meta-item">
+      <span class="k">廳</span>
+      <input class="overview-input" type="text" placeholder="例如：1" [ngModel]="layoutLivingRooms" (ngModelChange)="layoutLivingRooms = $event" />
+    </div>
+    <div class="overview-meta-item">
+      <span class="k">衛</span>
+      <input class="overview-input" type="text" placeholder="例如：1" [ngModel]="layoutBathrooms" (ngModelChange)="layoutBathrooms = $event" />
+    </div>
+    <div class="overview-meta-item">
+      <span class="k">廚房型態</span>
+      <input class="overview-input" type="text" placeholder="例如：開放式" [ngModel]="layoutKitchenType" (ngModelChange)="layoutKitchenType = $event" />
+    </div>
+    <div class="overview-meta-item">
+      <span class="k">室內坪數</span>
+      <input class="overview-input" type="text" placeholder="例如：12.5" [ngModel]="layoutAreaPing" (ngModelChange)="layoutAreaPing = $event" />
+    </div>
+  </div>
+  <div class="overview-meta-item layout-note-item">
+    <span class="k">戶型備註</span>
+    <textarea class="overview-textarea" placeholder="例如：動線順，但客廳採光較弱" [ngModel]="layoutNotes" (ngModelChange)="layoutNotes = $event"></textarea>
+  </div>
 </section>
 
 }
@@ -165,6 +195,18 @@
           <span class="v">{{ monthlyRent || '未填寫' }}</span>
         </div>
         <div class="print-meta-row">
+          <span class="k">戶型</span>
+          <span class="v">{{ layoutType || '未填寫' }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">房/廳/衛</span>
+          <span class="v">{{ (layoutRooms || '-') + '/' + (layoutLivingRooms || '-') + '/' + (layoutBathrooms || '-') }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">廚房/坪數</span>
+          <span class="v">{{ (layoutKitchenType || '未填') + ' / ' + (layoutAreaPing || '未填') }}</span>
+        </div>
+        <div class="print-meta-row">
           <span class="k">更新</span>
           <span class="v">{{ activeRecord.updatedAt | date:'yyyy/MM/dd HH:mm' }}</span>
         </div>
@@ -173,6 +215,8 @@
         <div class="print-score-num">{{ reportScore100 }}</div>
         <div class="print-score-sub">/ 100 分</div>
         <div class="print-grade">等級 {{ reportGrade }}</div>
+        <div class="print-risk-label">{{ reportRiskLevelLabel }}</div>
+        <div class="print-confidence">信心度 {{ reportConfidencePercent }}%</div>
       </div>
     </header>
 
@@ -181,16 +225,24 @@
         <div class="print-card-title">總覽</div>
         <div class="print-kpis">
           <div class="print-kpi">
+            <div class="n score">{{ reportScore100 }}</div>
+            <div class="t">Rental Score</div>
+          </div>
+          <div class="print-kpi">
+            <div class="n">{{ reportGrade }}</div>
+            <div class="t">等級</div>
+          </div>
+          <div class="print-kpi">
             <div class="n good">{{ confirmedCount }}</div>
             <div class="t">已確認</div>
           </div>
           <div class="print-kpi">
-            <div class="n danger">{{ flaggedCount }}</div>
-            <div class="t">標記問題</div>
-          </div>
-          <div class="print-kpi">
             <div class="n">{{ leftCount }}</div>
             <div class="t">待確認</div>
+          </div>
+          <div class="print-kpi">
+            <div class="n">{{ reportConfidencePercent }}%</div>
+            <div class="t">{{ reportConfidenceLabel }}</div>
           </div>
         </div>
 
@@ -206,6 +258,10 @@
             <strong>{{ reportRiskLevelLabel }}</strong>
             <span class="risk-key">重點：{{ reportKeyRiskSummary }}</span>
           </div>
+          <div class="print-confidence-note">
+            <strong>信心度 {{ reportConfidencePercent }}%</strong>
+            <span>{{ reportConfidenceHint }}</span>
+          </div>
           <div class="print-decision-box">
             <div class="decision-title">{{ reportDecisionTitle }}</div>
             <div class="decision-desc">{{ reportDecisionDesc }}</div>
@@ -214,33 +270,64 @@
       </section>
 
       <section class="print-card print-card--table">
-        <div class="print-card-title">五分類體檢表</div>
+        <div class="print-card-title">五分類分析</div>
         <table class="print-table" aria-label="分類統計表">
           <thead>
             <tr>
               <th>分類</th>
-              <th class="c">已確認</th>
-              <th class="c">問題</th>
-              <th class="c">待確認</th>
-              <th class="c">達成</th>
+              <th class="c">分數</th>
+              <th class="c">已確認 / 總數</th>
+              <th>分析重點</th>
             </tr>
           </thead>
           <tbody>
             @for (row of reportCategoryStats; track row.label) {
               <tr>
                 <td class="l">{{ row.label }}</td>
-                <td class="c">{{ row.done }}</td>
-                <td class="c">{{ row.flagged }}</td>
-                <td class="c">{{ row.pending }}</td>
-                <td class="c">{{ (row.doneRatio * 100) | number:'1.0-0' }}%</td>
+                <td class="c score-cell">{{ row.score }}</td>
+                <td class="c">{{ row.confirmed }} / {{ row.total }}</td>
+                <td>{{ row.analysis }}</td>
               </tr>
             }
           </tbody>
         </table>
       </section>
 
+      <section class="print-card print-card--wide print-card--ai">
+        <div class="print-card-title">AI 分析總結</div>
+        <div class="print-ai-grid">
+          <article class="print-ai-col conclusion">
+            <div class="print-ai-label">整體結論</div>
+            <div class="print-ai-title">{{ reportDecisionTitle }}</div>
+            <p>{{ reportDecisionDesc }}</p>
+          </article>
+          <article class="print-ai-col">
+            <div class="print-ai-label">主要優勢</div>
+            <ul>
+              @for (item of reportSummaryStrengths; track item.title) {
+                <li>
+                  <strong>{{ item.title }}</strong>
+                  <span>{{ item.description }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+          <article class="print-ai-col">
+            <div class="print-ai-label">主要風險</div>
+            <ul>
+              @for (item of reportSummaryRisks; track item.title) {
+                <li>
+                  <strong>{{ item.title }}</strong>
+                  <span>{{ item.description }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        </div>
+      </section>
+
       <section class="print-card print-card--wide print-card--chart">
-        <div class="print-card-title">五角形分布圖（各分類完成度）</div>
+        <div class="print-card-title">五角形分布圖（各分類分數）</div>
         <div class="print-radar-row">
           <div class="print-radar">
             <svg class="radar-svg print-radar-svg" viewBox="0 0 300 300" aria-label="Radar chart print">
@@ -277,22 +364,50 @@
             </svg>
           </div>
 
-          <div class="print-notes">
-            <div class="print-notes-title">重點備註（節錄）</div>
-            <ol class="print-notes-list">
-              @for (row of reportCons.slice(0, 6); track row.title; let i = $index) {
-                <li>
-                  <span class="t">{{ row.title }}</span>
-                  @if (row.note) { <span class="n">（{{ row.note }}）</span> }
-                </li>
-              }
-              @if (reportCons.length === 0) {
-                <li class="muted">目前未標記缺點。</li>
-              }
-            </ol>
+          <div class="print-notes print-important">
+            <div class="print-notes-title">Checklist 明細表（重要項目）</div>
+            <table class="print-important-table" aria-label="重要檢查項目">
+              <thead>
+                <tr>
+                  <th>分類</th>
+                  <th>檢查項目</th>
+                  <th>狀態</th>
+                  <th>備註</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of reportImportantChecklistRows; track row.title) {
+                  <tr>
+                    <td>{{ row.category }}</td>
+                    <td>{{ row.title }}</td>
+                    <td>
+                      <span class="status-pill" [class.pass]="row.status === 'checked'" [class.risk]="row.status === 'flagged'" [class.pending]="row.status === 'pending'">
+                        {{ row.statusLabel }}
+                      </span>
+                    </td>
+                    <td>{{ row.note }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
+    </section>
+
+    <section class="print-card print-card--wide print-card--actions">
+      <div class="print-card-title">下一步建議</div>
+      <div class="print-actions-grid">
+        @for (action of reportNextActions; track action.title; let i = $index) {
+          <article class="print-action">
+            <div class="print-action-index">{{ i + 1 }}</div>
+            <div>
+              <div class="print-action-title">{{ action.title }}</div>
+              <div class="print-action-desc">{{ action.description }}</div>
+            </div>
+          </article>
+        }
+      </div>
     </section>
 
     <footer class="print-foot">
@@ -317,8 +432,8 @@
       <p class="report-updated">最後更新：{{ activeRecord.updatedAt | date:'yyyy/MM/dd HH:mm' }}</p>
     </div>
     <div class="report-score-badge">
-      <span class="report-score-num">{{ progressPercent }}%</span>
-      <span class="report-score-text">完成度</span>
+      <span class="report-score-num">{{ reportScore100 }}</span>
+      <span class="report-score-text">Rental Score</span>
     </div>
   </div>
 
@@ -335,8 +450,13 @@
       <span>{{ leftCount }}</span>
       待確認
     </div>
+    <div class="report-summary-chip info">
+      <span>{{ reportConfidencePercent }}%</span>
+      {{ reportConfidenceLabel }}
+    </div>
   </div>
 
+  <p class="report-callout report-callout--confidence">{{ reportConfidenceHint }}</p>
   <p class="report-callout">{{ reportSummary }}</p>
 
   @if (reportStrengthChips.length > 0) {
@@ -375,7 +495,7 @@
           <div class="compare-stats">
             <span>完成 {{ getRecordDone(record) }}/{{ totalCount }}</span>
             <span>問題 {{ getRecordFlagged(record) }}</span>
-            <span>分數 {{ getRecordScore(record) }}%</span>
+            <span>分數 {{ getRecordScore(record) }}/100</span>
           </div>
         </article>
       }
