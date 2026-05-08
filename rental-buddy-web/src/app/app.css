@@ -1343,6 +1343,16 @@
 
 .report-actions {
   margin: 12px 12px 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.report-copy-state {
+  flex: 0 0 100%;
+  text-align: right;
+  color: var(--sage-dark);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .report-record-switch {

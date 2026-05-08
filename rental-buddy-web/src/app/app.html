@@ -734,6 +734,10 @@
   } @else {
     <button class="btn-outline" (click)="setReportViewMode('friendly')">切換手機版</button>
   }
+  <button class="btn-outline" (click)="copyReportDataJson()">複製 AI JSON</button>
+  @if (reportDataCopyState) {
+    <span class="report-copy-state">{{ reportDataCopyState }}</span>
+  }
   <button class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
 </div>
 }

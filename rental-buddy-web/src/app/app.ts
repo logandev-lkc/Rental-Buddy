@@ -301,6 +301,7 @@ export class App {
   currentCat = 'all';
   currentPage: 'checklist' | 'report' = 'checklist';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
+  reportDataCopyState = '';
   showIntro = true;
 
   constructor() {
@@ -1118,6 +1119,117 @@ export class App {
     return actions.slice(0, 3);
   }
 
+  get reportDataForAi(): ReportDataPayload {
+    const record = this.activeRecord;
+    return {
+      recordName: record.name,
+      address: record.address || '未填寫',
+      monthlyRent: record.monthlyRent || '未填寫',
+      updatedAt: this.formatDateTime(record.updatedAt),
+      layout: {
+        layoutType: record.layoutType || '未填寫',
+        rooms: record.layoutRooms || '未填寫',
+        livingRooms: record.layoutLivingRooms || '未填寫',
+        bathrooms: record.layoutBathrooms || '未填寫',
+        kitchenType: record.layoutKitchenType || '未填寫',
+        areaPing: record.layoutAreaPing || '未填寫',
+        notes: record.layoutNotes || ''
+      },
+      property: {
+        summary: this.propertySummaryText,
+        buildingType: record.buildingType || '未填寫',
+        floorLevel: record.floorLevel || '未填寫',
+        buildingAgeRange: record.buildingAgeRange || '未填寫',
+        hasElevator: record.hasElevator || '未填寫',
+        hasManager: record.hasManager || '未填寫',
+        managementFeeType: record.managementFeeType || '未填寫',
+        depositMonths: record.depositMonths || '未填寫',
+        minLeaseTerm: record.minLeaseTerm || '未填寫',
+        canCook: record.canCook || '未填寫',
+        canPet: record.canPet || '未填寫',
+        subsidyAvailable: record.subsidyAvailable || '未填寫'
+      },
+      score: {
+        overall: this.reportScore100,
+        grade: this.reportGrade,
+        gradeText: this.reportGradeText,
+        riskLevel: this.reportRiskLevelLabel,
+        confidencePercent: this.reportConfidencePercent,
+        confidenceLabel: this.reportConfidenceLabel,
+        confidenceHint: this.reportConfidenceHint,
+        decisionTitle: this.reportDecisionTitle,
+        decisionDescription: this.reportDecisionDesc,
+        candidateAverageScore: this.candidateAverageScore
+      },
+      summary: {
+        confirmedCount: this.confirmedCount,
+        checkedCount: this.doneCount,
+        flaggedCount: this.flaggedCount,
+        totalCount: this.totalCount,
+        pendingCount: this.leftCount,
+        keyRiskSummary: this.reportKeyRiskSummary
+      },
+      categoryScores: this.reportCategoryStats.map((stat) => ({
+        name: stat.label,
+        score: stat.score,
+        confirmed: stat.confirmed,
+        total: stat.total,
+        flagged: stat.flagged,
+        pending: stat.pending,
+        analysis: stat.analysis
+      })),
+      aiSummaryFallback: {
+        conclusion: {
+          title: this.reportDecisionTitle,
+          description: this.reportDecisionDesc
+        },
+        strengths: this.reportSummaryStrengths.map(({ title, description }) => ({ title, description })),
+        risks: this.reportSummaryRisks.map(({ title, description }) => ({ title, description }))
+      },
+      checklistTable: this.items.map((item) => {
+        const state = this.state[item.id];
+        const config = this.getItemRiskConfig(item);
+        const status: ReportChecklistStatus = state?.flagged ? 'flagged' : state?.checked ? 'checked' : 'pending';
+        return {
+          category: this.categoryMap[item.cat] ?? item.cat,
+          item: item.title,
+          status,
+          statusLabel: this.getChecklistStatusLabel(status),
+          quickStatus: state?.quickStatus ?? 'unknown',
+          selectedOptions: state?.selectedOptions ?? [],
+          note: this.formatChecklistNote(state, status),
+          weight: config.weight,
+          riskLevel: config.riskLevel
+        };
+      }),
+      importantChecklistTable: this.reportImportantChecklistRows.map(({ category, title, status, statusLabel, note }) => ({
+        category,
+        item: title,
+        status,
+        statusLabel,
+        note
+      })),
+      nextActions: this.reportNextActions.map(({ title, description }) => ({ title, description }))
+    };
+  }
+
+  get reportDataJson(): string {
+    return JSON.stringify(this.reportDataForAi, null, 2);
+  }
+
+  async copyReportDataJson(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.reportDataJson);
+      this.reportDataCopyState = '已複製 AI JSON';
+    } catch {
+      this.copyTextWithFallback(this.reportDataJson);
+      this.reportDataCopyState = '已複製 AI JSON';
+    }
+    window.setTimeout(() => {
+      this.reportDataCopyState = '';
+    }, 1800);
+  }
+
   private loadState(): void {
     try {
       const saved = JSON.parse(localStorage.getItem(this.storageKey) ?? '{}') as {
@@ -1556,6 +1668,29 @@ export class App {
     cleanup();
   }
 
+  private copyTextWithFallback(text: string): void {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+
+  private formatDateTime(timestamp: number): string {
+    return new Intl.DateTimeFormat('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(new Date(timestamp));
+  }
+
   private createId(): string {
     return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
@@ -1671,6 +1806,71 @@ interface ReportSummaryBullet {
   title: string;
   description: string;
   priority: number;
+}
+
+interface ReportDataPayload {
+  recordName: string;
+  address: string;
+  monthlyRent: string;
+  updatedAt: string;
+  layout: Record<string, string>;
+  property: Record<string, string>;
+  score: {
+    overall: number;
+    grade: 'A' | 'B' | 'C';
+    gradeText: string;
+    riskLevel: string;
+    confidencePercent: number;
+    confidenceLabel: string;
+    confidenceHint: string;
+    decisionTitle: string;
+    decisionDescription: string;
+    candidateAverageScore: number | null;
+  };
+  summary: {
+    confirmedCount: number;
+    checkedCount: number;
+    flaggedCount: number;
+    totalCount: number;
+    pendingCount: number;
+    keyRiskSummary: string;
+  };
+  categoryScores: Array<{
+    name: string;
+    score: number;
+    confirmed: number;
+    total: number;
+    flagged: number;
+    pending: number;
+    analysis: string;
+  }>;
+  aiSummaryFallback: {
+    conclusion: {
+      title: string;
+      description: string;
+    };
+    strengths: Array<{ title: string; description: string }>;
+    risks: Array<{ title: string; description: string }>;
+  };
+  checklistTable: Array<{
+    category: string;
+    item: string;
+    status: ReportChecklistStatus;
+    statusLabel: string;
+    quickStatus: QuickStatus;
+    selectedOptions: string[];
+    note: string;
+    weight: number;
+    riskLevel: RiskLevel;
+  }>;
+  importantChecklistTable: Array<{
+    category: string;
+    item: string;
+    status: ReportChecklistStatus;
+    statusLabel: string;
+    note: string;
+  }>;
+  nextActions: Array<{ title: string; description: string }>;
 }
 
 interface CategoryEvaluationStat {
