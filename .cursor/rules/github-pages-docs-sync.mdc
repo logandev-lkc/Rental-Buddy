@@ -1,0 +1,12 @@
+---
+description: Keep GitHub Pages docs build in sync after frontend changes
+alwaysApply: true
+---
+
+# GitHub Pages Docs Sync
+
+- GitHub Pages deploys from the repo-root `docs/` directory.
+- After any frontend change in `rental-buddy-web/` that should appear online, run `npm run deploy:gh` from `rental-buddy-web/`.
+- Commit and push the regenerated `docs/` output together with the source change, or in an immediate follow-up commit if the source change was already pushed.
+- If the change is documentation-only or does not affect the deployed app, `docs/` sync is not required.
+- If `npm run deploy:gh` passes with warnings only, mention the warning briefly in the final response.
