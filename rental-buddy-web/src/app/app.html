@@ -732,6 +732,25 @@
               <div class="item-title">{{ item.title }}</div>
               @if (state[item.id].expanded) {
                 <div class="item-tip">{{ item.tip }}</div>
+                <div class="quick-status-wrap" (click)="$event.stopPropagation()">
+                  <div class="quick-status-label">快速狀態</div>
+                  <div class="quick-status-chips" aria-label="快速狀態">
+                    @for (option of quickStatusOptions; track option.value) {
+                      <button
+                        type="button"
+                        class="quick-status-chip"
+                        [class.active]="state[item.id].quickStatus === option.value"
+                        [class.good]="option.value === 'good'"
+                        [class.ok]="option.value === 'ok'"
+                        [class.attention]="option.value === 'attention'"
+                        [class.unknown]="option.value === 'unknown'"
+                        (click)="setItemQuickStatus(item.id, option.value, $event)"
+                      >
+                        {{ option.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
                 <div class="item-note-wrap" (click)="$event.stopPropagation()">
                   <label class="item-note-label">備註</label>
                   <textarea

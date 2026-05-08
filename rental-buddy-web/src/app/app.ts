@@ -35,6 +35,12 @@ export class App {
 
   readonly radarCenter = 150;
   readonly radarRadius = 86;
+  readonly quickStatusOptions: Array<{ value: QuickStatus; label: string }> = [
+    { value: 'good', label: '良好' },
+    { value: 'ok', label: '可接受' },
+    { value: 'attention', label: '需注意' },
+    { value: 'unknown', label: '尚未確認' }
+  ];
 
   readonly items: ChecklistItem[] = [
     { id: 'c1', cat: 'contract', title: '租屋補助資格', tip: '部分房東不願配合申請租屋補助，租前務必確認。' },
@@ -382,6 +388,7 @@ export class App {
     if (!current) return;
     current.checked = !current.checked;
     if (current.checked) current.flagged = false;
+    current.quickStatus = current.checked ? 'good' : 'unknown';
     this.touchActiveRecord();
   }
 
@@ -391,6 +398,7 @@ export class App {
     if (!current) return;
     current.flagged = !current.flagged;
     if (current.flagged) current.checked = false;
+    current.quickStatus = current.flagged ? 'attention' : 'unknown';
     this.touchActiveRecord();
   }
 
@@ -406,6 +414,16 @@ export class App {
     const current = this.state[id];
     if (!current) return;
     current.note = note;
+    this.touchActiveRecord();
+  }
+
+  setItemQuickStatus(id: string, status: QuickStatus, event: Event): void {
+    event.stopPropagation();
+    const current = this.state[id];
+    if (!current) return;
+    current.quickStatus = status;
+    current.checked = status === 'good' || status === 'ok';
+    current.flagged = status === 'attention';
     this.touchActiveRecord();
   }
 
@@ -519,7 +537,7 @@ export class App {
   resetAll(): void {
     if (!window.confirm('確定要重置所有勾選記錄嗎？')) return;
     this.items.forEach((item) => {
-      this.state[item.id] = { checked: false, flagged: false, expanded: false, note: '' };
+      this.state[item.id] = { checked: false, flagged: false, expanded: false, note: '', quickStatus: 'unknown' };
     });
     this.activeRecord.address = '';
     this.activeRecord.monthlyRent = '';
@@ -726,7 +744,7 @@ export class App {
           title: item.title,
           status,
           statusLabel: this.getChecklistStatusLabel(status),
-          note: state?.note?.trim() || this.getDefaultChecklistNote(status),
+          note: this.formatChecklistNote(state, status),
           priority
         };
       })
@@ -883,6 +901,17 @@ export class App {
   }
 
   private normalizeRecord(record: HouseRecord): HouseRecord {
+    const normalizedState = {
+      ...this.createEmptyState(),
+      ...(record.state ?? {})
+    };
+    this.items.forEach((item) => {
+      const state = normalizedState[item.id];
+      if (!state.quickStatus) {
+        state.quickStatus = state.flagged ? 'attention' : state.checked ? 'good' : 'unknown';
+      }
+    });
+
     return {
       id: record.id,
       name: record.name || '未命名',
@@ -897,17 +926,14 @@ export class App {
       layoutNotes: record.layoutNotes || '',
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
-      state: {
-        ...this.createEmptyState(),
-        ...(record.state ?? {})
-      }
+      state: normalizedState
     };
   }
 
   private createEmptyState(): Record<string, ItemState> {
     const nextState: Record<string, ItemState> = {};
     this.items.forEach((item) => {
-      nextState[item.id] = { checked: false, flagged: false, expanded: false, note: '' };
+      nextState[item.id] = { checked: false, flagged: false, expanded: false, note: '', quickStatus: 'unknown' };
     });
     return nextState;
   }
@@ -978,6 +1004,19 @@ export class App {
     if (status === 'checked') return '已確認通過';
     if (status === 'flagged') return '已標記風險，建議與房東確認改善方式。';
     return '尚未確認';
+  }
+
+  private getQuickStatusLabel(status: QuickStatus): string {
+    return this.quickStatusOptions.find((option) => option.value === status)?.label ?? '尚未確認';
+  }
+
+  private formatChecklistNote(state: ItemState | undefined, status: ReportChecklistStatus): string {
+    const note = state?.note?.trim();
+    if (note) return note;
+    if (state?.quickStatus && state.quickStatus !== 'unknown') {
+      return `快速狀態：${this.getQuickStatusLabel(state.quickStatus)}`;
+    }
+    return this.getDefaultChecklistNote(status);
   }
 
   private getStrengthDescription(item: ChecklistItem): string {
@@ -1217,7 +1256,10 @@ interface ItemState {
   flagged: boolean;
   expanded: boolean;
   note: string;
+  quickStatus: QuickStatus;
 }
+
+type QuickStatus = 'good' | 'ok' | 'attention' | 'unknown';
 
 interface HouseRecord {
   id: string;
