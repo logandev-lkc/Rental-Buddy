@@ -520,7 +520,7 @@ export class App implements OnDestroy {
     return Math.round((this.confirmedCount / this.totalCount) * 100);
   }
 
-  /** 100 分制：房源品質分數，風險扣分為主，資料不足只針對高權重項目少量扣分 */
+  /** 100 分制：房源品質分數，採五分類分數平均，避免分類與總分邏輯不一致 */
   get reportScore100(): number {
     return this.getRecordScore(this.activeRecord);
   }
@@ -1852,8 +1852,12 @@ ${this.reportDataJson}`;
   }
 
   getRecordScore(record: HouseRecord): number {
-    const score = 100 - this.getRecordFlaggedPenalty(record) - this.getRecordPendingPenalty(record);
-    return Math.max(0, Math.min(100, Math.round(score)));
+    const categoryScores = this.radarAxisIds.map((axisId) =>
+      this.getRecordCategoryScoreRatio(record, axisId) * 100
+    );
+    if (categoryScores.length === 0) return 0;
+    const average = categoryScores.reduce((sum, score) => sum + score, 0) / categoryScores.length;
+    return Math.max(0, Math.min(100, Math.round(average)));
   }
 
   getRadarValues(record: HouseRecord): number[] {
