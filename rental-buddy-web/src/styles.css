@@ -13,3 +13,12 @@ input,
 select {
   font: inherit;
 }
+
+/* iOS Safari: input font-size < 16px triggers auto-zoom */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
