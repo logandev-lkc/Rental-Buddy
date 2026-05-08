@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-root',
@@ -8,8 +9,9 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
+export class App implements OnDestroy {
   readonly storageKey = 'rental-buddy-records-v1';
+  readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly categories = [
     { id: 'all', label: '全部' },
     { id: 'contract', label: '合約條件' },
@@ -305,7 +307,12 @@ export class App {
   showAiImportPanel = false;
   aiReportDraftInput = '';
   aiReportImportMessage = '';
+  showMapPicker = false;
+  mapPickerStatus = '點一下地圖，會自動帶入相似地址。';
+  isReverseGeocoding = false;
   showIntro = true;
+  private mapInstance: L.Map | null = null;
+  private mapMarker: L.CircleMarker | null = null;
 
   constructor() {
     this.loadState();
@@ -313,6 +320,10 @@ export class App {
 
   startApp(): void {
     this.showIntro = false;
+  }
+
+  ngOnDestroy(): void {
+    this.destroyMapPicker();
   }
 
   get activeRecord(): HouseRecord {
@@ -333,13 +344,13 @@ export class App {
     this.touchActiveRecord();
   }
 
-  get hasAddressForMap(): boolean {
-    return this.address.trim().length > 0;
+  get hasMapLocation(): boolean {
+    return typeof this.activeRecord?.latitude === 'number' && typeof this.activeRecord?.longitude === 'number';
   }
 
-  get googleMapsUrl(): string {
-    const query = this.address.trim();
-    return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : '';
+  get mapLocationText(): string {
+    if (!this.hasMapLocation) return '尚未選擇地圖位置';
+    return `${this.activeRecord.latitude?.toFixed(5)}, ${this.activeRecord.longitude?.toFixed(5)}`;
   }
 
   get monthlyRent(): string {
@@ -695,6 +706,7 @@ export class App {
 
   switchRecord(recordId: string): void {
     if (!this.records.some((record) => record.id === recordId)) return;
+    this.closeMapPicker();
     this.activeRecordId = recordId;
     this.syncEditingRecordName();
     this.isRecordMenuOpen = false;
@@ -725,6 +737,115 @@ export class App {
     this.isCategoryMenuOpen = false;
   }
 
+  openMapPicker(): void {
+    this.showMapPicker = true;
+    this.mapPickerStatus = this.hasMapLocation ? '可重新點選地圖更新位置。' : '點一下地圖，會自動帶入相似地址。';
+    window.setTimeout(() => this.initMapPicker(), 0);
+  }
+
+  openMapPickerFromReport(): void {
+    this.setPage('checklist');
+    this.openMapPicker();
+  }
+
+  closeMapPicker(): void {
+    this.showMapPicker = false;
+    this.destroyMapPicker();
+  }
+
+  private initMapPicker(): void {
+    const element = document.getElementById('mapPickerCanvas');
+    if (!element) return;
+
+    const center: L.LatLngTuple = this.hasMapLocation
+      ? [this.activeRecord.latitude ?? this.defaultMapCenter[0], this.activeRecord.longitude ?? this.defaultMapCenter[1]]
+      : this.defaultMapCenter;
+
+    if (this.mapInstance) {
+      this.mapInstance.setView(center, this.hasMapLocation ? 17 : 13);
+      this.syncMapMarker();
+      this.mapInstance.invalidateSize();
+      return;
+    }
+
+    this.mapInstance = L.map(element, {
+      zoomControl: true,
+      attributionControl: true
+    }).setView(center, this.hasMapLocation ? 17 : 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(this.mapInstance);
+
+    this.mapInstance.on('click', (event: L.LeafletMouseEvent) => {
+      void this.selectMapPoint(event.latlng.lat, event.latlng.lng);
+    });
+
+    this.syncMapMarker();
+    window.setTimeout(() => this.mapInstance?.invalidateSize(), 100);
+  }
+
+  private async selectMapPoint(lat: number, lng: number): Promise<void> {
+    if (!this.activeRecord) return;
+    this.activeRecord.latitude = Number(lat.toFixed(6));
+    this.activeRecord.longitude = Number(lng.toFixed(6));
+    this.syncMapMarker();
+    this.mapPickerStatus = '正在查詢相似地址...';
+    this.isReverseGeocoding = true;
+
+    try {
+      const address = await this.reverseGeocode(lat, lng);
+      if (address) {
+        this.activeRecord.address = address;
+        this.mapPickerStatus = '已帶入相似地址，可再手動修正。';
+      } else {
+        this.mapPickerStatus = '已選擇位置，但沒有查到相似地址。';
+      }
+    } catch {
+      this.mapPickerStatus = '已選擇位置；地址反查暫時失敗，可手動輸入。';
+    } finally {
+      this.isReverseGeocoding = false;
+      this.touchActiveRecord();
+    }
+  }
+
+  private async reverseGeocode(lat: number, lng: number): Promise<string> {
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      lat: String(lat),
+      lon: String(lng),
+      'accept-language': 'zh-TW'
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`);
+    if (!response.ok) return '';
+    const result = (await response.json()) as NominatimReverseResult;
+    return result.display_name?.trim() ?? '';
+  }
+
+  private syncMapMarker(): void {
+    if (!this.mapInstance || !this.hasMapLocation) return;
+    const latLng: L.LatLngTuple = [this.activeRecord.latitude ?? 0, this.activeRecord.longitude ?? 0];
+    if (!this.mapMarker) {
+      this.mapMarker = L.circleMarker(latLng, {
+        radius: 9,
+        color: '#b05848',
+        weight: 3,
+        fillColor: '#d97b6c',
+        fillOpacity: 0.9
+      }).addTo(this.mapInstance);
+      return;
+    }
+    this.mapMarker.setLatLng(latLng);
+  }
+
+  private destroyMapPicker(): void {
+    this.mapMarker = null;
+    if (!this.mapInstance) return;
+    this.mapInstance.remove();
+    this.mapInstance = null;
+  }
+
   createRecord(): void {
     const index = this.records.length + 1;
     const name = this.draftRecordName.trim() || `看房紀錄 ${index}`;
@@ -732,6 +853,8 @@ export class App {
       id: this.createId(),
       name,
       address: '',
+      latitude: null,
+      longitude: null,
       monthlyRent: '',
       layoutType: '',
       layoutRooms: '',
@@ -1171,6 +1294,11 @@ export class App {
     return {
       recordName: record.name,
       address: record.address || '未填寫',
+      location: {
+        latitude: record.latitude,
+        longitude: record.longitude,
+        source: record.latitude !== null && record.longitude !== null ? 'map_picker' : 'manual_or_empty'
+      },
       monthlyRent: record.monthlyRent || '未填寫',
       updatedAt: this.formatDateTime(record.updatedAt),
       layout: {
@@ -1397,6 +1525,8 @@ ${this.reportDataJson}`;
         id: this.createId(),
         name: '看房紀錄 1',
         address: '',
+        latitude: null,
+        longitude: null,
         monthlyRent: '',
         layoutType: '',
         layoutRooms: '',
@@ -1511,6 +1641,8 @@ ${this.reportDataJson}`;
       id: record.id,
       name: record.name || '未命名',
       address: record.address || '',
+      latitude: typeof record.latitude === 'number' ? record.latitude : null,
+      longitude: typeof record.longitude === 'number' ? record.longitude : null,
       monthlyRent: record.monthlyRent || '',
       layoutType: record.layoutType || '',
       layoutRooms: record.layoutRooms || '',
@@ -1959,6 +2091,8 @@ interface HouseRecord {
   id: string;
   name: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   monthlyRent: string;
   layoutType: string;
   layoutRooms: string;
@@ -2017,6 +2151,10 @@ interface AiReportContent {
   nextActions: AiReportBullet[];
 }
 
+interface NominatimReverseResult {
+  display_name?: string;
+}
+
 interface ReportSummaryBullet {
   title: string;
   description: string;
@@ -2026,6 +2164,11 @@ interface ReportSummaryBullet {
 interface ReportDataPayload {
   recordName: string;
   address: string;
+  location: {
+    latitude: number | null;
+    longitude: number | null;
+    source: string;
+  };
   monthlyRent: string;
   updatedAt: string;
   layout: Record<string, string>;

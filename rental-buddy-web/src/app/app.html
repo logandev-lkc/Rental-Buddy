@@ -76,15 +76,12 @@
       <input
         class="overview-input"
         type="text"
-        placeholder="輸入看房地址（可選）"
+        placeholder="可手動修正相似地址"
         [(ngModel)]="address"
         (ngModelChange)="address = $event"
       />
-      @if (hasAddressForMap) {
-        <a class="overview-map-link" [href]="googleMapsUrl" target="_blank" rel="noopener noreferrer">開啟 Google 地圖</a>
-      } @else {
-        <span class="overview-map-hint">填寫地址後可快速開啟地圖</span>
-      }
+      <button type="button" class="overview-map-link" (click)="openMapPicker()">在地圖上選地址</button>
+      <span class="overview-map-hint">{{ mapLocationText }}</span>
     </div>
     <div class="overview-meta-item">
       <span class="k">月租</span>
@@ -149,6 +146,21 @@
       }
     </div>
   </div>
+  @if (showMapPicker) {
+    <section class="map-picker-panel">
+      <div class="map-picker-head">
+        <div>
+          <div class="map-picker-title">地圖選址</div>
+          <p class="map-picker-desc">點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。</p>
+        </div>
+        <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
+      </div>
+      <div id="mapPickerCanvas" class="map-picker-canvas" aria-label="地圖選址"></div>
+      <div class="map-picker-footer">
+        <span [class.loading]="isReverseGeocoding">{{ mapPickerStatus }}</span>
+      </div>
+    </section>
+  }
 </section>
 
 }
@@ -734,9 +746,7 @@
 </section>
 <div class="action-row report-actions">
   <button class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
-  @if (hasAddressForMap) {
-    <a class="btn-outline action-link" [href]="googleMapsUrl" target="_blank" rel="noopener noreferrer">開啟地圖</a>
-  }
+  <button class="btn-outline" (click)="openMapPickerFromReport()">地圖選址</button>
   @if (reportViewMode === 'friendly') {
     <button class="btn-outline" (click)="setReportViewMode('compact')">切換精簡版</button>
   } @else {
