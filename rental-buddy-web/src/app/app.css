@@ -1842,7 +1842,7 @@
 
 .print-sheet--preview .print-kpis {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin-bottom: 10px;
 }
@@ -1861,6 +1861,11 @@
 
 .print-sheet--preview .print-kpi .n.score {
   color: #8d2b1e;
+}
+
+.print-sheet--preview .print-kpi .n.avg {
+  color: #1e3a8a;
+  font-size: 16px;
 }
 
 .print-sheet--preview .print-kpi .n.good {
@@ -2665,7 +2670,7 @@
 
   body.printing-report .print-kpis {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 5px;
     margin-bottom: 10px;
   }
@@ -2683,6 +2688,11 @@
 
   body.printing-report .print-kpi .n.score {
     color: #8d2b1e;
+  }
+
+  body.printing-report .print-kpi .n.avg {
+    color: #1e3a8a;
+    font-size: 11px;
   }
 
   body.printing-report .print-kpi .n.good {

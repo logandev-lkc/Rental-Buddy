@@ -462,6 +462,20 @@ export class App {
     return '建議補齊關鍵項目後再下結論';
   }
 
+  get candidateAverageScore(): number | null {
+    const candidates = this.records.filter((record) => {
+      if (record.id === this.activeRecord.id) return false;
+      return this.countDoneForRecord(record) + this.countFlaggedForRecord(record) > 0;
+    });
+    if (candidates.length === 0) return null;
+    const total = candidates.reduce((sum, record) => sum + this.getRecordScore(record), 0);
+    return Math.round(total / candidates.length);
+  }
+
+  get candidateAverageLabel(): string {
+    return this.candidateAverageScore === null ? '資料不足' : `${this.candidateAverageScore}`;
+  }
+
   /** A/B/C：A = 可優先、B = 可考慮、C = 需謹慎 */
   get reportGrade(): 'A' | 'B' | 'C' {
     const score = this.reportScore100;
