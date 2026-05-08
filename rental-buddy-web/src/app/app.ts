@@ -302,6 +302,9 @@ export class App {
   currentPage: 'checklist' | 'report' = 'checklist';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
   reportDataCopyState = '';
+  showAiImportPanel = false;
+  aiReportDraftInput = '';
+  aiReportImportMessage = '';
   showIntro = true;
 
   constructor() {
@@ -739,6 +742,7 @@ export class App {
       canCook: '',
       canPet: '',
       subsidyAvailable: '',
+      aiReportContent: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       state: this.createEmptyState()
@@ -1075,7 +1079,41 @@ export class App {
     }];
   }
 
+  get displayReportConclusionTitle(): string {
+    return this.activeRecord.aiReportContent?.conclusion.title || this.reportDecisionTitle;
+  }
+
+  get displayReportConclusionDesc(): string {
+    return this.activeRecord.aiReportContent?.conclusion.description || this.reportDecisionDesc;
+  }
+
+  get displayReportStrengths(): ReportSummaryBullet[] {
+    const strengths = this.activeRecord.aiReportContent?.strengths ?? [];
+    if (strengths.length === 0) return this.reportSummaryStrengths;
+    return strengths.map((item, index) => ({
+      title: item.title,
+      description: item.description,
+      priority: strengths.length - index
+    }));
+  }
+
+  get displayReportRisks(): ReportSummaryBullet[] {
+    const risks = this.activeRecord.aiReportContent?.risks ?? [];
+    if (risks.length === 0) return this.reportSummaryRisks;
+    return risks.map((item, index) => ({
+      title: item.title,
+      description: item.description,
+      priority: risks.length - index
+    }));
+  }
+
   get reportNextActions(): ReportNextAction[] {
+    const aiActions = this.activeRecord.aiReportContent?.nextActions ?? [];
+    if (aiActions.length > 0) return aiActions.slice(0, 3);
+    return this.getRuleBasedNextActions();
+  }
+
+  private getRuleBasedNextActions(): ReportNextAction[] {
     const flaggedRows = this.reportImportantChecklistRows.filter((row) => row.status === 'flagged');
     const pendingRows = this.reportImportantChecklistRows.filter((row) => row.status === 'pending');
     const actions: ReportNextAction[] = [];
@@ -1256,12 +1294,75 @@ export class App {
 ${this.reportDataJson}`;
   }
 
+  get aiImportPrompt(): string {
+    return `你是一位「租屋決策顧問」。請依我提供的 JSON，產出可匯入 Rental Buddy 前端報告的 AI 分析 JSON。
+
+【輸出規則】
+1) 只回傳 JSON，不要 Markdown，不要使用 code fence。
+2) 使用繁體中文，短句，適合放進 A4 報告。
+3) 不要改動分數、grade、confirmed、pending 等數字，只能依資料生成文字。
+4) 若 confidence 偏低，conclusion 與 nextActions 必須提醒資料不足。
+5) strengths 與 risks 最多各 3 項；nextActions 固定 3 項。
+
+【回傳 JSON schema】
+{
+  "conclusion": {
+    "title": "整體結論標題",
+    "description": "2 到 3 句決策說明"
+  },
+  "strengths": [
+    { "title": "主要優勢", "description": "具體原因" }
+  ],
+  "risks": [
+    { "title": "主要風險", "description": "具體風險提示" }
+  ],
+  "nextActions": [
+    { "title": "下一步標題", "description": "具體可執行建議" }
+  ]
+}
+
+以下是資料 JSON：
+${this.reportDataJson}`;
+  }
+
   async copyReportDataJson(): Promise<void> {
     await this.copyReportText(this.reportDataJson, '已複製 AI JSON');
   }
 
   async copyAiReportPrompt(): Promise<void> {
     await this.copyReportText(this.aiReportPrompt, '已複製 ChatGPT Prompt');
+  }
+
+  async copyAiImportPrompt(): Promise<void> {
+    await this.copyReportText(this.aiImportPrompt, '已複製可匯入 Prompt');
+  }
+
+  toggleAiImportPanel(): void {
+    this.showAiImportPanel = !this.showAiImportPanel;
+    this.aiReportImportMessage = '';
+  }
+
+  applyAiReportJson(): void {
+    try {
+      const parsed = JSON.parse(this.stripJsonCodeFence(this.aiReportDraftInput)) as Partial<AiReportContent>;
+      const normalized = this.normalizeAiReportContent(parsed);
+      if (!normalized) {
+        this.aiReportImportMessage = '格式不完整，請確認有 conclusion、strengths、risks、nextActions。';
+        return;
+      }
+      this.activeRecord.aiReportContent = normalized;
+      this.aiReportImportMessage = '已套用 AI 分析內容';
+      this.touchActiveRecord();
+    } catch {
+      this.aiReportImportMessage = 'JSON 解析失敗，請貼上 ChatGPT 回傳的純 JSON。';
+    }
+  }
+
+  clearAiReportContent(): void {
+    this.activeRecord.aiReportContent = null;
+    this.aiReportDraftInput = '';
+    this.aiReportImportMessage = '已清除 AI 分析內容，報告改用規則版 fallback。';
+    this.touchActiveRecord();
   }
 
   private loadState(): void {
@@ -1306,6 +1407,7 @@ ${this.reportDataJson}`;
         canCook: '',
         canPet: '',
         subsidyAvailable: '',
+        aiReportContent: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         state: this.createEmptyState()
@@ -1337,6 +1439,50 @@ ${this.reportDataJson}`;
         compareIds: this.compareIds
       })
     );
+  }
+
+  private normalizeAiReportContent(content: Partial<AiReportContent> | null | undefined): AiReportContent | null {
+    if (!content) return null;
+    const conclusionTitle = this.asTrimmedString(content.conclusion?.title);
+    const conclusionDescription = this.asTrimmedString(content.conclusion?.description);
+    const strengths = this.normalizeAiBullets(content.strengths, 3);
+    const risks = this.normalizeAiBullets(content.risks, 3);
+    const nextActions = this.normalizeAiBullets(content.nextActions, 3);
+    if (!conclusionTitle || !conclusionDescription || strengths.length === 0 || risks.length === 0 || nextActions.length === 0) {
+      return null;
+    }
+    return {
+      conclusion: {
+        title: conclusionTitle,
+        description: conclusionDescription
+      },
+      strengths,
+      risks,
+      nextActions
+    };
+  }
+
+  private normalizeAiBullets(items: AiReportBullet[] | undefined, limit: number): AiReportBullet[] {
+    if (!Array.isArray(items)) return [];
+    return items
+      .map((item) => ({
+        title: this.asTrimmedString(item?.title),
+        description: this.asTrimmedString(item?.description)
+      }))
+      .filter((item) => item.title && item.description)
+      .slice(0, limit);
+  }
+
+  private asTrimmedString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private stripJsonCodeFence(value: string): string {
+    return value
+      .trim()
+      .replace(/^```(?:json)?/i, '')
+      .replace(/```$/, '')
+      .trim();
   }
 
   private normalizeRecord(record: HouseRecord): HouseRecord {
@@ -1375,6 +1521,7 @@ ${this.reportDataJson}`;
       canCook: record.canCook || '',
       canPet: record.canPet || '',
       subsidyAvailable: record.subsidyAvailable || '',
+      aiReportContent: this.normalizeAiReportContent(record.aiReportContent) ?? null,
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
       state: normalizedState
@@ -1822,6 +1969,7 @@ interface HouseRecord {
   canCook: string;
   canPet: string;
   subsidyAvailable: string;
+  aiReportContent: AiReportContent | null;
   createdAt: number;
   updatedAt: number;
   state: Record<string, ItemState>;
@@ -1846,6 +1994,18 @@ interface ReportChecklistRow {
 interface ReportNextAction {
   title: string;
   description: string;
+}
+
+interface AiReportBullet {
+  title: string;
+  description: string;
+}
+
+interface AiReportContent {
+  conclusion: AiReportBullet;
+  strengths: AiReportBullet[];
+  risks: AiReportBullet[];
+  nextActions: AiReportBullet[];
 }
 
 interface ReportSummaryBullet {

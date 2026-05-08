@@ -328,13 +328,13 @@
         <div class="print-ai-grid">
           <article class="print-ai-col conclusion">
             <div class="print-ai-label">整體結論</div>
-            <div class="print-ai-title">{{ reportDecisionTitle }}</div>
-            <p>{{ reportDecisionDesc }}</p>
+            <div class="print-ai-title">{{ displayReportConclusionTitle }}</div>
+            <p>{{ displayReportConclusionDesc }}</p>
           </article>
           <article class="print-ai-col">
             <div class="print-ai-label">主要優勢</div>
             <ul>
-              @for (item of reportSummaryStrengths; track item.title) {
+              @for (item of displayReportStrengths; track item.title) {
                 <li>
                   <strong>{{ item.title }}</strong>
                   <span>{{ item.description }}</span>
@@ -345,7 +345,7 @@
           <article class="print-ai-col">
             <div class="print-ai-label">主要風險</div>
             <ul>
-              @for (item of reportSummaryRisks; track item.title) {
+              @for (item of displayReportRisks; track item.title) {
                 <li>
                   <strong>{{ item.title }}</strong>
                   <span>{{ item.description }}</span>
@@ -736,11 +736,39 @@
   }
   <button class="btn-outline" (click)="copyReportDataJson()">複製 AI JSON</button>
   <button class="btn-outline" (click)="copyAiReportPrompt()">複製 ChatGPT Prompt</button>
+  <button class="btn-outline" (click)="copyAiImportPrompt()">複製可匯入 Prompt</button>
+  <button class="btn-outline" (click)="toggleAiImportPanel()">貼上 AI 回傳</button>
   @if (reportDataCopyState) {
     <span class="report-copy-state">{{ reportDataCopyState }}</span>
   }
   <button class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
 </div>
+@if (showAiImportPanel) {
+  <section class="ai-import-panel">
+    <div class="ai-import-head">
+      <div>
+        <div class="ai-import-title">貼上 AI 分析 JSON</div>
+        <p class="ai-import-desc">使用「複製可匯入 Prompt」到 ChatGPT 產生 JSON，再貼回這裡套用到報告。</p>
+      </div>
+      @if (activeRecord.aiReportContent) {
+        <span class="ai-import-badge">已套用 AI 版</span>
+      }
+    </div>
+    <textarea
+      class="ai-import-input"
+      [ngModel]="aiReportDraftInput"
+      (ngModelChange)="aiReportDraftInput = $event"
+      placeholder='貼上 JSON，例如 {"conclusion":{"title":"...","description":"..."},"strengths":[],"risks":[],"nextActions":[]}'
+    ></textarea>
+    <div class="ai-import-actions">
+      <button type="button" class="btn-primary small" (click)="applyAiReportJson()">套用 AI 分析</button>
+      <button type="button" class="btn-outline small" (click)="clearAiReportContent()">清除 AI 版</button>
+    </div>
+    @if (aiReportImportMessage) {
+      <div class="ai-import-message">{{ aiReportImportMessage }}</div>
+    }
+  </section>
+}
 }
 
 @if (currentPage === 'checklist') {
