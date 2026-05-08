@@ -310,6 +310,7 @@ export class App implements OnDestroy {
   showMapPicker = false;
   mapPickerStatus = '點一下地圖，會自動帶入相似地址。';
   isReverseGeocoding = false;
+  isLocating = false;
   showIntro = true;
   private mapInstance: L.Map | null = null;
   private mapMarker: L.CircleMarker | null = null;
@@ -754,6 +755,42 @@ export class App implements OnDestroy {
   closeMapPicker(): void {
     this.showMapPicker = false;
     this.destroyMapPicker();
+  }
+
+  async locateCurrentPosition(): Promise<void> {
+    if (!navigator.geolocation) {
+      this.mapPickerStatus = '此裝置不支援定位，請改用地圖點選。';
+      return;
+    }
+    this.isLocating = true;
+    this.mapPickerStatus = '正在取得目前位置...';
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000
+        });
+      });
+      await this.selectMapPoint(position.coords.latitude, position.coords.longitude);
+      this.mapInstance?.setView([position.coords.latitude, position.coords.longitude], 17);
+    } catch {
+      this.mapPickerStatus = '定位失敗，請確認權限後重試或直接點地圖。';
+    } finally {
+      this.isLocating = false;
+    }
+  }
+
+  clearMapLocation(): void {
+    if (!this.activeRecord) return;
+    this.activeRecord.latitude = null;
+    this.activeRecord.longitude = null;
+    if (this.mapMarker && this.mapInstance) {
+      this.mapInstance.removeLayer(this.mapMarker);
+      this.mapMarker = null;
+    }
+    this.mapInstance?.setView(this.defaultMapCenter, 13);
+    this.mapPickerStatus = '已清除地圖位置，可重新點選。';
+    this.touchActiveRecord();
   }
 
   private initMapPicker(): void {

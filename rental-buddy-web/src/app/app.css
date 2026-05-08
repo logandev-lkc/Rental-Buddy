@@ -348,6 +348,16 @@
   font-weight: 700;
 }
 
+.map-picker-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 10px;
+}
+
+.map-picker-actions .btn-outline.small {
+  min-height: 34px;
+}
+
 .map-picker-canvas {
   height: 280px;
   width: 100%;

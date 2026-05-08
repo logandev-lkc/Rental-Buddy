@@ -103,6 +103,12 @@
         </div>
         <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
       </div>
+      <div class="map-picker-actions">
+        <button type="button" class="btn-outline small" (click)="locateCurrentPosition()" [disabled]="isLocating">
+          @if (isLocating) { 定位中... } @else { 使用目前位置 }
+        </button>
+        <button type="button" class="btn-outline small" (click)="clearMapLocation()">清除已選位置</button>
+      </div>
       <div id="mapPickerCanvas" class="map-picker-canvas" aria-label="地圖選址"></div>
       <div class="map-picker-footer">
         <span [class.loading]="isReverseGeocoding">{{ mapPickerStatus }}</span>
