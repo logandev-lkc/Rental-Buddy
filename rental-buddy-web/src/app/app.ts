@@ -121,6 +121,84 @@ export class App {
     n4: { weight: 3, riskLevel: 'medium' }
   };
 
+  readonly itemReportCopyConfig: Record<string, ItemReportCopyConfig> = {
+    c2: {
+      positiveText: '費用計算方式清楚，可降低入住後帳單爭議。',
+      riskText: '水電計價不明容易造成長期支出超出預期。',
+      nextAction: '請房東提供水電計價方式，並確認是否可寫進租約。'
+    },
+    c3: {
+      positiveText: '押金條件已確認，簽約金額較可控。',
+      riskText: '押金條件異常可能增加簽約風險與退租爭議。',
+      nextAction: '確認押金月數、退還條件與扣款規則。'
+    },
+    c5: {
+      positiveText: '合約期限與違約金已確認，租期風險較低。',
+      riskText: '提前解約或違約金不清楚，可能影響搬遷彈性。',
+      nextAction: '要求提前解約條件與違約金計算方式白紙黑字列入合約。'
+    },
+    f2: {
+      positiveText: '熱水穩定，基本生活舒適度較有保障。',
+      riskText: '熱水不穩會直接影響日常使用，尤其冬天風險較高。',
+      nextAction: '現場連續測試熱水 1 到 2 分鐘，確認水溫與水壓。'
+    },
+    f6: {
+      positiveText: '廚房設備已確認，日常使用與開伙需求較明確。',
+      riskText: '廚房設備不明可能帶來油煙、用電與維修責任問題。',
+      nextAction: '確認爐具、抽風、冰箱與維修責任。'
+    },
+    s2: {
+      positiveText: '目前未見明顯漏水或壁癌，屋況風險較低。',
+      riskText: '壁癌或漏水屬重大屋況風險，可能影響健康與修繕成本。',
+      nextAction: '拍照記錄牆角、窗框與天花板，並詢問是否曾漏水。'
+    },
+    s3: {
+      positiveText: '建物狀態已確認，法規與安全疑慮較少。',
+      riskText: '頂加或違建可能帶來隔熱、防火與租約保障風險。',
+      nextAction: '確認是否為合法使用空間，必要時避免簽長約。'
+    },
+    s4: {
+      positiveText: '門鎖安全已確認，入住安全性較高。',
+      riskText: '門鎖或門框不穩會直接影響人身與財物安全。',
+      nextAction: '確認是否可換鎖，並檢查門框、鎖舌與防盜鏈。'
+    },
+    s5: {
+      positiveText: '逃生與消防設備已確認，安全基礎較完整。',
+      riskText: '逃生設備不足屬高風險項目，不建議忽略。',
+      nextAction: '實際走一次逃生路線，確認滅火器、警報器與出口。'
+    },
+    s6: {
+      positiveText: '隔音狀況可接受，居住穩定性較高。',
+      riskText: '隔音問題可能長期影響睡眠與生活品質。',
+      nextAction: '建議晚上或尖峰時段再訪，確認車流與鄰戶噪音。'
+    },
+    l2: {
+      positiveText: '通勤路線已確認，日常移動成本較可預期。',
+      riskText: '通勤不明會放大時間成本，入住後較難改善。',
+      nextAction: '用實際通勤時間測試尖峰與離峰路線。'
+    },
+    l3: {
+      positiveText: '垃圾處理方式已確認，日常生活銜接較順。',
+      riskText: '垃圾處理不便會造成長期生活負擔。',
+      nextAction: '確認垃圾車時間、代收方式與是否需專用垃圾袋。'
+    },
+    l4: {
+      positiveText: '排水狀況已確認，浴室與洗衣使用風險較低。',
+      riskText: '排水不良容易造成積水、異味與潮濕問題。',
+      nextAction: '現場測試排水速度，並查看地排是否有異味。'
+    },
+    n2: {
+      positiveText: '房東溝通順暢，後續維修與協調風險較低。',
+      riskText: '房東溝通不佳可能讓維修、押金與合約問題放大。',
+      nextAction: '觀察房東是否願意明確回答費用、修繕與合約細節。'
+    },
+    n3: {
+      positiveText: '周邊噪音來源已確認，生活品質較可預期。',
+      riskText: '周邊噪音可能長期影響睡眠與居住舒適度。',
+      nextAction: '晚上 20:00 後再訪一次，並確認附近是否有酒吧、工地或車流。'
+    }
+  };
+
   records: HouseRecord[] = [];
   activeRecordId = '';
   compareIds: string[] = [];
@@ -866,18 +944,24 @@ export class App {
     const actions: ReportNextAction[] = [];
 
     flaggedRows.slice(0, 2).forEach((row) => {
+      const item = this.items.find((candidate) => candidate.title === row.title);
       actions.push({
         title: `複查：${row.title}`,
-        description: row.note === '已標記風險，建議與房東確認改善方式。'
+        description: item && this.itemReportCopyConfig[item.id]?.nextAction
+          ? this.itemReportCopyConfig[item.id].nextAction
+          : row.note === '已標記風險，建議與房東確認改善方式。'
           ? '針對此風險與房東確認原因、改善方式，必要時寫進租約。'
           : row.note
       });
     });
 
     pendingRows.slice(0, 2).forEach((row) => {
+      const item = this.items.find((candidate) => candidate.title === row.title);
       actions.push({
         title: `補查：${row.title}`,
-        description: '下次看房或簽約前補齊確認，避免分數建立在資料不足上。'
+        description: item && this.itemReportCopyConfig[item.id]?.nextAction
+          ? this.itemReportCopyConfig[item.id].nextAction
+          : '下次看房或簽約前補齊確認，避免分數建立在資料不足上。'
       });
     });
 
@@ -1104,10 +1188,14 @@ export class App {
   }
 
   private getStrengthDescription(item: ChecklistItem): string {
+    const copy = this.itemReportCopyConfig[item.id];
+    if (copy?.positiveText) return copy.positiveText;
     return `${this.categoryMap[item.cat] ?? '此分類'}條件已確認，對整體評估有加分。`;
   }
 
   private getRiskDescription(item: ChecklistItem): string {
+    const copy = this.itemReportCopyConfig[item.id];
+    if (copy?.riskText) return copy.riskText;
     const config = this.getItemRiskConfig(item);
     if (config.riskLevel === 'high') return '屬於高權重風險，建議簽約前優先複查。';
     if (config.riskLevel === 'medium') return '此項可能影響居住品質，建議與房東確認改善方式。';
@@ -1333,6 +1421,12 @@ type RiskLevel = 'low' | 'medium' | 'high';
 interface ItemRiskConfig {
   weight: number;
   riskLevel: RiskLevel;
+}
+
+interface ItemReportCopyConfig {
+  positiveText: string;
+  riskText: string;
+  nextAction: string;
 }
 
 interface ItemState {
