@@ -18,6 +18,7 @@ type BeforeInstallPromptEventLike = Event & {
 })
 export class App implements OnInit, OnDestroy {
   readonly storageKey = 'rental-buddy-records-v1';
+  readonly backupFormatVersion = 1;
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly attachmentLimit = 10;
   /** F-009：外連至 Buy Me a Coffee（請替換為你的個人頁網址） */
@@ -1892,38 +1893,7 @@ ${this.reportDataJson}`;
     }
 
     if (this.records.length === 0) {
-      const firstRecord: HouseRecord = {
-        id: this.createId(),
-        name: '看房紀錄 1',
-        address: '',
-        latitude: null,
-        longitude: null,
-        monthlyRent: '',
-        layoutType: '',
-        layoutRooms: '',
-        layoutLivingRooms: '',
-        layoutBathrooms: '',
-        layoutKitchenType: '',
-        layoutAreaPing: '',
-        layoutNotes: '',
-        buildingType: '',
-        floorLevel: '',
-        buildingAgeRange: '',
-        hasElevator: '',
-        hasManager: '',
-        managementFeeType: '',
-        depositMonths: '',
-        minLeaseTerm: '',
-        canCook: '',
-        canPet: '',
-        subsidyAvailable: '',
-        attachments: [],
-        aiReportContent: null,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        state: this.createEmptyState()
-      };
-      this.records = [firstRecord];
+      this.records = [this.createSeedHouseRecord()];
     }
 
     if (!this.records.some((record) => record.id === this.activeRecordId)) {
@@ -1950,6 +1920,125 @@ ${this.reportDataJson}`;
         compareIds: this.compareIds
       })
     );
+  }
+
+  exportDataBackup(): void {
+    const payload: BackupFileV1 = {
+      backupFormatVersion: this.backupFormatVersion,
+      app: 'rental-buddy',
+      exportedAt: Date.now(),
+      data: {
+        records: this.records,
+        activeRecordId: this.activeRecordId,
+        compareIds: this.compareIds
+      }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `rental-buddy-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    this.isRecordMenuOpen = false;
+  }
+
+  async importDataBackup(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = this.parseBackupPayload(text);
+      if (!parsed) {
+        window.alert('備份檔格式不正確或已損毀。');
+        if (input) input.value = '';
+        return;
+      }
+      const hint =
+        '附件照片檔案保存在瀏覽器本機（IndexedDB）；換裝置或清除網站資料後，備份檔中的照片連結可能無法對應到實際檔案。';
+      if (!window.confirm(`確定要還原備份？這會取代目前的所有紀錄與比較設定。\n\n${hint}`)) {
+        if (input) input.value = '';
+        return;
+      }
+      this.applyImportedBackup(parsed);
+      window.alert('已還原備份。');
+    } catch {
+      window.alert('無法讀取檔案。');
+    }
+    if (input) input.value = '';
+    this.isRecordMenuOpen = false;
+  }
+
+  private parseBackupPayload(raw: string): { records: HouseRecord[]; activeRecordId: string; compareIds: string[] } | null {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== 'object') return null;
+      const root = parsed as Record<string, unknown>;
+      let inner: Record<string, unknown> | null = null;
+      if ('records' in root && Array.isArray(root['records'])) {
+        inner = root;
+      } else if ('data' in root && root['data'] && typeof root['data'] === 'object') {
+        inner = root['data'] as Record<string, unknown>;
+      }
+      if (!inner || !Array.isArray(inner['records'])) return null;
+      const records = (inner['records'] as HouseRecord[]).map((r) => this.normalizeRecord(r));
+      const activeRecordId = typeof inner['activeRecordId'] === 'string' ? inner['activeRecordId'] : '';
+      const compareIds = Array.isArray(inner['compareIds'])
+        ? (inner['compareIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
+        : [];
+      return { records, activeRecordId, compareIds };
+    } catch {
+      return null;
+    }
+  }
+
+  private applyImportedBackup(data: { records: HouseRecord[]; activeRecordId: string; compareIds: string[] }): void {
+    let records = data.records;
+    if (records.length === 0) {
+      records = [this.createSeedHouseRecord()];
+    }
+    this.records = records;
+    this.compareIds = data.compareIds.filter((id) => records.some((r) => r.id === id));
+    this.activeRecordId = records.some((r) => r.id === data.activeRecordId) ? data.activeRecordId : records[0].id;
+    this.syncEditingRecordName();
+    this.saveState();
+    this.clearAttachmentUiState();
+    void this.loadAttachmentThumbs();
+  }
+
+  private createSeedHouseRecord(): HouseRecord {
+    return this.normalizeRecord({
+      id: this.createId(),
+      name: '看房紀錄 1',
+      address: '',
+      latitude: null,
+      longitude: null,
+      monthlyRent: '',
+      layoutType: '',
+      layoutRooms: '',
+      layoutLivingRooms: '',
+      layoutBathrooms: '',
+      layoutKitchenType: '',
+      layoutAreaPing: '',
+      layoutNotes: '',
+      buildingType: '',
+      floorLevel: '',
+      buildingAgeRange: '',
+      hasElevator: '',
+      hasManager: '',
+      managementFeeType: '',
+      depositMonths: '',
+      minLeaseTerm: '',
+      canCook: '',
+      canPet: '',
+      subsidyAvailable: '',
+      attachments: [],
+      aiReportContent: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      state: {} as Record<string, ItemState>
+    });
   }
 
   private normalizeAiReportContent(content: Partial<AiReportContent> | null | undefined): AiReportContent | null {
@@ -2604,6 +2693,17 @@ interface AttachmentThumb {
   id: string;
   url: string;
   name: string;
+}
+
+interface BackupFileV1 {
+  backupFormatVersion: number;
+  app: string;
+  exportedAt: number;
+  data: {
+    records: HouseRecord[];
+    activeRecordId: string;
+    compareIds: string[];
+  };
 }
 
 interface ReportRow {

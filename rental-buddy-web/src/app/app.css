@@ -177,6 +177,47 @@
   gap: 6px;
 }
 
+.record-menu-backup {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.record-menu-backup-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-mid);
+  margin-bottom: 6px;
+}
+
+.record-menu-backup-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.record-menu-import-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 10px;
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.record-menu-backup-row .btn-outline.small {
+  flex: 1 1 auto;
+}
+
+.record-menu-backup-hint {
+  margin: 6px 0 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--ink-light);
+}
+
 .progress-bar-bg {
   height: 6px;
   background: var(--blush);

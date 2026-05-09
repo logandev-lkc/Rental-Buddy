@@ -1,6 +1,6 @@
 # Rental Buddy 下一階段開發文件
 
-最後更新：2026-05-09（F-013 查核表 IA／UI 收尾；docs CI 留言改為可展開 diff）
+最後更新：2026-05-09（F-014 本機 JSON 備份／還原）
 
 ## 目標
 
@@ -41,6 +41,7 @@
 | F-011 | 離線狀態提示條 | 離線時不困惑，知道資料仍在本機 | done | Medium | 已完成離線/恢復提示、4 秒自動收合、離線重整按鈕 |
 | F-012 | AI 報告內容整合 | 可用 ChatGPT 生成並貼回固定報告區塊 | done | Medium | 已完成 JSON / prompt / 可匯入 prompt / AI JSON 貼回流程 |
 | F-013 | 查核表資訊架構與 UI 整合 | 減少重複資訊、導覽清楚、符合常見互動慣例 | done | High | S1～S3、品牌點擊、D1～D3 對照已定稿；見 `F-013-CHECKLIST-IA-DRAFT.md` |
+| F-014 | 本機資料備份／還原（JSON） | 換機或誤刪前可備份，無須登入 | done | Medium | 紀錄選單內匯出／從檔案還原；附件檔仍在 IndexedDB |
 
 ---
 
@@ -243,6 +244,17 @@
 - **進度（2026-05-09）**：
   - MVP done：查核表固定底欄與報告頁動作區底部各一條文字連結（`target=_blank`，`rel` 安全屬性）。
   - 連結網址為程式常數 `supportAuthorHref`，預設指向 Buy Me a Coffee 首頁，可自行替換為個人頁。
+
+### F-014 本機資料備份／還原（JSON）
+- **MVP 目標**：不需登入即可匯出／還原看房紀錄與查核狀態，降低換機或清除資料風險。
+- **細節草案**：
+  - 匯出為單一 JSON（含 `records`、`activeRecordId`、`compareIds`）。
+  - 還原前需確認，並提示附件限制。
+- **本輪定稿**：
+  - 入口：右上角紀錄選單「資料備份」區塊。
+  - 相容：支援完整備份包（含 `backupFormatVersion`）或與 `localStorage` 相同結構的裸物件。
+  - 附件：照片 blob 存於 IndexedDB；備份檔僅含附件 metadata，換裝置後縮圖可能對不到檔案。
+- **進度（2026-05-09）**：MVP done。
 
 ### F-010 PWA 安裝引導提示
 - **MVP 目標**：讓使用者知道可安裝成 App，不漏掉既有能力。

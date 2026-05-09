@@ -56,6 +56,17 @@
               <button type="button" class="btn-outline small" (click)="createRecord()">新增</button>
               <button type="button" class="btn-outline small danger" (click)="deleteActiveRecord()">刪除</button>
             </div>
+            <div class="record-menu-backup">
+              <div class="record-menu-backup-title">資料備份</div>
+              <div class="record-menu-backup-row">
+                <button type="button" class="btn-outline small" (click)="exportDataBackup()">匯出 JSON</button>
+                <label class="btn-outline small record-menu-import-label">
+                  從檔案還原
+                  <input type="file" accept="application/json,.json" class="sr-only" (change)="importDataBackup($event)" />
+                </label>
+              </div>
+              <p class="record-menu-backup-hint">照片檔在本機瀏覽器；換裝置時附件可能無法一併還原。</p>
+            </div>
           </div>
         }
       </div>

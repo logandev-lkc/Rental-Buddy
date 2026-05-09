@@ -104,6 +104,11 @@
 - `NEXT-FEATURES.md` 將 F-013 標為 **done**；`F-013-CHECKLIST-IA-DRAFT.md` §7 驗收項已勾選，§3 補充改版後走查說明。
 - GitHub Actions `Verify Docs Sync`：PR 失敗留言中的 diff 改為 `<details>` 可展開區塊（完整 diff，逾約 58KB 字元時截斷並提示本機查看）。
 
+### 16) F-014 本機資料備份／還原（JSON）
+- 紀錄選單新增「資料備份」：可匯出含版本資訊的 JSON；可自 `.json` 檔還原（取代現有紀錄前二次確認）。
+- 支援與 `localStorage` 相同結構的裸備份物件；另抽出 `createSeedHouseRecord()` 供無紀錄備份與初始種子共用。
+- 提示使用者：附件二進位在本機 IndexedDB，備份檔僅含附件清單 metadata。
+
 ## 規劃中（文件已對齊）
 
 （目前無進行中的插入片段；後續需求請由 `NEXT-FEATURES.md` 新增列項。）
