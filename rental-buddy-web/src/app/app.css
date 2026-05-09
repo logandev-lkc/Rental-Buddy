@@ -2408,6 +2408,16 @@
   .category-select,
   .custom-select-trigger {
     min-height: 42px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .overview-textarea,
+  .item-note-input,
+  .ai-import-input {
+    min-height: 76px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 
   .header-right {
