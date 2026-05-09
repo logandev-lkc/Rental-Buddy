@@ -246,6 +246,10 @@
               <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
             </button>
             @if (!attachmentSelectionMode) {
+              <div class="overview-attachment-actions">
+                <button type="button" class="overview-attachment-sort" [disabled]="!canMoveAttachment(thumb.id, -1)" (click)="moveAttachment(thumb.id, -1)">往前</button>
+                <button type="button" class="overview-attachment-sort" [disabled]="!canMoveAttachment(thumb.id, 1)" (click)="moveAttachment(thumb.id, 1)">往後</button>
+              </div>
               <button type="button" class="overview-attachment-remove" (click)="removeAttachment(thumb.id)">移除</button>
             }
           </div>

@@ -604,6 +604,25 @@
   min-height: 28px;
 }
 
+.overview-attachment-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.overview-attachment-sort {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink-mid);
+  font-size: 11px;
+  min-height: 28px;
+}
+
+.overview-attachment-sort:disabled {
+  opacity: 0.45;
+}
+
 .property-choice-label {
   font-size: 10px;
   color: var(--ink-light);

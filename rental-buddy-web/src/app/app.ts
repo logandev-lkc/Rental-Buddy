@@ -1150,6 +1150,27 @@ export class App implements OnInit, OnDestroy {
     void this.loadAttachmentThumbs();
   }
 
+  moveAttachment(attachmentId: string, direction: -1 | 1): void {
+    if (this.attachmentSelectionMode) return;
+    const list = [...this.activeRecord.attachments];
+    const index = list.findIndex((item) => item.id === attachmentId);
+    if (index < 0) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= list.length) return;
+    const [target] = list.splice(index, 1);
+    list.splice(nextIndex, 0, target);
+    this.activeRecord.attachments = list;
+    this.touchActiveRecord();
+    void this.loadAttachmentThumbs();
+  }
+
+  canMoveAttachment(attachmentId: string, direction: -1 | 1): boolean {
+    const index = this.activeRecord.attachments.findIndex((item) => item.id === attachmentId);
+    if (index < 0) return false;
+    const nextIndex = index + direction;
+    return nextIndex >= 0 && nextIndex < this.activeRecord.attachments.length;
+  }
+
   toggleAttachmentSelectionMode(): void {
     this.attachmentSelectionMode = !this.attachmentSelectionMode;
     if (!this.attachmentSelectionMode) {
