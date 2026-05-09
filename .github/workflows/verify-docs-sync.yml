@@ -5,6 +5,10 @@ on:
   push:
     branches: ["main"]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   verify-docs-sync:
     runs-on: ubuntu-latest
@@ -39,3 +43,32 @@ jobs:
             git diff -- docs
             exit 1
           fi
+
+      - name: Comment on PR when docs sync fails
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              "## docs/ 同步檢查失敗",
+              "",
+              "偵測到目前分支在執行 `npm run deploy:gh` 後，`docs/` 仍有未提交差異。",
+              "",
+              "請在本機執行：",
+              "```bash",
+              "cd rental-buddy-web",
+              "npm run deploy:gh",
+              "cd ..",
+              "git add docs",
+              "git commit -m \"deploy: sync docs output\"",
+              "git push",
+              "```",
+              "",
+              "完成後重新推送，CI 會自動重跑。"
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
