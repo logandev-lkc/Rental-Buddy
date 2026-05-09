@@ -13,7 +13,9 @@
 
 <header class="app-header">
   <div class="header-top">
-    <div class="logo">Rental <span>Buddy</span></div>
+    <button type="button" class="logo" (click)="onBrandClick()" aria-label="回到頂端並關閉已開啟的面板">
+      Rental <span>Buddy</span>
+    </button>
     <div class="header-right">
       <div class="progress-text">{{ confirmedCount }} / {{ totalCount }} 項已確認</div>
       <div class="record-menu">
@@ -114,6 +116,21 @@
       </div>
     </section>
   }
+  <div class="overview-extra-bar">
+    <button
+      type="button"
+      class="overview-extra-toggle"
+      (click)="toggleOverviewExtra()"
+      [attr.aria-expanded]="overviewExtraExpanded"
+      aria-controls="overview-extra-panel"
+      id="overview-extra-toggle"
+    >
+      <span class="overview-extra-label">戶型與房源條件</span>
+      <span class="overview-extra-chevron" aria-hidden="true">{{ overviewExtraExpanded ? '▼' : '▶' }}</span>
+    </button>
+  </div>
+  @if (overviewExtraExpanded) {
+  <div id="overview-extra-panel" class="overview-extra-panel" role="region" aria-labelledby="overview-extra-toggle">
   <div class="overview-layout-grid">
     <div class="overview-meta-item">
       <span class="k">戶型類型</span>
@@ -166,6 +183,8 @@
       }
     </div>
   </div>
+  </div>
+  }
 </section>
 
 }

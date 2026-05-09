@@ -47,6 +47,20 @@
   font-size: 18px;
   font-weight: 700;
   color: var(--rose-deep);
+  font-family: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logo:focus-visible {
+  outline: 2px solid rgba(217, 123, 108, 0.55);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 .logo span {
@@ -367,6 +381,48 @@
 
 .map-picker-footer .loading {
   color: var(--rose-deep);
+}
+
+.overview-extra-bar {
+  margin-top: 10px;
+}
+
+.overview-extra-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(44, 36, 32, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink-mid);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overview-extra-toggle:focus-visible {
+  outline: 2px solid rgba(217, 123, 108, 0.45);
+  outline-offset: 2px;
+}
+
+.overview-extra-label {
+  flex: 1;
+  text-align: left;
+}
+
+.overview-extra-chevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ink-light);
+}
+
+.overview-extra-panel {
+  margin-top: 8px;
 }
 
 .layout-note-item {

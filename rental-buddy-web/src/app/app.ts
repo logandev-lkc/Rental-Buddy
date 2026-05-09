@@ -308,6 +308,8 @@ export class App implements OnDestroy {
   aiReportDraftInput = '';
   aiReportImportMessage = '';
   showMapPicker = false;
+  /** 戶型／房源條件預設收合，降低查核表首屏高度（F-013 S3） */
+  overviewExtraExpanded = false;
   mapPickerStatus = '點一下地圖，會自動帶入相似地址。';
   isReverseGeocoding = false;
   isLocating = false;
@@ -755,6 +757,18 @@ export class App implements OnDestroy {
   closeMapPicker(): void {
     this.showMapPicker = false;
     this.destroyMapPicker();
+  }
+
+  onBrandClick(): void {
+    this.closeMapPicker();
+    this.isRecordMenuOpen = false;
+    this.isCategoryMenuOpen = false;
+    this.showAiImportPanel = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  toggleOverviewExtra(): void {
+    this.overviewExtraExpanded = !this.overviewExtraExpanded;
   }
 
   async locateCurrentPosition(): Promise<void> {
