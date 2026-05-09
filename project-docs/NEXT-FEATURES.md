@@ -1,6 +1,6 @@
 # Rental Buddy 下一階段開發文件
 
-最後更新：2026-05-09（F-014 本機 JSON 備份／還原）
+最後更新：2026-05-09（F-014 備份含附件 base64／format v2）
 
 ## 目標
 
@@ -41,7 +41,7 @@
 | F-011 | 離線狀態提示條 | 離線時不困惑，知道資料仍在本機 | done | Medium | 已完成離線/恢復提示、4 秒自動收合、離線重整按鈕 |
 | F-012 | AI 報告內容整合 | 可用 ChatGPT 生成並貼回固定報告區塊 | done | Medium | 已完成 JSON / prompt / 可匯入 prompt / AI JSON 貼回流程 |
 | F-013 | 查核表資訊架構與 UI 整合 | 減少重複資訊、導覽清楚、符合常見互動慣例 | done | High | S1～S3、品牌點擊、D1～D3 對照已定稿；見 `F-013-CHECKLIST-IA-DRAFT.md` |
-| F-014 | 本機資料備份／還原（JSON） | 換機或誤刪前可備份，無須登入 | done | Medium | 紀錄選單內匯出／從檔案還原；附件檔仍在 IndexedDB |
+| F-014 | 本機資料備份／還原（JSON） | 換機或誤刪前可備份，無須登入 | done | Medium | format v2：紀錄選單匯出／還原；JSON 內嵌附件 base64 |
 
 ---
 
@@ -253,8 +253,8 @@
 - **本輪定稿**：
   - 入口：右上角紀錄選單「資料備份」區塊。
   - 相容：支援完整備份包（含 `backupFormatVersion`）或與 `localStorage` 相同結構的裸物件。
-  - 附件：照片 blob 存於 IndexedDB；備份檔僅含附件 metadata，換裝置後縮圖可能對不到檔案。
-- **進度（2026-05-09）**：MVP done。
+  - 附件：**format v2** 將 IndexedDB 照片以 base64 置於 `attachmentPayloads`，還原時寫回；舊版僅 metadata 之備份仍可匯入（換機後縮圖可能對不到檔案）。
+- **進度（2026-05-09）**：MVP done；同日備份 **v2**（附件內嵌）已落地。
 
 ### F-010 PWA 安裝引導提示
 - **MVP 目標**：讓使用者知道可安裝成 App，不漏掉既有能力。

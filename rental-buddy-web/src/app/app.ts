@@ -18,7 +18,7 @@ type BeforeInstallPromptEventLike = Event & {
 })
 export class App implements OnInit, OnDestroy {
   readonly storageKey = 'rental-buddy-records-v1';
-  readonly backupFormatVersion = 1;
+  readonly backupFormatVersion = 2;
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly attachmentLimit = 10;
   /** F-009：外連至 Buy Me a Coffee（請替換為你的個人頁網址） */
@@ -1922,8 +1922,29 @@ ${this.reportDataJson}`;
     );
   }
 
-  exportDataBackup(): void {
-    const payload: BackupFileV1 = {
+  async exportDataBackup(): Promise<void> {
+    const ids = new Set<string>();
+    for (const record of this.records) {
+      for (const att of record.attachments ?? []) {
+        ids.add(att.id);
+      }
+    }
+    const attachmentPayloads: BackupAttachmentPayload[] = [];
+    for (const id of ids) {
+      const blob = await this.getAttachmentBlob(id);
+      if (!blob) continue;
+      try {
+        const base64 = await this.blobToBase64(blob);
+        attachmentPayloads.push({
+          id,
+          mimeType: blob.type || 'application/octet-stream',
+          base64
+        });
+      } catch {
+        // skip unreadable blobs
+      }
+    }
+    const payload: BackupFileV2 = {
       backupFormatVersion: this.backupFormatVersion,
       app: 'rental-buddy',
       exportedAt: Date.now(),
@@ -1931,7 +1952,8 @@ ${this.reportDataJson}`;
         records: this.records,
         activeRecordId: this.activeRecordId,
         compareIds: this.compareIds
-      }
+      },
+      attachmentPayloads
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1956,13 +1978,14 @@ ${this.reportDataJson}`;
         return;
       }
       const hint =
-        '附件照片檔案保存在瀏覽器本機（IndexedDB）；換裝置或清除網站資料後，備份檔中的照片連結可能無法對應到實際檔案。';
-      if (!window.confirm(`確定要還原備份？這會取代目前的所有紀錄與比較設定。\n\n${hint}`)) {
+        '還原將取代目前的紀錄與比較設定。若備份含附件資料，會一併寫回本機（IndexedDB）。';
+      if (!window.confirm(`確定要還原備份？\n\n${hint}`)) {
         if (input) input.value = '';
         return;
       }
-      this.applyImportedBackup(parsed);
-      window.alert('已還原備份。');
+      await this.applyImportedBackup(parsed);
+      const n = parsed.attachmentPayloads?.length ?? 0;
+      window.alert(n > 0 ? `已還原備份（含 ${n} 個附件檔）。` : '已還原備份。');
     } catch {
       window.alert('無法讀取檔案。');
     }
@@ -1970,7 +1993,7 @@ ${this.reportDataJson}`;
     this.isRecordMenuOpen = false;
   }
 
-  private parseBackupPayload(raw: string): { records: HouseRecord[]; activeRecordId: string; compareIds: string[] } | null {
+  private parseBackupPayload(raw: string): ParsedBackupPayload | null {
     try {
       const parsed = JSON.parse(raw) as unknown;
       if (!parsed || typeof parsed !== 'object') return null;
@@ -1987,13 +2010,30 @@ ${this.reportDataJson}`;
       const compareIds = Array.isArray(inner['compareIds'])
         ? (inner['compareIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
         : [];
-      return { records, activeRecordId, compareIds };
+
+      let attachmentPayloads: BackupAttachmentPayload[] | undefined;
+      const rawAtt = root['attachmentPayloads'];
+      if (Array.isArray(rawAtt)) {
+        attachmentPayloads = rawAtt
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const o = item as Record<string, unknown>;
+            const id = typeof o['id'] === 'string' ? o['id'] : '';
+            const base64 = typeof o['base64'] === 'string' ? o['base64'] : '';
+            const mimeType = typeof o['mimeType'] === 'string' ? o['mimeType'] : 'image/jpeg';
+            if (!id || !base64) return null;
+            return { id, mimeType, base64 };
+          })
+          .filter((item): item is BackupAttachmentPayload => item !== null);
+      }
+
+      return { records, activeRecordId, compareIds, attachmentPayloads };
     } catch {
       return null;
     }
   }
 
-  private applyImportedBackup(data: { records: HouseRecord[]; activeRecordId: string; compareIds: string[] }): void {
+  private async applyImportedBackup(data: ParsedBackupPayload): Promise<void> {
     let records = data.records;
     if (records.length === 0) {
       records = [this.createSeedHouseRecord()];
@@ -2003,8 +2043,42 @@ ${this.reportDataJson}`;
     this.activeRecordId = records.some((r) => r.id === data.activeRecordId) ? data.activeRecordId : records[0].id;
     this.syncEditingRecordName();
     this.saveState();
+
+    if (data.attachmentPayloads && data.attachmentPayloads.length > 0) {
+      for (const p of data.attachmentPayloads) {
+        try {
+          const blob = this.base64ToBlob(p.base64, p.mimeType);
+          await this.putAttachmentBlob(p.id, blob);
+        } catch {
+          // skip broken payloads
+        }
+      }
+    }
+
     this.clearAttachmentUiState();
     void this.loadAttachmentThumbs();
+  }
+
+  private async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (): void => {
+        const dataUrl = reader.result as string;
+        const comma = dataUrl.indexOf(',');
+        resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
+      };
+      reader.onerror = (): void => reject(reader.error ?? new Error('read failed'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private base64ToBlob(base64: string, mimeType: string): Blob {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mimeType || 'application/octet-stream' });
   }
 
   private createSeedHouseRecord(): HouseRecord {
@@ -2695,6 +2769,19 @@ interface AttachmentThumb {
   name: string;
 }
 
+interface BackupAttachmentPayload {
+  id: string;
+  mimeType: string;
+  base64: string;
+}
+
+interface ParsedBackupPayload {
+  records: HouseRecord[];
+  activeRecordId: string;
+  compareIds: string[];
+  attachmentPayloads?: BackupAttachmentPayload[];
+}
+
 interface BackupFileV1 {
   backupFormatVersion: number;
   app: string;
@@ -2704,6 +2791,11 @@ interface BackupFileV1 {
     activeRecordId: string;
     compareIds: string[];
   };
+}
+
+interface BackupFileV2 extends BackupFileV1 {
+  backupFormatVersion: number;
+  attachmentPayloads: BackupAttachmentPayload[];
 }
 
 interface ReportRow {

@@ -107,7 +107,10 @@
 ### 16) F-014 本機資料備份／還原（JSON）
 - 紀錄選單新增「資料備份」：可匯出含版本資訊的 JSON；可自 `.json` 檔還原（取代現有紀錄前二次確認）。
 - 支援與 `localStorage` 相同結構的裸備份物件；另抽出 `createSeedHouseRecord()` 供無紀錄備份與初始種子共用。
-- 提示使用者：附件二進位在本機 IndexedDB，備份檔僅含附件清單 metadata。
+
+### 17) F-014 備份格式 v2（含附件）
+- `backupFormatVersion` 升為 **2**；匯出時收集各紀錄附件 ID，自 IndexedDB 讀出 blob，以 base64 置於 `attachmentPayloads`。
+- 還原時先套用紀錄再將附件寫回 IndexedDB；成功提示含附件個數。舊版僅文字／metadata 之備份仍可匯入。
 
 ## 規劃中（文件已對齊）
 
