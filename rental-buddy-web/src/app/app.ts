@@ -340,6 +340,8 @@ export class App implements OnInit, OnDestroy {
   selectedAttachmentIds: string[] = [];
   attachmentPreviewUrl = '';
   attachmentPreviewName = '';
+  backupExportBusy = false;
+  backupImportBusy = false;
   private reconnectBannerTimer: ReturnType<typeof window.setTimeout> | null = null;
   private attachmentDbPromise: Promise<IDBDatabase> | null = null;
   private attachmentObjectUrls: string[] = [];
@@ -1923,64 +1925,72 @@ ${this.reportDataJson}`;
   }
 
   async exportDataBackup(): Promise<void> {
-    const ids = new Set<string>();
-    for (const record of this.records) {
-      for (const att of record.attachments ?? []) {
-        ids.add(att.id);
+    if (this.backupExportBusy || this.backupImportBusy) return;
+    this.backupExportBusy = true;
+    try {
+      const ids = new Set<string>();
+      for (const record of this.records) {
+        for (const att of record.attachments ?? []) {
+          ids.add(att.id);
+        }
       }
-    }
-    const attachmentPayloads: BackupAttachmentPayload[] = [];
-    for (const id of ids) {
-      const blob = await this.getAttachmentBlob(id);
-      if (!blob) continue;
-      try {
-        const base64 = await this.blobToBase64(blob);
-        attachmentPayloads.push({
-          id,
-          mimeType: blob.type || 'application/octet-stream',
-          base64
-        });
-      } catch {
-        // skip unreadable blobs
+      const attachmentPayloads: BackupAttachmentPayload[] = [];
+      for (const id of ids) {
+        const blob = await this.getAttachmentBlob(id);
+        if (!blob) continue;
+        try {
+          const base64 = await this.blobToBase64(blob);
+          attachmentPayloads.push({
+            id,
+            mimeType: blob.type || 'application/octet-stream',
+            base64
+          });
+        } catch {
+          // skip unreadable blobs
+        }
       }
+      const payload: BackupFileV2 = {
+        backupFormatVersion: this.backupFormatVersion,
+        app: 'rental-buddy',
+        exportedAt: Date.now(),
+        data: {
+          records: this.records,
+          activeRecordId: this.activeRecordId,
+          compareIds: this.compareIds
+        },
+        attachmentPayloads
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `rental-buddy-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      this.isRecordMenuOpen = false;
+    } catch {
+      window.alert('匯出失敗，請稍後再試。');
+    } finally {
+      this.backupExportBusy = false;
     }
-    const payload: BackupFileV2 = {
-      backupFormatVersion: this.backupFormatVersion,
-      app: 'rental-buddy',
-      exportedAt: Date.now(),
-      data: {
-        records: this.records,
-        activeRecordId: this.activeRecordId,
-        compareIds: this.compareIds
-      },
-      attachmentPayloads
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `rental-buddy-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    this.isRecordMenuOpen = false;
   }
 
   async importDataBackup(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
     if (!file) return;
+    if (this.backupExportBusy || this.backupImportBusy) return;
+    this.backupImportBusy = true;
     try {
       const text = await file.text();
       const parsed = this.parseBackupPayload(text);
       if (!parsed) {
         window.alert('備份檔格式不正確或已損毀。');
-        if (input) input.value = '';
         return;
       }
       const hint =
         '還原將取代目前的紀錄與比較設定。若備份含附件資料，會一併寫回本機（IndexedDB）。';
       if (!window.confirm(`確定要還原備份？\n\n${hint}`)) {
-        if (input) input.value = '';
         return;
       }
       await this.applyImportedBackup(parsed);
@@ -1988,9 +1998,11 @@ ${this.reportDataJson}`;
       window.alert(n > 0 ? `已還原備份（含 ${n} 個附件檔）。` : '已還原備份。');
     } catch {
       window.alert('無法讀取檔案。');
+    } finally {
+      this.backupImportBusy = false;
+      if (input) input.value = '';
+      this.isRecordMenuOpen = false;
     }
-    if (input) input.value = '';
-    this.isRecordMenuOpen = false;
   }
 
   private parseBackupPayload(raw: string): ParsedBackupPayload | null {

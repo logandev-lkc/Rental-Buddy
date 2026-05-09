@@ -1,6 +1,6 @@
 # Rental Buddy Web
 
-Rental Buddy 的 Angular 前端。資料存在瀏覽器 `localStorage`，不需要後端。
+Rental Buddy 的 Angular 前端。紀錄與設定存在瀏覽器 `localStorage`，照片附件存在 IndexedDB，不需要後端。
 
 ## Development server
 
@@ -18,6 +18,14 @@ npm start
 - `報告`：預設為手機友善版，適合現場快速閱讀。
 - 報告內可切換 `手機版檢視` / `精簡版`。
 - `匯出文件（PDF）` 只會輸出 精簡版，不輸出手機版畫面。
+
+## 資料備份（本機）
+
+租屋紀錄主要存在瀏覽器 `localStorage`；照片附件存在 IndexedDB。頂部紀錄選單底部有「資料備份」：
+
+- **匯出 JSON**：打包目前所有紀錄、使用中紀錄 ID、比較清單，並將附件自 IndexedDB 讀出後以 base64 內嵌於單一 `.json`（`backupFormatVersion: 2`）。檔案可能較大；匯出時按鈕會顯示「打包中…」並暫停重複操作。
+- **從檔案還原**：經確認後會取代目前瀏覽器內的紀錄與設定；若備份含 `attachmentPayloads` 會寫回本機 IndexedDB。還原過程會顯示「還原中…」。
+- 仍相容較舊的裸 JSON（僅紀錄物件／結構與 `localStorage` 一致者）。
 
 ## Building
 

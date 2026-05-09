@@ -59,10 +59,26 @@
             <div class="record-menu-backup">
               <div class="record-menu-backup-title">資料備份</div>
               <div class="record-menu-backup-row">
-                <button type="button" class="btn-outline small" (click)="exportDataBackup()">匯出 JSON</button>
-                <label class="btn-outline small record-menu-import-label">
-                  從檔案還原
-                  <input type="file" accept="application/json,.json" class="sr-only" (change)="importDataBackup($event)" />
+                <button
+                  type="button"
+                  class="btn-outline small"
+                  [disabled]="backupExportBusy || backupImportBusy"
+                  (click)="exportDataBackup()"
+                >
+                  {{ backupExportBusy ? '打包中…' : '匯出 JSON' }}
+                </button>
+                <label
+                  class="btn-outline small record-menu-import-label"
+                  [class.record-menu-import-busy]="backupImportBusy || backupExportBusy"
+                >
+                  {{ backupImportBusy ? '還原中…' : '從檔案還原' }}
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    class="sr-only"
+                    [disabled]="backupExportBusy || backupImportBusy"
+                    (change)="importDataBackup($event)"
+                  />
                 </label>
               </div>
               <p class="record-menu-backup-hint">匯出 JSON 會一併內嵌附件（檔案可能較大）；還原時會寫回本機瀏覽器。</p>

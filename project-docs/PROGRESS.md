@@ -111,6 +111,7 @@
 ### 17) F-014 備份格式 v2（含附件）
 - `backupFormatVersion` 升為 **2**；匯出時收集各紀錄附件 ID，自 IndexedDB 讀出 blob，以 base64 置於 `attachmentPayloads`。
 - 還原時先套用紀錄再將附件寫回 IndexedDB；成功提示含附件個數。舊版僅文字／metadata 之備份仍可匯入。
+- 匯出／還原進行中顯示「打包中…」「還原中…」並鎖定按鈕，避免重複觸發；`rental-buddy-web/README.md` 補充備份說明。
 
 ## 規劃中（文件已對齊）
 

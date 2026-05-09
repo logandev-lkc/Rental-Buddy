@@ -207,6 +207,12 @@
   flex: 1 1 auto;
 }
 
+.record-menu-import-label.record-menu-import-busy {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: default;
+}
+
 .record-menu-backup-row .btn-outline.small {
   flex: 1 1 auto;
 }
