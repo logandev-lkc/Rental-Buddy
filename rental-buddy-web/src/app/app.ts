@@ -1074,6 +1074,15 @@ export class App implements OnInit, OnDestroy {
     return this.itemOptionConfig[id] ?? [];
   }
 
+  /**
+   * InBody Phase 2：`answerType` 為查核項結構化輸入類型（同步於 AI JSON）。
+   * - `multiSelect`：具細節 chips，`answers`／`selectedOptions` 為複選結果。
+   * - `singleSelect`：無細節 chips，以快速狀態四選一為主要結構化輸入。
+   */
+  getItemAnswerType(id: string): ChecklistAnswerType {
+    return this.itemOptionConfig[id]?.length ? 'multiSelect' : 'singleSelect';
+  }
+
   toggleItemOption(id: string, option: string, event: Event): void {
     event.stopPropagation();
     const current = this.state[id];
@@ -1942,13 +1951,17 @@ export class App implements OnInit, OnDestroy {
         const state = this.state[item.id];
         const config = this.getItemRiskConfig(item);
         const status: ReportChecklistStatus = state?.flagged ? 'flagged' : state?.checked ? 'checked' : 'pending';
+        const answers = state?.selectedOptions ?? [];
         return {
+          itemId: item.id,
           category: this.categoryMap[item.cat] ?? item.cat,
           item: item.title,
+          answerType: this.getItemAnswerType(item.id),
+          answers,
           status,
           statusLabel: this.getChecklistStatusLabel(status),
           quickStatus: state?.quickStatus ?? 'unknown',
-          selectedOptions: state?.selectedOptions ?? [],
+          selectedOptions: answers,
           note: this.formatChecklistNote(state, status),
           weight: config.weight,
           riskLevel: config.riskLevel
@@ -2001,7 +2014,8 @@ export class App implements OnInit, OnDestroy {
 
 【注意】
 - checklistTable 是完整原始資料；importantChecklistTable 是前端已挑出的重要項目。
-- selectedOptions 是現場快速點選的細節，請優先引用具體內容。
+- 每列含 answerType（singleSelect=以 quickStatus 為主；multiSelect=另有 answers 細節選項）、answers 與 selectedOptions（兩者相同陣列）、quickStatus。
+- selectedOptions／answers 請優先引用具體內容。
 - score.candidateAverageHint 說明「同區候選平均」如何計算：僅為使用者自建紀錄／比較清單，勿宣稱市場或區域行情。
 - 若資料不足，請明確提醒 confidence 與 pending 項目，不要過度下結論。
 
@@ -3014,6 +3028,9 @@ interface ChecklistItem {
   tip: string;
 }
 
+/** InBody Phase 2：查核項結構化輸入類型（規格允許 number／text；目前查核題未使用） */
+type ChecklistAnswerType = 'singleSelect' | 'multiSelect' | 'number' | 'text';
+
 type RiskLevel = 'low' | 'medium' | 'high';
 
 interface ItemRiskConfig {
@@ -3221,8 +3238,11 @@ interface ReportDataPayload {
     risks: Array<{ title: string; description: string }>;
   };
   checklistTable: Array<{
+    itemId: string;
     category: string;
     item: string;
+    answerType: ChecklistAnswerType;
+    answers: string[];
     status: ReportChecklistStatus;
     statusLabel: string;
     quickStatus: QuickStatus;

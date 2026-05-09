@@ -116,6 +116,7 @@
 ### 18) InBody 規格 Phase 2（結構化答案覆蓋率）
 - 依 `INBODY-REPORT-GEN-SPEC.md`：各分類至少 70% 查核題具細節選項（可不靠備註打字完成主要填寫）。
 - 擴充 `itemOptionConfig`（含 `c1`/`c4`/`f1`/`f3`/`s1`/`l1`/`n1` 等）；風險關鍵字補「不配合」「不符合」以利自動對應快速狀態。
+- **收尾**：`reportData` 之 `checklistTable` 每列輸出 **`answerType`**、**`answers`**（同 `selectedOptions`）、**`itemId`**，符合規格「結構化答案」供 ChatGPT 使用。
 
 ### 19) InBody 規格 Phase 3（房源條件與查核連動）
 - 房源條件 chips 與查核 **c1／c3／c4／c7／n4** 雙向同步；**n4** 與管理員選項一致（有／無／不確定）。
