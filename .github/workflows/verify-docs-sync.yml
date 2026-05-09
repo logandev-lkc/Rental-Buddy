@@ -71,13 +71,24 @@ jobs:
                   "```"
                 ].join("\n")
               : "";
+            const MAX_DIFF_CHARS = 58000;
+            let diffBody = diffPreview;
+            if (diffBody.length > MAX_DIFF_CHARS) {
+              diffBody =
+                diffPreview.slice(0, MAX_DIFF_CHARS) +
+                "\n\n…（已截斷；請於本機執行 `git diff -- docs` 查看完整差異）";
+            }
             const diffSection = diffPreview
               ? [
                   "",
-                  "### docs/ 差異摘要（前 120 行）",
+                  "<details>",
+                  "<summary><strong>docs/ 差異預覽</strong>（點此展開）</summary>",
+                  "",
                   "```diff",
-                  diffPreview.split("\n").slice(0, 120).join("\n"),
-                  "```"
+                  diffBody,
+                  "```",
+                  "",
+                  "</details>"
                 ].join("\n")
               : "";
 
