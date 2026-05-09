@@ -51,10 +51,16 @@ jobs:
           script: |
             const { execSync } = require("node:child_process");
             let changedFiles = "";
+            let diffPreview = "";
             try {
               changedFiles = execSync("git diff --name-only -- docs", { encoding: "utf8" }).trim();
             } catch {
               changedFiles = "";
+            }
+            try {
+              diffPreview = execSync("git diff -- docs", { encoding: "utf8", maxBuffer: 1024 * 1024 }).trim();
+            } catch {
+              diffPreview = "";
             }
             const filesSection = changedFiles
               ? [
@@ -62,6 +68,15 @@ jobs:
                   "### docs/ 變更檔案",
                   "```",
                   changedFiles,
+                  "```"
+                ].join("\n")
+              : "";
+            const diffSection = diffPreview
+              ? [
+                  "",
+                  "### docs/ 差異摘要（前 120 行）",
+                  "```diff",
+                  diffPreview.split("\n").slice(0, 120).join("\n"),
                   "```"
                 ].join("\n")
               : "";
@@ -82,7 +97,8 @@ jobs:
               "```",
               "",
               "完成後重新推送，CI 會自動重跑。",
-              filesSection
+              filesSection,
+              diffSection
             ].join("\n");
 
             const marker = "<!-- docs-sync-check -->";
