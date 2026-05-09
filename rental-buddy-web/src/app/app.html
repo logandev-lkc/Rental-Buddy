@@ -68,7 +68,6 @@
 <section class="checklist-overview-card">
   <div class="overview-head">
     <div class="overview-title">現場快速摘要</div>
-    <div class="overview-record">{{ activeRecord.name }}</div>
   </div>
   <div class="overview-meta-grid">
     <div class="overview-meta-item">
@@ -185,7 +184,7 @@
         <span class="name">{{ cat.label }}</span>
         <span class="count">
           @if (cat.id === 'all') {
-            {{ confirmedCount }}/{{ totalCount }}
+            共 {{ totalCount }} 項
           } @else {
             {{ countDoneByCategory(cat.id) }}
           }
