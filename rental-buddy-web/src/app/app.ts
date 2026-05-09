@@ -146,6 +146,11 @@ export class App implements OnInit, OnDestroy {
   };
 
   readonly itemReportCopyConfig: Record<string, ItemReportCopyConfig> = {
+    c1: {
+      positiveText: '租屋補助申請條件已釐清，可降低租金負擔的不確定性。',
+      riskText: '補助資格或房東配合度不明，可能影響實際月租支出。',
+      nextAction: '確認是否符合申請資格，並與房東書面約定配合文件與撥款帳戶。'
+    },
     c2: {
       positiveText: '費用計算方式清楚，可降低入住後帳單爭議。',
       riskText: '水電計價不明容易造成長期支出超出預期。',
@@ -156,20 +161,65 @@ export class App implements OnInit, OnDestroy {
       riskText: '押金條件異常可能增加簽約風險與退租爭議。',
       nextAction: '確認押金月數、退還條件與扣款規則。'
     },
+    c4: {
+      positiveText: '管理費收取方式已確認，每月固定支出較可預估。',
+      riskText: '管理費另計或金額不明，容易造成預算低估。',
+      nextAction: '確認管理費金額、繳費週期與是否含公共電費、清潔與電梯。'
+    },
     c5: {
       positiveText: '合約期限與違約金已確認，租期風險較低。',
       riskText: '提前解約或違約金不清楚，可能影響搬遷彈性。',
       nextAction: '要求提前解約條件與違約金計算方式白紙黑字列入合約。'
+    },
+    c6: {
+      positiveText: '網路方案與費用已確認，入住後銜接較順。',
+      riskText: '網路費用或自行申裝條件不明，可能增加開銷與等待時間。',
+      nextAction: '確認是否含網路、頻寬與可否自行申辦光世代或社區網路。'
+    },
+    c7: {
+      positiveText: '開伙與寵物規範已確認，入住後較不易與房東衝突。',
+      riskText: '規範不清可能衍生違約爭議或被迫搬遷。',
+      nextAction: '將可否開伙、寵物種類／數量與清潔／押金約定寫入租約。'
+    },
+    f1: {
+      positiveText: '冷氣型號與能耗條件較清楚，長住電費較可預估。',
+      riskText: '冷氣老舊或非變頻可能造成夏季電費偏高。',
+      nextAction: '確認冷氣年份、能源標示與清洗／維修責任歸屬。'
     },
     f2: {
       positiveText: '熱水穩定，基本生活舒適度較有保障。',
       riskText: '熱水不穩會直接影響日常使用，尤其冬天風險較高。',
       nextAction: '現場連續測試熱水 1 到 2 分鐘，確認水溫與水壓。'
     },
+    f3: {
+      positiveText: '用水與飲水設備已確認，日常成本與動線較清楚。',
+      riskText: '無濾水或需自行添購會增加開銷與檯面負擔。',
+      nextAction: '確認是否附設備、濾心更換頻率與費用由誰負擔。'
+    },
+    f4: {
+      positiveText: '網路品質已現場確認，居家上班或影音需求較安心。',
+      riskText: '網路不穩或頻寬不足會影響工作與日常生活。',
+      nextAction: '現場測速並確認路由器位置，必要時詢問可否拉線或升級頻寬。'
+    },
+    f5: {
+      positiveText: '洗曬動線已確認，長住家事負擔較可預期。',
+      riskText: '洗曬空間不足或需共用，雨天與換洗大件會較不便。',
+      nextAction: '確認陽台、室外曬衣或共用區規則與是否另計費用。'
+    },
     f6: {
       positiveText: '廚房設備已確認，日常使用與開伙需求較明確。',
       riskText: '廚房設備不明可能帶來油煙、用電與維修責任問題。',
       nextAction: '確認爐具、抽風、冰箱與維修責任。'
+    },
+    f7: {
+      positiveText: '工作區與桌面條件尚可，居家辦公可行性較高。',
+      riskText: '桌面或插座不足會影響長期在家工作效率。',
+      nextAction: '丈量桌面深度與插座位置，評估書桌燈或延長線需求。'
+    },
+    f8: {
+      positiveText: '停車方式已確認，通勤與搬運較方便。',
+      riskText: '無車位或車位昂貴會增加固定支出與繞路時間。',
+      nextAction: '確認車位位置、月租費、是否固定車位與訪客／臨停規定。'
     },
     f9: {
       positiveText: '插座與電力配置足夠，日常使用與工作需求較穩定。',
@@ -180,6 +230,11 @@ export class App implements OnInit, OnDestroy {
       positiveText: '收納空間已確認，長住時物品擺放壓力較小。',
       riskText: '收納不足會讓小坪數房源更容易雜亂，影響長住舒適度。',
       nextAction: '確認衣櫃、鞋櫃與床下或高處收納是否足夠。'
+    },
+    s1: {
+      positiveText: '採光與座向條件已掌握，居住舒適度較可預期。',
+      riskText: '採光不足或座向不佳可能影響日夜溫差與晾曬。',
+      nextAction: '白天再確認日照時間與窗戶可否正常開啟與隔音狀況。'
     },
     s2: {
       positiveText: '目前未見明顯漏水或壁癌，屋況風險較低。',
@@ -211,6 +266,11 @@ export class App implements OnInit, OnDestroy {
       riskText: '浴室通風不佳容易造成潮濕、霉味與清潔負擔。',
       nextAction: '確認是否有對外窗或抽風機，並觀察天花板、矽利康與牆角是否發霉。'
     },
+    l1: {
+      positiveText: '周邊採買便利，日常生活銜接成本低。',
+      riskText: '採買不便會放大外送或開車採購的時間與費用。',
+      nextAction: '步行或騎車實測一次採買路線與超商營業時間。'
+    },
     l2: {
       positiveText: '通勤路線已確認，日常移動成本較可預期。',
       riskText: '通勤不明會放大時間成本，入住後較難改善。',
@@ -226,6 +286,16 @@ export class App implements OnInit, OnDestroy {
       riskText: '排水不良容易造成積水、異味與潮濕問題。',
       nextAction: '現場測試排水速度，並查看地排是否有異味。'
     },
+    l5: {
+      positiveText: '室內訊號已確認，通話與行動網路較穩定。',
+      riskText: '訊號死角會影響通話、叫車與緊急聯絡。',
+      nextAction: '在各房間角落測試訊號，必要時確認 WiFi 覆蓋或訊號放大方案。'
+    },
+    n1: {
+      positiveText: '鄰居型態已大致掌握，作息相容性較可評估。',
+      riskText: '鄰居組成不明可能影響噪音與公共空間使用。',
+      nextAction: '留意門口鞋款、垃圾與深夜動靜，必要時二次看房。'
+    },
     n2: {
       positiveText: '房東溝通順暢，後續維修與協調風險較低。',
       riskText: '房東溝通不佳可能讓維修、押金與合約問題放大。',
@@ -235,6 +305,11 @@ export class App implements OnInit, OnDestroy {
       positiveText: '周邊噪音來源已確認，生活品質較可預期。',
       riskText: '周邊噪音可能長期影響睡眠與居住舒適度。',
       nextAction: '晚上 20:00 後再訪一次，並確認附近是否有酒吧、工地或車流。'
+    },
+    n4: {
+      positiveText: '管理服務狀態已確認，安全與代收便利性較清楚。',
+      riskText: '無管理員或大門管制薄弱會增加陌生進出疑慮。',
+      nextAction: '確認門禁方式、收件與訪客登記規則。'
     },
     n5: {
       positiveText: '室內氣味狀況可接受，入住後清潔與適應成本較低。',
@@ -246,6 +321,25 @@ export class App implements OnInit, OnDestroy {
       riskText: '蟲害通常代表環境或管線問題，入住後處理成本高。',
       nextAction: '檢查廚房、浴室、排水孔與櫃體角落，並詢問是否定期消毒。'
     }
+  };
+
+  /** Phase 4：PDF「重要明細」排序加權（越大越優先進入前 8 筆；與狀態／權重並用） */
+  readonly itemReportPriorityBoost: Record<string, number> = {
+    s2: 18,
+    s4: 18,
+    s5: 18,
+    s3: 16,
+    c5: 16,
+    c3: 14,
+    n6: 14,
+    l4: 12,
+    f2: 10,
+    c7: 10,
+    s7: 8,
+    n5: 8,
+    n3: 8,
+    c1: 6,
+    c4: 6
   };
 
   readonly itemOptionConfig: Record<string, string[]> = {
@@ -1588,9 +1682,11 @@ export class App implements OnInit, OnDestroy {
         const state = this.state[item.id];
         const config = this.getItemRiskConfig(item);
         const status: ReportChecklistStatus = state?.flagged ? 'flagged' : state?.checked ? 'checked' : 'pending';
+        const boost = this.itemReportPriorityBoost[item.id] ?? 0;
         const priority =
           (status === 'flagged' ? 300 : status === 'pending' ? 200 : 100) +
           config.weight * 10 +
+          boost +
           (state?.note?.trim() ? 5 : 0);
         return {
           category: this.categoryMap[item.cat] ?? item.cat,

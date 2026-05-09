@@ -607,6 +607,8 @@ Checklist 明細表建議最多顯示 8~10 筆。
 - flagged 項目能對應具體風險文字。
 - 下一步建議能回到實際檢查結果，而不是泛泛而談。
 
+**實作對齊（Rental Buddy Web，2026-05-09）**：`itemReportCopyConfig` 已涵蓋 **35** 個查核項之 `positiveText`／`riskText`／`nextAction`；規則式優劣势（`reportSummaryStrengths`／`reportSummaryRisks`）與下一步（`getRuleBasedNextActions`）優先引用上述文案。另設 **`itemReportPriorityBoost`**（高分項如結構安全 s2／s4／s5、合約 c5／c3 等）供 **`reportImportantChecklistRows`** 篩選 PDF 重要明細前 8 筆時加權排序。
+
 ### Phase 5：新增缺漏檢查項目
 
 目標：補足真實看房痛點，但避免一次把審核表做得過長。
