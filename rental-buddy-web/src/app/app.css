@@ -496,6 +496,72 @@
   gap: 10px;
 }
 
+.overview-attachment-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.overview-attachment-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-mid);
+  line-height: 1.45;
+}
+
+.overview-attachment-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px dashed rgba(176, 88, 72, 0.4);
+  background: rgba(249, 232, 224, 0.45);
+  color: var(--rose-deep);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.overview-attachment-upload input[type='file'] {
+  display: none;
+}
+
+.overview-attachment-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-light);
+}
+
+.overview-attachment-thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.overview-attachment-thumb {
+  display: grid;
+  gap: 4px;
+}
+
+.overview-attachment-thumb img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.overview-attachment-remove {
+  border: 0;
+  border-radius: 8px;
+  background: rgba(44, 36, 32, 0.08);
+  color: var(--ink-mid);
+  font-size: 11px;
+  min-height: 28px;
+}
+
 .property-choice-label {
   font-size: 10px;
   color: var(--ink-light);
@@ -1323,7 +1389,7 @@
 .report-summary-grid {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
 

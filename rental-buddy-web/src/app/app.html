@@ -211,6 +211,27 @@
       }
     </div>
   </div>
+  <div class="overview-property-panel overview-attachment-panel">
+    <div class="overview-property-title">現場照片附件</div>
+    <p class="overview-attachment-hint">可上傳 {{ attachmentLimit }} 張，建議先拍「水痕、牆角、門窗、衛浴」。</p>
+    <label class="overview-attachment-upload">
+      <span>新增照片</span>
+      <input type="file" accept="image/*" multiple (change)="onAttachmentFilesSelected($event)" />
+    </label>
+    <p class="overview-attachment-meta">已上傳 {{ activeAttachmentCount }} 張，尚可上傳 {{ activeAttachmentRemaining }} 張。</p>
+    @if (attachmentThumbUrls.length > 0) {
+      <div class="overview-attachment-thumbs">
+        @for (thumb of attachmentThumbUrls; track thumb; let idx = $index) {
+          <div class="overview-attachment-thumb">
+            <img [src]="thumb" [alt]="'附件預覽 ' + (idx + 1)" />
+            @if (activeAttachments[idx]) {
+              <button type="button" class="overview-attachment-remove" (click)="removeAttachment(activeAttachments[idx].id)">移除</button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
   </div>
   }
 </section>
@@ -552,6 +573,10 @@
     <div class="report-summary-chip info">
       <span>{{ reportConfidencePercent }}%</span>
       {{ reportConfidenceLabel }}
+    </div>
+    <div class="report-summary-chip">
+      <span>{{ activeAttachmentCount }}</span>
+      附件照片
     </div>
   </div>
 

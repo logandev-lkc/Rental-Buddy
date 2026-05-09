@@ -19,6 +19,7 @@ type BeforeInstallPromptEventLike = Event & {
 export class App implements OnInit, OnDestroy {
   readonly storageKey = 'rental-buddy-records-v1';
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
+  readonly attachmentLimit = 10;
   readonly categories = [
     { id: 'all', label: '全部' },
     { id: 'contract', label: '合約條件' },
@@ -330,7 +331,10 @@ export class App implements OnInit, OnDestroy {
   isOffline = false;
   showReconnectBanner = false;
   showUpdateBanner = false;
+  attachmentThumbUrls: string[] = [];
   private reconnectBannerTimer: ReturnType<typeof window.setTimeout> | null = null;
+  private attachmentDbPromise: Promise<IDBDatabase> | null = null;
+  private attachmentObjectUrls: string[] = [];
   private readonly pwaInstallNeverKey = 'rental-buddy-pwa-install-never';
   private readonly pwaInstallSnoozeKey = 'rental-buddy-pwa-install-snooze-until';
   private readonly pwaInstallSnoozeMs = 7 * 24 * 60 * 60 * 1000;
@@ -357,6 +361,7 @@ export class App implements OnInit, OnDestroy {
       });
     }
     this.tryShowPwaInstallBanner();
+    void this.loadAttachmentThumbs();
   }
 
   startApp(): void {
@@ -369,6 +374,7 @@ export class App implements OnInit, OnDestroy {
       window.clearTimeout(this.reconnectBannerTimer);
       this.reconnectBannerTimer = null;
     }
+    this.revokeAttachmentObjectUrls();
     this.destroyMapPicker();
   }
 
@@ -504,6 +510,18 @@ export class App implements OnInit, OnDestroy {
       this.activeRecord?.subsidyAvailable || ''
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(' / ') : '未填寫';
+  }
+
+  get activeAttachments(): AttachmentMeta[] {
+    return this.activeRecord?.attachments ?? [];
+  }
+
+  get activeAttachmentCount(): number {
+    return this.activeAttachments.length;
+  }
+
+  get activeAttachmentRemaining(): number {
+    return Math.max(0, this.attachmentLimit - this.activeAttachmentCount);
   }
 
   get compareRecords(): HouseRecord[] {
@@ -760,6 +778,7 @@ export class App implements OnInit, OnDestroy {
     this.syncEditingRecordName();
     this.isRecordMenuOpen = false;
     this.saveState();
+    void this.loadAttachmentThumbs();
   }
 
   toggleRecordMenu(event: Event): void {
@@ -976,6 +995,7 @@ export class App implements OnInit, OnDestroy {
       canCook: '',
       canPet: '',
       subsidyAvailable: '',
+      attachments: [],
       aiReportContent: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -987,6 +1007,7 @@ export class App implements OnInit, OnDestroy {
     this.syncEditingRecordName();
     this.saveState();
     this.tryShowPwaInstallBanner();
+    void this.loadAttachmentThumbs();
   }
 
   renameActiveRecord(): void {
@@ -1065,6 +1086,52 @@ export class App implements OnInit, OnDestroy {
     this.activeRecord.canPet = '';
     this.activeRecord.subsidyAvailable = '';
     this.touchActiveRecord();
+  }
+
+  async onAttachmentFilesSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const files = Array.from(input?.files ?? []);
+    if (files.length === 0) return;
+
+    const remaining = this.activeAttachmentRemaining;
+    if (remaining <= 0) {
+      window.alert(`每筆紀錄最多 ${this.attachmentLimit} 張附件。`);
+      if (input) input.value = '';
+      return;
+    }
+
+    const selected = files.slice(0, remaining).filter((file) => file.type.startsWith('image/'));
+    if (selected.length === 0) {
+      window.alert('請選擇圖片檔（jpg/png/webp 等）。');
+      if (input) input.value = '';
+      return;
+    }
+
+    const now = Date.now();
+    for (const file of selected) {
+      const attachmentId = this.createAttachmentId();
+      await this.putAttachmentBlob(attachmentId, file);
+      this.activeRecord.attachments.push({
+        id: attachmentId,
+        name: file.name,
+        type: file.type || 'image/*',
+        size: file.size,
+        createdAt: now
+      });
+    }
+
+    this.touchActiveRecord();
+    if (input) input.value = '';
+    void this.loadAttachmentThumbs();
+  }
+
+  async removeAttachment(attachmentId: string): Promise<void> {
+    const target = this.activeRecord.attachments.find((item) => item.id === attachmentId);
+    if (!target) return;
+    this.activeRecord.attachments = this.activeRecord.attachments.filter((item) => item.id !== attachmentId);
+    await this.deleteAttachmentBlob(attachmentId);
+    this.touchActiveRecord();
+    void this.loadAttachmentThumbs();
   }
 
   get reportLabel(): string {
@@ -1761,6 +1828,7 @@ ${this.reportDataJson}`;
         canCook: '',
         canPet: '',
         subsidyAvailable: '',
+        attachments: [],
         aiReportContent: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -1877,6 +1945,18 @@ ${this.reportDataJson}`;
       canCook: record.canCook || '',
       canPet: record.canPet || '',
       subsidyAvailable: record.subsidyAvailable || '',
+      attachments: Array.isArray(record.attachments)
+        ? record.attachments
+            .filter((item) => !!item?.id)
+            .map((item) => ({
+              id: item.id,
+              name: item.name || '未命名照片',
+              type: item.type || 'image/*',
+              size: typeof item.size === 'number' ? item.size : 0,
+              createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now()
+            }))
+            .slice(0, this.attachmentLimit)
+        : [],
       aiReportContent: this.normalizeAiReportContent(record.aiReportContent) ?? null,
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
@@ -2252,6 +2332,78 @@ ${this.reportDataJson}`;
     this.editingRecordName = this.activeRecord?.name ?? '';
   }
 
+  private createAttachmentId(): string {
+    return `att-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  private async getAttachmentDb(): Promise<IDBDatabase> {
+    if (this.attachmentDbPromise) return this.attachmentDbPromise;
+    this.attachmentDbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open('rental-buddy-attachments-v1', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('attachments')) {
+          db.createObjectStore('attachments');
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error('indexedDB open failed'));
+    });
+    return this.attachmentDbPromise;
+  }
+
+  private async putAttachmentBlob(id: string, blob: Blob): Promise<void> {
+    const db = await this.getAttachmentDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('attachments', 'readwrite');
+      tx.objectStore('attachments').put(blob, id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('indexedDB write failed'));
+    });
+  }
+
+  private async getAttachmentBlob(id: string): Promise<Blob | null> {
+    const db = await this.getAttachmentDb();
+    return new Promise<Blob | null>((resolve, reject) => {
+      const tx = db.transaction('attachments', 'readonly');
+      const req = tx.objectStore('attachments').get(id);
+      req.onsuccess = () => resolve((req.result as Blob | undefined) ?? null);
+      req.onerror = () => reject(req.error ?? new Error('indexedDB read failed'));
+    });
+  }
+
+  private async deleteAttachmentBlob(id: string): Promise<void> {
+    const db = await this.getAttachmentDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('attachments', 'readwrite');
+      tx.objectStore('attachments').delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('indexedDB delete failed'));
+    });
+  }
+
+  private revokeAttachmentObjectUrls(): void {
+    this.attachmentObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+    this.attachmentObjectUrls = [];
+    this.attachmentThumbUrls = [];
+  }
+
+  private async loadAttachmentThumbs(): Promise<void> {
+    this.revokeAttachmentObjectUrls();
+    const picks = this.activeAttachments.slice(0, 3);
+    for (const item of picks) {
+      try {
+        const blob = await this.getAttachmentBlob(item.id);
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob);
+        this.attachmentObjectUrls.push(url);
+        this.attachmentThumbUrls.push(url);
+      } catch {
+        // ignore preview failures
+      }
+    }
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement | null;
@@ -2331,10 +2483,19 @@ interface HouseRecord {
   canCook: string;
   canPet: string;
   subsidyAvailable: string;
+  attachments: AttachmentMeta[];
   aiReportContent: AiReportContent | null;
   createdAt: number;
   updatedAt: number;
   state: Record<string, ItemState>;
+}
+
+interface AttachmentMeta {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  createdAt: number;
 }
 
 interface ReportRow {
