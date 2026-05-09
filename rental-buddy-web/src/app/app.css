@@ -1439,6 +1439,69 @@
   color: #1e3a8a;
 }
 
+.report-attachment-panel {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+}
+
+.report-attachment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.report-attachment-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.report-attachment-head span {
+  font-size: 11px;
+  color: var(--ink-light);
+}
+
+.report-attachment-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.report-attachment-item {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.report-attachment-item img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.report-attachment-item figcaption {
+  font-size: 10px;
+  color: var(--ink-light);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-attachment-more {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--ink-mid);
+}
+
 .report-section {
   margin-top: 14px;
   padding: 12px;
@@ -2771,6 +2834,10 @@
 
   .report-summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .report-attachment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .report-actions:not(.report-actions--stack) {

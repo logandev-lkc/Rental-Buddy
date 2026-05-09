@@ -219,14 +219,12 @@
       <input type="file" accept="image/*" multiple (change)="onAttachmentFilesSelected($event)" />
     </label>
     <p class="overview-attachment-meta">已上傳 {{ activeAttachmentCount }} 張，尚可上傳 {{ activeAttachmentRemaining }} 張。</p>
-    @if (attachmentThumbUrls.length > 0) {
+    @if (attachmentThumbs.length > 0) {
       <div class="overview-attachment-thumbs">
-        @for (thumb of attachmentThumbUrls; track thumb; let idx = $index) {
+        @for (thumb of attachmentThumbs; track thumb.id) {
           <div class="overview-attachment-thumb">
-            <img [src]="thumb" [alt]="'附件預覽 ' + (idx + 1)" />
-            @if (activeAttachments[idx]) {
-              <button type="button" class="overview-attachment-remove" (click)="removeAttachment(activeAttachments[idx].id)">移除</button>
-            }
+            <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
+            <button type="button" class="overview-attachment-remove" (click)="removeAttachment(thumb.id)">移除</button>
           </div>
         }
       </div>
@@ -325,6 +323,10 @@
         <div class="print-meta-row">
           <span class="k">更新</span>
           <span class="v">{{ activeRecord.updatedAt | date:'yyyy/MM/dd HH:mm' }}</span>
+        </div>
+        <div class="print-meta-row">
+          <span class="k">附件</span>
+          <span class="v">{{ activeAttachmentCount }} 張</span>
         </div>
       </div>
       <div class="print-score">
@@ -582,6 +584,27 @@
 
   <p class="report-callout report-callout--confidence">{{ reportConfidenceHint }}</p>
   <p class="report-callout">{{ reportSummary }}</p>
+  @if (activeAttachmentCount > 0) {
+    <section class="report-attachment-panel" aria-label="附件照片摘要">
+      <div class="report-attachment-head">
+        <h3>現場附件照片</h3>
+        <span>共 {{ activeAttachmentCount }} 張</span>
+      </div>
+      @if (attachmentThumbs.length > 0) {
+        <div class="report-attachment-grid">
+          @for (thumb of attachmentThumbs; track thumb.id) {
+            <figure class="report-attachment-item">
+              <img [src]="thumb.url" [alt]="thumb.name || '現場附件照片'" />
+              <figcaption>{{ thumb.name }}</figcaption>
+            </figure>
+          }
+        </div>
+      }
+      @if (reportAttachmentExtraCount > 0) {
+        <p class="report-attachment-more">另有 {{ reportAttachmentExtraCount }} 張附件可於查核表查看。</p>
+      }
+    </section>
+  }
 
   @if (reportStrengthChips.length > 0) {
     <div class="report-spark-row" aria-label="雷達強項摘要">

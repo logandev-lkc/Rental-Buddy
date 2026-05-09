@@ -331,7 +331,7 @@ export class App implements OnInit, OnDestroy {
   isOffline = false;
   showReconnectBanner = false;
   showUpdateBanner = false;
-  attachmentThumbUrls: string[] = [];
+  attachmentThumbs: AttachmentThumb[] = [];
   private reconnectBannerTimer: ReturnType<typeof window.setTimeout> | null = null;
   private attachmentDbPromise: Promise<IDBDatabase> | null = null;
   private attachmentObjectUrls: string[] = [];
@@ -522,6 +522,10 @@ export class App implements OnInit, OnDestroy {
 
   get activeAttachmentRemaining(): number {
     return Math.max(0, this.attachmentLimit - this.activeAttachmentCount);
+  }
+
+  get reportAttachmentExtraCount(): number {
+    return Math.max(0, this.activeAttachmentCount - this.attachmentThumbs.length);
   }
 
   get compareRecords(): HouseRecord[] {
@@ -2385,7 +2389,7 @@ ${this.reportDataJson}`;
   private revokeAttachmentObjectUrls(): void {
     this.attachmentObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.attachmentObjectUrls = [];
-    this.attachmentThumbUrls = [];
+    this.attachmentThumbs = [];
   }
 
   private async loadAttachmentThumbs(): Promise<void> {
@@ -2397,7 +2401,7 @@ ${this.reportDataJson}`;
         if (!blob) continue;
         const url = URL.createObjectURL(blob);
         this.attachmentObjectUrls.push(url);
-        this.attachmentThumbUrls.push(url);
+        this.attachmentThumbs.push({ id: item.id, url, name: item.name });
       } catch {
         // ignore preview failures
       }
@@ -2496,6 +2500,12 @@ interface AttachmentMeta {
   type: string;
   size: number;
   createdAt: number;
+}
+
+interface AttachmentThumb {
+  id: string;
+  url: string;
+  name: string;
 }
 
 interface ReportRow {
