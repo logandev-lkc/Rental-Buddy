@@ -307,6 +307,8 @@ export class App implements OnDestroy {
   showAiImportPanel = false;
   aiReportDraftInput = '';
   aiReportImportMessage = '';
+  /** 報告頁：次要動作收合（地圖／檢視切換／AI 複製等） */
+  reportToolsExpanded = false;
   showMapPicker = false;
   /** 戶型／房源條件預設收合，降低查核表首屏高度（F-013 S3） */
   overviewExtraExpanded = false;
@@ -627,6 +629,9 @@ export class App implements OnDestroy {
   }
 
   setPage(page: 'checklist' | 'report'): void {
+    if (page !== 'report') {
+      this.reportToolsExpanded = false;
+    }
     this.currentPage = page;
   }
 
@@ -1533,6 +1538,13 @@ ${this.reportDataJson}`;
   toggleAiImportPanel(): void {
     this.showAiImportPanel = !this.showAiImportPanel;
     this.aiReportImportMessage = '';
+    if (this.showAiImportPanel) {
+      this.reportToolsExpanded = true;
+    }
+  }
+
+  toggleReportTools(): void {
+    this.reportToolsExpanded = !this.reportToolsExpanded;
   }
 
   applyAiReportJson(): void {

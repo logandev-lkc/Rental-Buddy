@@ -772,22 +772,38 @@
   </section>
   }
 </section>
-<div class="action-row report-actions">
-  <button class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
-  <button class="btn-outline" (click)="openMapPickerFromReport()">地圖選址</button>
-  @if (reportViewMode === 'friendly') {
-    <button class="btn-outline" (click)="setReportViewMode('compact')">切換精簡版</button>
-  } @else {
-    <button class="btn-outline" (click)="setReportViewMode('friendly')">切換手機版</button>
-  }
-  <button class="btn-outline" (click)="copyReportDataJson()">複製 AI JSON</button>
-  <button class="btn-outline" (click)="copyAiReportPrompt()">複製 ChatGPT Prompt</button>
-  <button class="btn-outline" (click)="copyAiImportPrompt()">複製可匯入 Prompt</button>
-  <button class="btn-outline" (click)="toggleAiImportPanel()">貼上 AI 回傳</button>
+<div class="report-actions action-row report-actions--stack">
+  <div class="report-actions-main-row">
+    <button type="button" class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
+    <button type="button" class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
+  </div>
+  <button
+    type="button"
+    class="btn-outline report-tools-toggle"
+    (click)="toggleReportTools()"
+    [attr.aria-expanded]="reportToolsExpanded"
+    aria-controls="report-tools-panel"
+    id="report-tools-toggle"
+  >
+    {{ reportToolsExpanded ? '收起工具與 AI' : '工具與 AI' }}
+  </button>
   @if (reportDataCopyState) {
     <span class="report-copy-state">{{ reportDataCopyState }}</span>
   }
-  <button class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
+  @if (reportToolsExpanded) {
+    <div id="report-tools-panel" class="report-tools-panel" role="region" aria-labelledby="report-tools-toggle">
+      <button type="button" class="btn-outline small" (click)="openMapPickerFromReport()">地圖選址</button>
+      @if (reportViewMode === 'friendly') {
+        <button type="button" class="btn-outline small" (click)="setReportViewMode('compact')">切換精簡版</button>
+      } @else {
+        <button type="button" class="btn-outline small" (click)="setReportViewMode('friendly')">切換手機版</button>
+      }
+      <button type="button" class="btn-outline small" (click)="copyReportDataJson()">複製 AI JSON</button>
+      <button type="button" class="btn-outline small" (click)="copyAiReportPrompt()">複製 ChatGPT Prompt</button>
+      <button type="button" class="btn-outline small" (click)="copyAiImportPrompt()">複製可匯入 Prompt</button>
+      <button type="button" class="btn-outline small" (click)="toggleAiImportPanel()">貼上 AI 回傳</button>
+    </div>
+  }
 </div>
 @if (showAiImportPanel) {
   <section class="ai-import-panel">
