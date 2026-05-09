@@ -332,6 +332,10 @@ export class App implements OnInit, OnDestroy {
   showReconnectBanner = false;
   showUpdateBanner = false;
   attachmentThumbs: AttachmentThumb[] = [];
+  attachmentSelectionMode = false;
+  selectedAttachmentIds: string[] = [];
+  attachmentPreviewUrl = '';
+  attachmentPreviewName = '';
   private reconnectBannerTimer: ReturnType<typeof window.setTimeout> | null = null;
   private attachmentDbPromise: Promise<IDBDatabase> | null = null;
   private attachmentObjectUrls: string[] = [];
@@ -526,6 +530,10 @@ export class App implements OnInit, OnDestroy {
 
   get reportAttachmentExtraCount(): number {
     return Math.max(0, this.activeAttachmentCount - this.attachmentThumbs.length);
+  }
+
+  get hasSelectedAttachments(): boolean {
+    return this.selectedAttachmentIds.length > 0;
   }
 
   get compareRecords(): HouseRecord[] {
@@ -778,6 +786,7 @@ export class App implements OnInit, OnDestroy {
   switchRecord(recordId: string): void {
     if (!this.records.some((record) => record.id === recordId)) return;
     this.closeMapPicker();
+    this.clearAttachmentUiState();
     this.activeRecordId = recordId;
     this.syncEditingRecordName();
     this.isRecordMenuOpen = false;
@@ -972,6 +981,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   createRecord(): void {
+    this.clearAttachmentUiState();
     const index = this.records.length + 1;
     const name = this.draftRecordName.trim() || `看房紀錄 ${index}`;
     const record: HouseRecord = {
@@ -1126,6 +1136,7 @@ export class App implements OnInit, OnDestroy {
 
     this.touchActiveRecord();
     if (input) input.value = '';
+    this.clearAttachmentSelection();
     void this.loadAttachmentThumbs();
   }
 
@@ -1134,8 +1145,55 @@ export class App implements OnInit, OnDestroy {
     if (!target) return;
     this.activeRecord.attachments = this.activeRecord.attachments.filter((item) => item.id !== attachmentId);
     await this.deleteAttachmentBlob(attachmentId);
+    this.selectedAttachmentIds = this.selectedAttachmentIds.filter((id) => id !== attachmentId);
     this.touchActiveRecord();
     void this.loadAttachmentThumbs();
+  }
+
+  toggleAttachmentSelectionMode(): void {
+    this.attachmentSelectionMode = !this.attachmentSelectionMode;
+    if (!this.attachmentSelectionMode) {
+      this.clearAttachmentSelection();
+    }
+  }
+
+  toggleAttachmentSelected(attachmentId: string): void {
+    if (!this.attachmentSelectionMode) return;
+    const selected = new Set(this.selectedAttachmentIds);
+    if (selected.has(attachmentId)) {
+      selected.delete(attachmentId);
+    } else {
+      selected.add(attachmentId);
+    }
+    this.selectedAttachmentIds = Array.from(selected);
+  }
+
+  isAttachmentSelected(attachmentId: string): boolean {
+    return this.selectedAttachmentIds.includes(attachmentId);
+  }
+
+  async removeSelectedAttachments(): Promise<void> {
+    if (!this.hasSelectedAttachments) return;
+    if (!window.confirm(`確定刪除 ${this.selectedAttachmentIds.length} 張附件？`)) return;
+    const selected = new Set(this.selectedAttachmentIds);
+    this.activeRecord.attachments = this.activeRecord.attachments.filter((item) => !selected.has(item.id));
+    for (const id of selected) {
+      await this.deleteAttachmentBlob(id);
+    }
+    this.clearAttachmentSelection();
+    this.attachmentSelectionMode = false;
+    this.touchActiveRecord();
+    void this.loadAttachmentThumbs();
+  }
+
+  openAttachmentPreview(thumb: AttachmentThumb): void {
+    this.attachmentPreviewUrl = thumb.url;
+    this.attachmentPreviewName = thumb.name;
+  }
+
+  closeAttachmentPreview(): void {
+    this.attachmentPreviewUrl = '';
+    this.attachmentPreviewName = '';
   }
 
   get reportLabel(): string {
@@ -2390,6 +2448,7 @@ ${this.reportDataJson}`;
     this.attachmentObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.attachmentObjectUrls = [];
     this.attachmentThumbs = [];
+    this.closeAttachmentPreview();
   }
 
   private async loadAttachmentThumbs(): Promise<void> {
@@ -2406,6 +2465,16 @@ ${this.reportDataJson}`;
         // ignore preview failures
       }
     }
+  }
+
+  private clearAttachmentSelection(): void {
+    this.selectedAttachmentIds = [];
+  }
+
+  private clearAttachmentUiState(): void {
+    this.attachmentSelectionMode = false;
+    this.clearAttachmentSelection();
+    this.closeAttachmentPreview();
   }
 
   @HostListener('document:click', ['$event'])
