@@ -557,6 +557,8 @@ Checklist 明細表建議最多顯示 8~10 筆。
 - 報告可以引用固定答案，不必完全依賴備註文字。
 - ChatGPT 生成報告時能拿到更乾淨的 JSON。
 
+**實作對齊（Rental Buddy Web，2026-05-09）**：查核項以 `ItemState.selectedOptions`（細節 chips）與 `quickStatus`（良好／可接受／需注意／尚未確認）承載結構化輸入；`itemOptionConfig` 覆蓋率為合約 5/7、設備 7/10、安全 5/7、生活 4/5、鄰里 5/6，各分類皆達 ≥70%。程式未逐題標 `answerType` 字串，而以「該題是否具 options 設定」表達同一意圖。
+
 ### Phase 3：補強房源基本資料
 
 目標：讓 Header 與 AI 分析有足夠上下文。
