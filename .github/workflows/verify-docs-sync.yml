@@ -1,0 +1,31 @@
+name: Verify Docs Sync
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  verify-docs-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: rental-buddy-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: rental-buddy-web
+
+      - name: Rebuild and sync docs output
+        run: npm run deploy:gh
+        working-directory: rental-buddy-web
+
+      - name: Ensure docs is committed
+        run: git diff --exit-code -- docs
