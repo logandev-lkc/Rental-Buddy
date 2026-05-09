@@ -49,6 +49,23 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const { execSync } = require("node:child_process");
+            let changedFiles = "";
+            try {
+              changedFiles = execSync("git diff --name-only -- docs", { encoding: "utf8" }).trim();
+            } catch {
+              changedFiles = "";
+            }
+            const filesSection = changedFiles
+              ? [
+                  "",
+                  "### docs/ 變更檔案",
+                  "```",
+                  changedFiles,
+                  "```"
+                ].join("\n")
+              : "";
+
             const body = [
               "## docs/ 同步檢查失敗",
               "",
@@ -64,7 +81,8 @@ jobs:
               "git push",
               "```",
               "",
-              "完成後重新推送，CI 會自動重跑。"
+              "完成後重新推送，CI 會自動重跑。",
+              filesSection
             ].join("\n");
             await github.rest.issues.createComment({
               owner: context.repo.owner,
