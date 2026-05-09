@@ -1662,15 +1662,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   private getCategoryScore(axisId: string): number {
-    const items = this.items.filter((item) => item.cat === axisId);
-    const penalty = items.reduce((sum, item) => {
-      const state = this.state[item.id];
-      const config = this.getItemRiskConfig(item);
-      if (state?.flagged) return sum + config.weight * this.getRiskPenaltyMultiplier(config.riskLevel);
-      if (!state?.checked && config.weight >= 4) return sum + Math.ceil(config.weight * 0.8);
-      return sum;
-    }, 0);
-    return Math.max(0, Math.min(100, Math.round(100 - penalty)));
+    return Math.round(this.getRecordCategoryScoreRatio(this.activeRecord, axisId) * 100);
   }
 
   private getCategoryAnalysisText(score: number, flagged: number, pendingHighRiskCount: number): string {
@@ -2733,17 +2725,33 @@ ${this.reportDataJson}`;
     return this.getRadarPolygonPoints(values);
   }
 
+  /**
+   * Per-item score factor 0–1: good = full, ok = partial, attention / unknown = no credit.
+   * Legacy rows with checked but no quickStatus are treated like good.
+   */
+  private getItemQuickScoreFactor(state: ItemState | undefined): number {
+    if (!state) return 0;
+    const qs = state.quickStatus ?? 'unknown';
+    if (state.flagged || qs === 'attention') return 0;
+    if (qs === 'good') return 1;
+    if (qs === 'ok') return 0.65;
+    if (state.checked && !state.flagged) return 1;
+    return 0;
+  }
+
   getRecordCategoryScoreRatio(record: HouseRecord, axisId: string): number {
     const catItems = this.items.filter((item) => item.cat === axisId);
     if (catItems.length === 0) return 0;
-    const penalty = catItems.reduce((sum, item) => {
-      const state = record.state[item.id];
+    let earned = 0;
+    let maxWeight = 0;
+    for (const item of catItems) {
       const config = this.getItemRiskConfig(item);
-      if (state?.flagged) return sum + config.weight * this.getRiskPenaltyMultiplier(config.riskLevel);
-      if (!state?.checked && config.weight >= 4) return sum + Math.ceil(config.weight * 0.8);
-      return sum;
-    }, 0);
-    return Math.max(0, Math.min(1, (100 - penalty) / 100));
+      const w = config.weight;
+      maxWeight += w;
+      earned += w * this.getItemQuickScoreFactor(record.state[item.id]);
+    }
+    if (maxWeight <= 0) return 0;
+    return Math.max(0, Math.min(1, earned / maxWeight));
   }
 
   getRadarAxisXEnd(axisId: string): number {
