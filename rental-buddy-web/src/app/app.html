@@ -936,6 +936,18 @@
       <button type="button" class="btn-outline small" (click)="toggleAiImportPanel()">貼上 AI 回傳</button>
     </div>
   }
+  @if (!showIntro) {
+    <div class="report-support">
+      <a
+        class="support-author-link"
+        [href]="supportAuthorHref"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ supportAuthorLabel }}
+      </a>
+    </div>
+  }
 </div>
 @if (showAiImportPanel) {
   <section class="ai-import-panel">
@@ -1102,5 +1114,17 @@
     <button class="btn-primary" (click)="openReportPage()">查看報告</button>
     <button class="btn-outline" (click)="resetAll()">重置</button>
   </div>
+  @if (!showIntro) {
+    <div class="bottom-support">
+      <a
+        class="support-author-link"
+        [href]="supportAuthorHref"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ supportAuthorLabel }}
+      </a>
+    </div>
+  }
 </footer>
 }

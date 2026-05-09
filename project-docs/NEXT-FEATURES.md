@@ -1,6 +1,6 @@
 # Rental Buddy 下一階段開發文件
 
-最後更新：2026-05-09（F-007 附件上傳 MVP S5／完成）
+最後更新：2026-05-09（F-009 Buy me a coffee）
 
 ## 目標
 
@@ -36,7 +36,7 @@
 | F-006 | 精簡版（文件版）優化 | 匯出前可直接預覽正式版 | done | Medium | 已完成 InBody 風格 PDF 骨架與單頁列印版 |
 | F-007 | 上傳資料（附件） | 可補充現場照片/證據 | done | Medium | MVP：IndexedDB、排序、預覽、批次刪；報告／列印版含縮圖 |
 | F-008 | 登入系統（待決策） | 跨裝置同步與資料保全 | pending | Medium | 需先確認是否真的需要 |
-| F-009 | Buy me a coffee | 提供支持作者入口 | pending | Low | 放在設定/關於頁較合適 |
+| F-009 | Buy me a coffee | 提供支持作者入口 | done | Low | 查核底欄／報告動作區底部外連，文案中性 |
 | F-010 | PWA 安裝引導提示 | 讓手機使用者知道可加到主畫面 | done | Medium | 已實作 beforeinstallprompt、7 天稍後、不再顯示、iOS 手動引導 |
 | F-011 | 離線狀態提示條 | 離線時不困惑，知道資料仍在本機 | done | Medium | 已完成離線/恢復提示、4 秒自動收合、離線重整按鈕 |
 | F-012 | AI 報告內容整合 | 可用 ChatGPT 生成並貼回固定報告區塊 | done | Medium | 已完成 JSON / prompt / 可匯入 prompt / AI JSON 貼回流程 |
@@ -240,6 +240,9 @@
   - 入口位置：頁尾固定連結（`footer_link`）。
   - 文案語氣：中性（`neutral`）。
   - 顯示策略：固定顯示（`always_visible`）。
+- **進度（2026-05-09）**：
+  - MVP done：查核表固定底欄與報告頁動作區底部各一條文字連結（`target=_blank`，`rel` 安全屬性）。
+  - 連結網址為程式常數 `supportAuthorHref`，預設指向 Buy Me a Coffee 首頁，可自行替換為個人頁。
 
 ### F-010 PWA 安裝引導提示
 - **MVP 目標**：讓使用者知道可安裝成 App，不漏掉既有能力。

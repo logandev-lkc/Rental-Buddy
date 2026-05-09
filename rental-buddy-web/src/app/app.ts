@@ -20,6 +20,9 @@ export class App implements OnInit, OnDestroy {
   readonly storageKey = 'rental-buddy-records-v1';
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly attachmentLimit = 10;
+  /** F-009：外連至 Buy Me a Coffee（請替換為你的個人頁網址） */
+  readonly supportAuthorHref = 'https://buymeacoffee.com/';
+  readonly supportAuthorLabel = '請作者喝杯咖啡';
   readonly categories = [
     { id: 'all', label: '全部' },
     { id: 'contract', label: '合約條件' },
