@@ -704,6 +704,9 @@ export class App implements OnInit, OnDestroy {
       this.reportToolsExpanded = false;
     }
     this.currentPage = page;
+    if (page === 'report') {
+      void this.loadAttachmentThumbs();
+    }
   }
 
   setReportViewMode(mode: 'friendly' | 'compact'): void {
@@ -2333,6 +2336,8 @@ ${this.reportDataJson}`;
   async exportReportAsDocument(): Promise<void> {
     const reportElement = document.getElementById('reportExportArea');
     if (!reportElement) return;
+
+    await this.loadAttachmentThumbs();
 
     reportElement.classList.add('report-export-formal');
     document.body.classList.add('printing-report');

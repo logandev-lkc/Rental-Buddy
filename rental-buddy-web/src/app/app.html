@@ -542,6 +542,28 @@
           </div>
         </div>
       </section>
+
+      @if (activeAttachmentCount > 0) {
+        <section class="print-card print-card--wide print-card--attachments" aria-label="列印版附件照片">
+          <div class="print-card-title">現場附件照片</div>
+          <p class="print-attachment-intro">共 {{ activeAttachmentCount }} 張（下列為排序在前之三張預覽）</p>
+          @if (attachmentThumbs.length > 0) {
+            <div class="print-attachment-grid">
+              @for (thumb of attachmentThumbs; track thumb.id) {
+                <figure class="print-attachment-item">
+                  <img [src]="thumb.url" [alt]="thumb.name || '現場附件照片'" />
+                  <figcaption>{{ thumb.name }}</figcaption>
+                </figure>
+              }
+            </div>
+          } @else {
+            <p class="print-attachment-fallback">縮圖尚未載入；請於螢幕版報告或查核表查看附件。</p>
+          }
+          @if (reportAttachmentExtraCount > 0) {
+            <p class="print-attachment-more">另有 {{ reportAttachmentExtraCount }} 張未列入上方預覽。</p>
+          }
+        </section>
+      }
     </section>
 
     <section class="print-card print-card--wide print-card--actions">
