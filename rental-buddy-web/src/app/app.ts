@@ -43,6 +43,17 @@ export class App implements OnInit, OnDestroy {
 
   // 5 個分類對應到「五角形」雷達圖軸
   readonly radarAxisIds = ['contract', 'facility', 'safety', 'living', 'neighbor'] as const;
+  /**
+   * 總分用分類加權（加總為 1）。雷達圖各軸仍為該分類內加權得分比例，與此無關。
+   * 安全與合約權重較高，生活機能相對較低。
+   */
+  readonly categoryScoreWeightByAxis: Record<(typeof App.prototype.radarAxisIds)[number], number> = {
+    safety: 0.25,
+    contract: 0.22,
+    facility: 0.2,
+    neighbor: 0.18,
+    living: 0.15
+  };
   readonly radarRingRatios = [0.25, 0.5, 0.75] as const;
   /** 比較雷達圖：色相差距大，避免紅棕綠相近難辨識 */
   readonly radarColors = ['#D97B6C', '#2563EB', '#059669', '#CA8A04', '#7C3AED'];
@@ -869,7 +880,7 @@ export class App implements OnInit, OnDestroy {
     return Math.round((this.confirmedCount / this.totalCount) * 100);
   }
 
-  /** 100 分制：房源品質分數，採五分類分數平均，避免分類與總分邏輯不一致 */
+  /** 100 分制：房源品質分數，採五分類加權平均（見 `categoryScoreWeightByAxis`） */
   get reportScore100(): number {
     return this.getRecordScore(this.activeRecord);
   }
@@ -2691,12 +2702,15 @@ ${this.reportDataJson}`;
   }
 
   getRecordScore(record: HouseRecord): number {
-    const categoryScores = this.radarAxisIds.map((axisId) =>
-      this.getRecordCategoryScoreRatio(record, axisId) * 100
-    );
-    if (categoryScores.length === 0) return 0;
-    const average = categoryScores.reduce((sum, score) => sum + score, 0) / categoryScores.length;
-    return Math.max(0, Math.min(100, Math.round(average)));
+    let weightedSum = 0;
+    let weightTotal = 0;
+    for (const axisId of this.radarAxisIds) {
+      const w = this.categoryScoreWeightByAxis[axisId];
+      weightedSum += this.getRecordCategoryScoreRatio(record, axisId) * 100 * w;
+      weightTotal += w;
+    }
+    if (weightTotal <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round(weightedSum / weightTotal)));
   }
 
   getRadarValues(record: HouseRecord): number[] {
