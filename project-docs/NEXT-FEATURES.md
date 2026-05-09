@@ -1,6 +1,6 @@
 # Rental Buddy 下一階段開發文件
 
-最後更新：2026-05-09（F-013 D3 header 輕量化）
+最後更新：2026-05-09（F-010 PWA 安裝提示）
 
 ## 目標
 
@@ -37,7 +37,7 @@
 | F-007 | 上傳資料（附件） | 可補充現場照片/證據 | pending | Medium | 先本機儲存，後續可擴充雲端 |
 | F-008 | 登入系統（待決策） | 跨裝置同步與資料保全 | pending | Medium | 需先確認是否真的需要 |
 | F-009 | Buy me a coffee | 提供支持作者入口 | pending | Low | 放在設定/關於頁較合適 |
-| F-010 | PWA 安裝引導提示 | 讓手機使用者知道可加到主畫面 | pending | Medium | 已有 PWA 基礎，缺提示流程 |
+| F-010 | PWA 安裝引導提示 | 讓手機使用者知道可加到主畫面 | done | Medium | 已實作 beforeinstallprompt、7 天稍後、不再顯示、iOS 手動引導 |
 | F-011 | 離線狀態提示條 | 離線時不困惑，知道資料仍在本機 | pending | Medium | 配合 service worker |
 | F-012 | AI 報告內容整合 | 可用 ChatGPT 生成並貼回固定報告區塊 | done | Medium | 已完成 JSON / prompt / 可匯入 prompt / AI JSON 貼回流程 |
 | F-013 | 查核表資訊架構與 UI 整合 | 減少重複資訊、導覽清楚、符合常見互動慣例 | in_progress | High | S1～S3、品牌點擊、D3 header 輕量化已落地；待正式走查後可標 done |

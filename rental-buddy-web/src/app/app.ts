@@ -1,7 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, NgZone, OnDestroy } from '@angular/core';
+import { Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
+
+/** Chromium `beforeinstallprompt`（無官方 DOM 型別） */
+type BeforeInstallPromptEventLike = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
 
 @Component({
   selector: 'app-root',
@@ -9,7 +15,7 @@ import * as L from 'leaflet';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App implements OnDestroy {
+export class App implements OnInit, OnDestroy {
   readonly storageKey = 'rental-buddy-records-v1';
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly categories = [
@@ -316,6 +322,12 @@ export class App implements OnDestroy {
   isReverseGeocoding = false;
   isLocating = false;
   showIntro = true;
+  /** F-010：PWA 安裝提示（Android/Desktop Chrome 等有原生安裝事件） */
+  installPromptEvent: BeforeInstallPromptEventLike | null = null;
+  showPwaInstallBanner = false;
+  private readonly pwaInstallNeverKey = 'rental-buddy-pwa-install-never';
+  private readonly pwaInstallSnoozeKey = 'rental-buddy-pwa-install-snooze-until';
+  private readonly pwaInstallSnoozeMs = 7 * 24 * 60 * 60 * 1000;
   private mapInstance: L.Map | null = null;
   private mapMarker: L.CircleMarker | null = null;
 
@@ -323,8 +335,13 @@ export class App implements OnDestroy {
     this.loadState();
   }
 
+  ngOnInit(): void {
+    this.tryShowPwaInstallBanner();
+  }
+
   startApp(): void {
     this.showIntro = false;
+    this.tryShowPwaInstallBanner();
   }
 
   ngOnDestroy(): void {
@@ -945,6 +962,7 @@ export class App implements OnDestroy {
     this.draftRecordName = '';
     this.syncEditingRecordName();
     this.saveState();
+    this.tryShowPwaInstallBanner();
   }
 
   renameActiveRecord(): void {
@@ -1545,6 +1563,70 @@ ${this.reportDataJson}`;
 
   toggleReportTools(): void {
     this.reportToolsExpanded = !this.reportToolsExpanded;
+  }
+
+  @HostListener('window:beforeinstallprompt', ['$event'])
+  onBeforeInstallPrompt(event: Event): void {
+    event.preventDefault();
+    this.installPromptEvent = event as BeforeInstallPromptEventLike;
+    this.tryShowPwaInstallBanner();
+  }
+
+  private isStandaloneDisplay(): boolean {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    );
+  }
+
+  private isIosTouchDevice(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return true;
+    return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  }
+
+  tryShowPwaInstallBanner(): void {
+    if (!this.canOfferPwaInstall()) {
+      this.showPwaInstallBanner = false;
+      return;
+    }
+    const chromiumInstall = !!this.installPromptEvent;
+    const iosManual = this.isIosTouchDevice() && !chromiumInstall;
+    this.showPwaInstallBanner = chromiumInstall || iosManual;
+  }
+
+  private canOfferPwaInstall(): boolean {
+    if (this.showIntro) return false;
+    if (this.isStandaloneDisplay()) return false;
+    if (localStorage.getItem(this.pwaInstallNeverKey) === '1') return false;
+    const snoozeUntil = localStorage.getItem(this.pwaInstallSnoozeKey);
+    if (snoozeUntil && !Number.isNaN(Number(snoozeUntil)) && Date.now() < Number(snoozeUntil)) {
+      return false;
+    }
+    return this.records.length >= 1;
+  }
+
+  async promptPwaInstall(): Promise<void> {
+    const ev = this.installPromptEvent;
+    if (!ev) return;
+    try {
+      await ev.prompt();
+      await ev.userChoice;
+    } finally {
+      this.installPromptEvent = null;
+      this.showPwaInstallBanner = false;
+      this.tryShowPwaInstallBanner();
+    }
+  }
+
+  snoozePwaInstall(): void {
+    localStorage.setItem(this.pwaInstallSnoozeKey, String(Date.now() + this.pwaInstallSnoozeMs));
+    this.showPwaInstallBanner = false;
+  }
+
+  dismissPwaInstallForever(): void {
+    localStorage.setItem(this.pwaInstallNeverKey, '1');
+    this.showPwaInstallBanner = false;
   }
 
   applyAiReportJson(): void {
