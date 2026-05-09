@@ -325,6 +325,10 @@ export class App implements OnInit, OnDestroy {
   /** F-010：PWA 安裝提示（Android/Desktop Chrome 等有原生安裝事件） */
   installPromptEvent: BeforeInstallPromptEventLike | null = null;
   showPwaInstallBanner = false;
+  /** F-011：離線狀態提示列 */
+  isOffline = false;
+  showReconnectBanner = false;
+  private reconnectBannerTimer: ReturnType<typeof window.setTimeout> | null = null;
   private readonly pwaInstallNeverKey = 'rental-buddy-pwa-install-never';
   private readonly pwaInstallSnoozeKey = 'rental-buddy-pwa-install-snooze-until';
   private readonly pwaInstallSnoozeMs = 7 * 24 * 60 * 60 * 1000;
@@ -336,6 +340,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.isOffline = !navigator.onLine;
     this.tryShowPwaInstallBanner();
   }
 
@@ -345,6 +350,10 @@ export class App implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.reconnectBannerTimer) {
+      window.clearTimeout(this.reconnectBannerTimer);
+      this.reconnectBannerTimer = null;
+    }
     this.destroyMapPicker();
   }
 
@@ -1563,6 +1572,33 @@ ${this.reportDataJson}`;
 
   toggleReportTools(): void {
     this.reportToolsExpanded = !this.reportToolsExpanded;
+  }
+
+  @HostListener('window:online')
+  onNetworkOnline(): void {
+    this.isOffline = false;
+    this.showReconnectBanner = true;
+    if (this.reconnectBannerTimer) {
+      window.clearTimeout(this.reconnectBannerTimer);
+    }
+    this.reconnectBannerTimer = window.setTimeout(() => {
+      this.showReconnectBanner = false;
+      this.reconnectBannerTimer = null;
+    }, 4000);
+  }
+
+  @HostListener('window:offline')
+  onNetworkOffline(): void {
+    this.isOffline = true;
+    this.showReconnectBanner = false;
+    if (this.reconnectBannerTimer) {
+      window.clearTimeout(this.reconnectBannerTimer);
+      this.reconnectBannerTimer = null;
+    }
+  }
+
+  reloadApp(): void {
+    window.location.reload();
   }
 
   @HostListener('window:beforeinstallprompt', ['$event'])

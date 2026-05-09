@@ -70,6 +70,23 @@
   </div>
 </header>
 
+@if (isOffline || showReconnectBanner) {
+  <aside
+    class="network-banner"
+    [class.offline]="isOffline"
+    [class.online]="!isOffline && showReconnectBanner"
+    role="status"
+    [attr.aria-live]="isOffline ? 'assertive' : 'polite'"
+  >
+    @if (isOffline) {
+      <span>目前離線中，資料仍保存在本機。</span>
+      <button type="button" class="btn-outline small" (click)="reloadApp()">重新整理</button>
+    } @else {
+      <span>已恢復連線。</span>
+    }
+  </aside>
+}
+
 @if (currentPage === 'checklist') {
 <section class="checklist-overview-card">
   <div class="overview-head">

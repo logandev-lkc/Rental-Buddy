@@ -197,6 +197,35 @@
   gap: 6px;
 }
 
+.network-banner {
+  margin: 10px 12px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.network-banner.offline {
+  background: rgba(217, 123, 108, 0.12);
+  border-color: rgba(176, 88, 72, 0.35);
+  color: var(--rose-deep);
+}
+
+.network-banner.online {
+  background: rgba(122, 146, 117, 0.14);
+  border-color: rgba(122, 146, 117, 0.35);
+  color: var(--sage-dark);
+}
+
+.network-banner .btn-outline.small {
+  min-width: 86px;
+}
+
 .page-btn {
   min-height: 38px;
   border-radius: 10px;
@@ -2536,6 +2565,16 @@
 }
 
 @media (max-width: 640px) {
+  .network-banner {
+    margin-left: 12px;
+    margin-right: 12px;
+    flex-wrap: wrap;
+  }
+
+  .network-banner .btn-outline.small {
+    width: 100%;
+  }
+
   .record-menu-input,
   .overview-input,
   .overview-textarea,
