@@ -17,7 +17,11 @@
       Rental <span>Buddy</span>
     </button>
     <div class="header-right">
-      <div class="progress-text">{{ confirmedCount }} / {{ totalCount }} 項已確認</div>
+      @if (currentPage === 'report') {
+        <div class="progress-text">{{ confirmedCount }} / {{ totalCount }} 項已確認</div>
+      } @else {
+        <span class="sr-only">進度 {{ confirmedCount }} / {{ totalCount }} 項已確認</span>
+      }
       <div class="record-menu">
         <button type="button" class="record-menu-trigger" (click)="toggleRecordMenu($event)">
           <span class="record-menu-name">{{ activeRecord.name }}</span>
