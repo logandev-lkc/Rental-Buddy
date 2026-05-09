@@ -2213,6 +2213,7 @@
   color: #8d2b1e;
   border-bottom: 1px solid rgba(44, 36, 32, 0.75);
   background: linear-gradient(90deg, rgba(141, 43, 30, 0.08), rgba(141, 43, 30, 0.02));
+  letter-spacing: 0.02em;
 }
 
 .print-sheet--preview .print-kpis {
@@ -2370,12 +2371,18 @@
 .print-sheet--preview .print-table th,
 .print-sheet--preview .print-table td {
   border: 1px solid rgba(44, 36, 32, 0.7);
-  padding: 6px 6px;
+  padding: 7px 7px;
+  line-height: 1.4;
 }
 
 .print-sheet--preview .print-table th {
   background: #f8f3f1;
   font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.print-sheet--preview .print-table tbody tr:nth-child(even) {
+  background: rgba(44, 36, 32, 0.03);
 }
 
 .print-sheet--preview .print-table .c {
@@ -2488,14 +2495,20 @@
 .print-sheet--preview .print-important-table th,
 .print-sheet--preview .print-important-table td {
   border: 1px solid rgba(44, 36, 32, 0.55);
-  padding: 5px 6px;
+  padding: 6px 7px;
   vertical-align: top;
+  line-height: 1.45;
 }
 
 .print-sheet--preview .print-important-table th {
   background: #f8f3f1;
   color: #7d2c1f;
   font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.print-sheet--preview .print-important-table tbody tr:nth-child(even) {
+  background: rgba(44, 36, 32, 0.03);
 }
 
 .print-sheet--preview .status-pill {
@@ -2535,6 +2548,7 @@
   border: 1px solid rgba(44, 36, 32, 0.45);
   padding: 8px;
   background: #fff;
+  border-radius: 8px;
 }
 
 .print-sheet--preview .print-action-index {
@@ -2558,7 +2572,7 @@
 .print-sheet--preview .print-action-desc {
   margin-top: 3px;
   font-size: 10px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--ink-mid);
 }
 
