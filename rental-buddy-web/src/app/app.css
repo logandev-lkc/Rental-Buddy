@@ -2560,6 +2560,14 @@
   color: var(--ink-mid);
 }
 
+.print-sheet--preview .print-kpi-sub {
+  margin-top: 4px;
+  font-size: 8px;
+  line-height: 1.25;
+  color: var(--ink-mid);
+  word-break: break-word;
+}
+
 .print-sheet--preview .print-eval-title {
   font-size: 12px;
   font-weight: 800;
@@ -3499,6 +3507,14 @@
     margin-top: 2px;
     font-size: 10px;
     color: #333;
+  }
+
+  body.printing-report .print-kpi-sub {
+    margin-top: 3px;
+    font-size: 7px;
+    line-height: 1.2;
+    color: #555;
+    word-break: break-word;
   }
 
   body.printing-report .print-eval-title {

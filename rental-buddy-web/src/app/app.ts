@@ -894,13 +894,52 @@ export class App implements OnInit, OnDestroy {
   }
 
   get candidateAverageScore(): number | null {
-    const candidates = this.records.filter((record) => {
-      if (record.id === this.activeRecord.id) return false;
+    const activeId = this.activeRecord.id;
+    const fromCompare = this.compareIds
+      .filter((id) => id !== activeId)
+      .map((id) => this.records.find((r) => r.id === id))
+      .filter((r): r is HouseRecord => Boolean(r));
+    if (fromCompare.length > 0) {
+      const total = fromCompare.reduce((sum, r) => sum + this.getRecordScore(r), 0);
+      return Math.round(total / fromCompare.length);
+    }
+    const fallback = this.records.filter((record) => {
+      if (record.id === activeId) return false;
       return this.countDoneForRecord(record) + this.countFlaggedForRecord(record) > 0;
     });
-    if (candidates.length === 0) return null;
-    const total = candidates.reduce((sum, record) => sum + this.getRecordScore(record), 0);
-    return Math.round(total / candidates.length);
+    if (fallback.length === 0) return null;
+    const total = fallback.reduce((sum, record) => sum + this.getRecordScore(record), 0);
+    return Math.round(total / fallback.length);
+  }
+
+  /** Phase 6：是否有有效「比較清單」紀錄可供計算平均 */
+  get candidateAverageUsesCompareList(): boolean {
+    const activeId = this.activeRecord.id;
+    return this.compareIds.some((id) => id !== activeId && this.records.some((r) => r.id === id));
+  }
+
+  get candidateAverageBasis(): 'compare_list' | 'other_records' | 'none' {
+    if (this.candidateAverageScore === null) return 'none';
+    return this.candidateAverageUsesCompareList ? 'compare_list' : 'other_records';
+  }
+
+  /** 說明計算方式；勿解讀為市場行情 */
+  get candidateAverageHint(): string {
+    const activeId = this.activeRecord.id;
+    const fromCompare = this.compareIds
+      .filter((id) => id !== activeId)
+      .map((id) => this.records.find((r) => r.id === id))
+      .filter((r): r is HouseRecord => Boolean(r));
+    if (fromCompare.length > 0) {
+      return `依比較清單 ${fromCompare.length} 筆計算（非市場平均）`;
+    }
+    if (this.candidateAverageScore === null) {
+      return '請加入比較房源或於其他紀錄勾選查核後再試';
+    }
+    const n = this.records.filter(
+      (r) => r.id !== activeId && this.countDoneForRecord(r) + this.countFlaggedForRecord(r) > 0
+    ).length;
+    return `依其他 ${n} 筆有進度紀錄概估（未指定比較清單；非市場平均）`;
   }
 
   get candidateAverageLabel(): string {
@@ -1870,7 +1909,9 @@ export class App implements OnInit, OnDestroy {
         confidenceHint: this.reportConfidenceHint,
         decisionTitle: this.reportDecisionTitle,
         decisionDescription: this.reportDecisionDesc,
-        candidateAverageScore: this.candidateAverageScore
+        candidateAverageScore: this.candidateAverageScore,
+        candidateAverageBasis: this.candidateAverageBasis,
+        candidateAverageHint: this.candidateAverageHint
       },
       summary: {
         confirmedCount: this.confirmedCount,
@@ -1961,6 +2002,7 @@ export class App implements OnInit, OnDestroy {
 【注意】
 - checklistTable 是完整原始資料；importantChecklistTable 是前端已挑出的重要項目。
 - selectedOptions 是現場快速點選的細節，請優先引用具體內容。
+- score.candidateAverageHint 說明「同區候選平均」如何計算：僅為使用者自建紀錄／比較清單，勿宣稱市場或區域行情。
 - 若資料不足，請明確提醒 confidence 與 pending 項目，不要過度下結論。
 
 以下是資料 JSON：
@@ -3150,6 +3192,8 @@ interface ReportDataPayload {
     decisionTitle: string;
     decisionDescription: string;
     candidateAverageScore: number | null;
+    candidateAverageBasis: 'compare_list' | 'other_records' | 'none';
+    candidateAverageHint: string;
   };
   summary: {
     confirmedCount: number;
