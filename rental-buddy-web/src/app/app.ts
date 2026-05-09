@@ -274,6 +274,8 @@ export class App implements OnInit, OnDestroy {
     n1: ['鄰居類型可接受', '家庭戶為主', '套房居多', '不明需複查'],
     n2: ['回覆清楚', '態度保留', '條件模糊', '需白紙黑字'],
     n3: ['環境安靜', '車流噪音', '店家噪音', '夜間需複查'],
+    /** 與房源條件「管理員」同一組選項，供連動 */
+    n4: ['有', '無', '不確定'],
     n5: ['無異味', '菸味', '霉味', '油煙味', '寵物味'],
     n6: ['無明顯痕跡', '蟑螂跡象', '螞蟻', '排水孔可疑']
   };
@@ -381,6 +383,8 @@ export class App implements OnInit, OnDestroy {
       });
     }
     this.tryShowPwaInstallBanner();
+    this.reconcileLinkedChecklistFromProperty();
+    this.saveState();
     void this.loadAttachmentThumbs();
   }
 
@@ -512,6 +516,7 @@ export class App implements OnInit, OnDestroy {
   setPropertyChoice(field: PropertyChoiceField, value: string): void {
     if (!this.activeRecord) return;
     this.activeRecord[field] = this.activeRecord[field] === value ? '' : value;
+    this.syncChecklistFromPropertyChoice(field);
     this.touchActiveRecord();
   }
 
@@ -527,9 +532,168 @@ export class App implements OnInit, OnDestroy {
       this.activeRecord?.minLeaseTerm ? `租期${this.activeRecord.minLeaseTerm}` : '',
       this.activeRecord?.canCook ? `開伙${this.activeRecord.canCook}` : '',
       this.activeRecord?.canPet ? `寵物${this.activeRecord.canPet}` : '',
-      this.activeRecord?.subsidyAvailable || ''
+      this.activeRecord?.subsidyAvailable ? `租補${this.activeRecord.subsidyAvailable}` : ''
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(' / ') : '未填寫';
+  }
+
+  /** InBody Phase 3：房源條件 chips 與查核題 c1/c3/c4/c7/n4 連動（房源 → 查核） */
+  private syncChecklistFromPropertyChoice(field: PropertyChoiceField): void {
+    switch (field) {
+      case 'depositMonths':
+        this.syncDepositMonthsToC3(this.activeRecord?.depositMonths ?? '');
+        break;
+      case 'managementFeeType':
+        this.syncManagementFeeToC4(this.activeRecord?.managementFeeType ?? '');
+        break;
+      case 'subsidyAvailable':
+        this.syncSubsidyToC1(this.activeRecord?.subsidyAvailable ?? '');
+        break;
+      case 'hasManager':
+        this.syncHasManagerToN4(this.activeRecord?.hasManager ?? '');
+        break;
+      case 'canCook':
+      case 'canPet':
+        this.syncCookPetToC7();
+        break;
+      default:
+        break;
+    }
+  }
+
+  private syncDepositMonthsToC3(months: string): void {
+    const st = this.state['c3'];
+    if (!st) return;
+    if (!months) {
+      st.selectedOptions = [];
+      this.syncQuickStatusFromOptions(st);
+      return;
+    }
+    st.selectedOptions = [months];
+    this.syncQuickStatusFromOptions(st);
+  }
+
+  private syncManagementFeeToC4(fee: string): void {
+    const st = this.state['c4'];
+    if (!st) return;
+    const map: Record<string, string> = {
+      含租金: '含在租金內',
+      另計: '另計（金額已知）',
+      無: '無管理費',
+      需確認: '另計需確認'
+    };
+    const mapped = fee ? map[fee] : '';
+    if (!mapped) {
+      st.selectedOptions = [];
+      this.syncQuickStatusFromOptions(st);
+      return;
+    }
+    st.selectedOptions = [mapped];
+    this.syncQuickStatusFromOptions(st);
+  }
+
+  private syncSubsidyToC1(subsidy: string): void {
+    const st = this.state['c1'];
+    if (!st) return;
+    const map: Record<string, string> = {
+      可申請: '房東願配合申請',
+      不可: '不符合租補資格',
+      需確認: '租補需確認'
+    };
+    const mapped = subsidy ? map[subsidy] : '';
+    if (!mapped) {
+      st.selectedOptions = [];
+      this.syncQuickStatusFromOptions(st);
+      return;
+    }
+    st.selectedOptions = [mapped];
+    this.syncQuickStatusFromOptions(st);
+  }
+
+  private syncHasManagerToN4(manager: string): void {
+    const st = this.state['n4'];
+    if (!st) return;
+    if (!manager) {
+      st.selectedOptions = [];
+      this.syncQuickStatusFromOptions(st);
+      return;
+    }
+    st.selectedOptions = [manager];
+    this.syncQuickStatusFromOptions(st);
+  }
+
+  /** 房源「開伙／寵物」與查核 c7 同步（不覆寫備註） */
+  private syncCookPetToC7(): void {
+    const record = this.activeRecord;
+    if (!record) return;
+    const st = this.state['c7'];
+    if (!st) return;
+    const cook = record.canCook;
+    const pet = record.canPet;
+    if (!cook && !pet) {
+      return;
+    }
+    const bad = cook === '不可' || pet === '不可';
+    const uncertain = cook === '需確認' || pet === '需確認';
+    if (bad) {
+      st.flagged = true;
+      st.checked = false;
+      st.quickStatus = 'attention';
+    } else if (!cook || !pet || uncertain) {
+      st.flagged = false;
+      st.checked = false;
+      st.quickStatus = 'unknown';
+    } else {
+      st.flagged = false;
+      st.checked = true;
+      st.quickStatus = 'good';
+    }
+  }
+
+  /** 切換紀錄後以房源欄位為準，對齊連動查核項 */
+  private reconcileLinkedChecklistFromProperty(): void {
+    const record = this.activeRecord;
+    if (!record) return;
+    this.syncDepositMonthsToC3(record.depositMonths);
+    this.syncManagementFeeToC4(record.managementFeeType);
+    this.syncSubsidyToC1(record.subsidyAvailable);
+    this.syncHasManagerToN4(record.hasManager);
+    this.syncCookPetToC7();
+  }
+
+  /** 查核細節選項 → 回填房源條件（與 syncChecklistFromPropertyChoice 互補） */
+  private syncPropertyFieldsFromLinkedChecklist(itemId: string, itemState: ItemState): void {
+    const record = this.activeRecord;
+    if (!record) return;
+    const pick = itemState.selectedOptions[itemState.selectedOptions.length - 1] ?? '';
+
+    if (itemId === 'c3') {
+      record.depositMonths = pick;
+      return;
+    }
+    if (itemId === 'n4') {
+      record.hasManager = pick;
+      return;
+    }
+    if (itemId === 'c4') {
+      const rev: Record<string, string> = {
+        含在租金內: '含租金',
+        '另計（金額已知）': '另計',
+        另計需確認: '需確認',
+        無管理費: '無'
+      };
+      record.managementFeeType = pick ? rev[pick] ?? '' : '';
+      return;
+    }
+    if (itemId === 'c1') {
+      const rev: Record<string, string> = {
+        房東願配合申請: '可申請',
+        可申請但房東不配合: '不可',
+        不符合租補資格: '不可',
+        租補需確認: '需確認'
+      };
+      record.subsidyAvailable = pick ? rev[pick] ?? '' : '';
+    }
   }
 
   get activeAttachments(): AttachmentMeta[] {
@@ -789,6 +953,9 @@ export class App implements OnInit, OnDestroy {
     }
     current.selectedOptions = Array.from(selected);
     this.syncQuickStatusFromOptions(current);
+    if (id === 'c1' || id === 'c3' || id === 'c4' || id === 'n4') {
+      this.syncPropertyFieldsFromLinkedChecklist(id, current);
+    }
     this.touchActiveRecord();
   }
 
@@ -808,6 +975,7 @@ export class App implements OnInit, OnDestroy {
     this.clearAttachmentUiState();
     this.activeRecordId = recordId;
     this.syncEditingRecordName();
+    this.reconcileLinkedChecklistFromProperty();
     this.isRecordMenuOpen = false;
     this.saveState();
     void this.loadAttachmentThumbs();

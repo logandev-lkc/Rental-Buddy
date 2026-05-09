@@ -586,6 +586,8 @@ Checklist 明細表建議最多顯示 8~10 筆。
 - AI 分析不只依賴 checklist，也能考慮房源背景。
 - 未填資料不會造成 PDF 版面破裂。
 
+**實作對齊（Rental Buddy Web，2026-05-09）**：查核表「戶型與房源條件」區塊已具 `propertyChoiceGroups`（建物、樓層、屋齡、電梯、管理員、管理費、押金、租期、開伙、寵物、租補）；列印抬頭以 `propertySummaryText` 摘要。並新增 **房源 chips ↔ 查核題連動**：`depositMonths`/`managementFeeType`/`subsidyAvailable`/`hasManager` 與 **c3／c4／c1／n4** 細節選項雙向同步；`canCook`/`canPet` 與 **c7** 快速狀態同步（不覆寫 c7 備註）。**n4** 細節選項與「管理員」同一組（有／無／不確定）。切換紀錄與首次載入會 `reconcileLinkedChecklistFromProperty()` 以房源欄位對齊查核狀態。
+
 ### Phase 4：補強報告文案資料
 
 目標：讓「主要優勢」、「主要風險」、「下一步建議」可由資料穩定產生。
