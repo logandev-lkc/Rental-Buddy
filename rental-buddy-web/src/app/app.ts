@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
+import { SwUpdate } from '@angular/service-worker';
 
 /** Chromium `beforeinstallprompt`（無官方 DOM 型別） */
 type BeforeInstallPromptEventLike = Event & {
@@ -328,6 +329,7 @@ export class App implements OnInit, OnDestroy {
   /** F-011：離線狀態提示列 */
   isOffline = false;
   showReconnectBanner = false;
+  showUpdateBanner = false;
   private reconnectBannerTimer: ReturnType<typeof window.setTimeout> | null = null;
   private readonly pwaInstallNeverKey = 'rental-buddy-pwa-install-never';
   private readonly pwaInstallSnoozeKey = 'rental-buddy-pwa-install-snooze-until';
@@ -335,12 +337,25 @@ export class App implements OnInit, OnDestroy {
   private mapInstance: L.Map | null = null;
   private mapMarker: L.CircleMarker | null = null;
 
-  constructor(private readonly zone: NgZone) {
+  constructor(
+    private readonly zone: NgZone,
+    private readonly swUpdate: SwUpdate
+  ) {
     this.loadState();
   }
 
   ngOnInit(): void {
     this.isOffline = !navigator.onLine;
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate.versionUpdates.subscribe((event) => {
+        if (event.type === 'VERSION_READY') {
+          this.showUpdateBanner = true;
+        }
+      });
+      this.swUpdate.unrecoverable.subscribe(() => {
+        this.showUpdateBanner = true;
+      });
+    }
     this.tryShowPwaInstallBanner();
   }
 
@@ -1578,6 +1593,9 @@ ${this.reportDataJson}`;
   onNetworkOnline(): void {
     this.isOffline = false;
     this.showReconnectBanner = true;
+    if (this.swUpdate.isEnabled) {
+      void this.swUpdate.checkForUpdate();
+    }
     if (this.reconnectBannerTimer) {
       window.clearTimeout(this.reconnectBannerTimer);
     }
@@ -1598,6 +1616,17 @@ ${this.reportDataJson}`;
   }
 
   reloadApp(): void {
+    window.location.reload();
+  }
+
+  async refreshForUpdate(): Promise<void> {
+    if (this.swUpdate.isEnabled) {
+      try {
+        await this.swUpdate.activateUpdate();
+      } catch {
+        // Ignore activation failures and fallback to hard reload.
+      }
+    }
     window.location.reload();
   }
 

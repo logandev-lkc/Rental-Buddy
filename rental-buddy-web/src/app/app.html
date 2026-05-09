@@ -87,6 +87,13 @@
   </aside>
 }
 
+@if (showUpdateBanner) {
+  <aside class="network-banner update" role="status" aria-live="polite">
+    <span>有新版本可用，點擊更新可取得最新快取。</span>
+    <button type="button" class="btn-primary small" (click)="refreshForUpdate()">立即更新</button>
+  </aside>
+}
+
 @if (currentPage === 'checklist') {
 <section class="checklist-overview-card">
   <div class="overview-head">
