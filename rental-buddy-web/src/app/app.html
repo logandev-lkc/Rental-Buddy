@@ -328,31 +328,23 @@
   </div>
   <div class="overview-property-panel">
     <div class="overview-property-title">房源條件</div>
-    <div class="overview-property-grid overview-property-grid--sections">
-      @for (section of propertyChoiceSections; track section.title; let si = $index) {
-        <section class="property-choice-section" [attr.aria-labelledby]="'property-section-' + si">
-          <h3 class="property-choice-section-title" [id]="'property-section-' + si">{{ section.title }}</h3>
-          <div class="property-choice-section-grid">
-            @for (field of section.fields; track field) {
-              @let group = propertyChoiceGroup(field);
-              <div class="property-choice-group">
-                <div class="property-choice-label">{{ group.label }}</div>
-                <div class="property-choice-chips">
-                  @for (option of group.options; track option) {
-                    <button
-                      type="button"
-                      class="property-choice-chip"
-                      [class.active]="getPropertyChoiceValue(group.field) === option"
-                      (click)="setPropertyChoice(group.field, option)"
-                    >
-                      {{ option }}
-                    </button>
-                  }
-                </div>
-              </div>
+    <div class="overview-property-grid">
+      @for (group of propertyChoiceGroups; track group.field) {
+        <div class="property-choice-group">
+          <div class="property-choice-label">{{ group.label }}</div>
+          <div class="property-choice-chips">
+            @for (option of group.options; track option) {
+              <button
+                type="button"
+                class="property-choice-chip"
+                [class.active]="getPropertyChoiceValue(group.field) === option"
+                (click)="setPropertyChoice(group.field, option)"
+              >
+                {{ option }}
+              </button>
             }
           </div>
-        </section>
+        </div>
       }
     </div>
   </div>

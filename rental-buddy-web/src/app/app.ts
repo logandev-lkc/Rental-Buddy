@@ -80,21 +80,6 @@ export class App implements OnInit, OnDestroy {
     { field: 'subsidyAvailable', label: '租補', options: ['可申請', '不可', '需確認'] }
   ];
 
-  /** 房源條件 chips：分區呈現以降低首屏高度（欄位與連動邏輯仍沿用 propertyChoiceGroups） */
-  readonly propertyChoiceSections: ReadonlyArray<{ title: string; fields: readonly PropertyChoiceField[] }> = [
-    { title: '物件條件', fields: ['buildingType', 'floorLevel', 'buildingAgeRange', 'hasElevator'] },
-    { title: '管理與費用', fields: ['hasManager', 'managementFeeType', 'depositMonths', 'minLeaseTerm'] },
-    { title: '租約與補助', fields: ['canCook', 'canPet', 'subsidyAvailable'] }
-  ];
-
-  private readonly propertyChoiceGroupLookup = new Map<PropertyChoiceField, (typeof this.propertyChoiceGroups)[number]>(
-    this.propertyChoiceGroups.map((g) => [g.field, g])
-  );
-
-  propertyChoiceGroup(field: PropertyChoiceField): (typeof this.propertyChoiceGroups)[number] {
-    return this.propertyChoiceGroupLookup.get(field)!;
-  }
-
   readonly items: ChecklistItem[] = [
     { id: 'c1', cat: 'contract', title: '租屋補助資格', tip: '部分房東不願配合申請租屋補助，租前務必確認。' },
     { id: 'c2', cat: 'contract', title: '水電費計算方式', tip: '確認是台電計價或房東自訂價。' },
