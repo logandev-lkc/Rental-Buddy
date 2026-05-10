@@ -701,9 +701,43 @@
   margin-bottom: 8px;
 }
 
+.property-choice-section {
+  padding-top: 10px;
+  border-top: 1px solid rgba(44, 36, 32, 0.08);
+}
+
+.property-choice-section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.property-choice-section-title {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink-light);
+}
+
+.property-choice-section-grid {
+  display: grid;
+  gap: 10px;
+}
+
+@media (min-width: 420px) {
+  .property-choice-section-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
 .overview-property-grid {
   display: grid;
   gap: 10px;
+}
+
+.overview-property-grid.overview-property-grid--sections {
+  gap: 12px;
 }
 
 .overview-attachment-panel {
