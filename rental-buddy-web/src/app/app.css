@@ -419,7 +419,7 @@
 
 .overview-layout-extra-label-row {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 6px;
@@ -698,7 +698,24 @@
   font-size: 11px;
   font-weight: 800;
   color: var(--ink-mid);
+}
+
+.overview-property-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 8px;
+}
+
+.overview-property-hint {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--ink-light);
+  text-align: right;
+  flex: 1;
+  min-width: 0;
 }
 
 .overview-property-grid {
@@ -859,6 +876,21 @@
   border-color: rgba(217, 123, 108, 0.45);
   background: rgba(217, 123, 108, 0.14);
   color: var(--rose-deep);
+}
+
+.property-choice-more-wrap {
+  margin-top: -2px;
+}
+
+.property-choice-more-toggle {
+  border: 1px dashed rgba(176, 88, 72, 0.45);
+  border-radius: 999px;
+  background: rgba(249, 232, 224, 0.38);
+  color: var(--rose-deep);
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 30px;
+  padding: 0 12px;
 }
 
 .record-card {

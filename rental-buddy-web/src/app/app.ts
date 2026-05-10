@@ -79,6 +79,19 @@ export class App implements OnInit, OnDestroy {
     { field: 'canPet', label: '寵物', options: ['可', '不可', '需確認'] },
     { field: 'subsidyAvailable', label: '租補', options: ['可申請', '不可', '需確認'] }
   ];
+  /** 線上先快篩的重點條件（預設直接顯示） */
+  readonly propertyPrimaryFields: ReadonlyArray<PropertyChoiceField> = ['depositMonths', 'managementFeeType', 'canCook', 'canPet', 'subsidyAvailable'];
+  /** 其餘補充條件收在單一「更多條件」內，避免每組都需展開 */
+  readonly propertySecondaryFields: ReadonlyArray<PropertyChoiceField> = [
+    'buildingType',
+    'floorLevel',
+    'buildingAgeRange',
+    'hasElevator',
+    'hasManager',
+    'minLeaseTerm'
+  ];
+  readonly propertyPrimaryChoiceGroups = this.propertyChoiceGroups.filter((g) => this.propertyPrimaryFields.includes(g.field));
+  readonly propertySecondaryChoiceGroups = this.propertyChoiceGroups.filter((g) => this.propertySecondaryFields.includes(g.field));
 
   readonly items: ChecklistItem[] = [
     { id: 'c1', cat: 'contract', title: '租屋補助資格', tip: '部分房東不願配合申請租屋補助，租前務必確認。' },
@@ -447,6 +460,7 @@ export class App implements OnInit, OnDestroy {
   showMapPicker = false;
   /** 戶型／房源條件預設收合，降低查核表首屏高度（F-013 S3） */
   overviewExtraExpanded = false;
+  overviewPropertyMoreExpanded = false;
   mapPickerStatus = '點一下地圖，會自動帶入相似地址。';
   isReverseGeocoding = false;
   isLocating = false;
@@ -631,6 +645,11 @@ export class App implements OnInit, OnDestroy {
     event.stopPropagation();
     this.overviewLayoutExtraExpanded = !this.overviewLayoutExtraExpanded;
     this.overviewDropdownOpen = null;
+  }
+
+  toggleOverviewPropertyMore(event: Event): void {
+    event.stopPropagation();
+    this.overviewPropertyMoreExpanded = !this.overviewPropertyMoreExpanded;
   }
 
   private applyLayoutTypeSideEffects(value: string): void {
@@ -1188,6 +1207,7 @@ export class App implements OnInit, OnDestroy {
     this.isRecordMenuOpen = false;
     this.overviewDropdownOpen = null;
     this.overviewLayoutExtraExpanded = false;
+    this.overviewPropertyMoreExpanded = false;
     this.saveState();
     void this.loadAttachmentThumbs();
   }
@@ -1244,6 +1264,7 @@ export class App implements OnInit, OnDestroy {
     this.isCategoryMenuOpen = false;
     this.overviewDropdownOpen = null;
     this.overviewLayoutExtraExpanded = false;
+    this.overviewPropertyMoreExpanded = false;
     this.showAiImportPanel = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1253,6 +1274,7 @@ export class App implements OnInit, OnDestroy {
     this.overviewDropdownOpen = null;
     if (!this.overviewExtraExpanded) {
       this.overviewLayoutExtraExpanded = false;
+      this.overviewPropertyMoreExpanded = false;
     }
   }
 

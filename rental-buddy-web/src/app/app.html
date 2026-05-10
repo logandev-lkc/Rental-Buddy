@@ -327,9 +327,12 @@
     <textarea class="overview-textarea" placeholder="例如：動線順，但客廳採光較弱" [ngModel]="layoutNotes" (ngModelChange)="layoutNotes = $event"></textarea>
   </div>
   <div class="overview-property-panel">
-    <div class="overview-property-title">房源條件</div>
+    <div class="overview-property-head">
+      <div class="overview-property-title">看房前快速篩選</div>
+      <p class="overview-property-hint">先確認這些資訊，判斷是否值得約看；其餘在現場再補充。</p>
+    </div>
     <div class="overview-property-grid">
-      @for (group of propertyChoiceGroups; track group.field) {
+      @for (group of propertyPrimaryChoiceGroups; track group.field) {
         <div class="property-choice-group">
           <div class="property-choice-label">{{ group.label }}</div>
           <div class="property-choice-chips">
@@ -345,6 +348,30 @@
             }
           </div>
         </div>
+      }
+      <div class="property-choice-more-wrap">
+        <button type="button" class="property-choice-more-toggle" (click)="toggleOverviewPropertyMore($event)" [attr.aria-expanded]="overviewPropertyMoreExpanded">
+          {{ overviewPropertyMoreExpanded ? '收起更多條件' : '更多條件' }}
+        </button>
+      </div>
+      @if (overviewPropertyMoreExpanded) {
+        @for (group of propertySecondaryChoiceGroups; track group.field) {
+          <div class="property-choice-group">
+            <div class="property-choice-label">{{ group.label }}</div>
+            <div class="property-choice-chips">
+              @for (option of group.options; track option) {
+                <button
+                  type="button"
+                  class="property-choice-chip"
+                  [class.active]="getPropertyChoiceValue(group.field) === option"
+                  (click)="setPropertyChoice(group.field, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+        }
       }
     </div>
   </div>
