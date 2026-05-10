@@ -885,7 +885,7 @@ export class App implements OnInit, OnDestroy {
     return this.getRecordScore(this.activeRecord);
   }
 
-  /** 總分用：各分類在 overall 中的權重（供報告 JSON／畫面說明） */
+  /** 僅供匯出 JSON（AI／外部處理），不在畫面上顯示 */
   get reportOverallCategoryWeights(): Array<{ axisId: string; label: string; weight: number }> {
     return this.radarAxisIds.map((axisId) => ({
       axisId,

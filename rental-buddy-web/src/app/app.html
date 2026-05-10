@@ -386,7 +386,6 @@
       <div class="print-score">
         <div class="print-score-num">{{ reportScore100 }}</div>
         <div class="print-score-sub">/ 100 分</div>
-        <div class="print-score-note">分類加權總分</div>
         <div class="print-grade">等級 {{ reportGrade }}</div>
         <div class="print-risk-label">{{ reportRiskLevelLabel }}</div>
         <div class="print-confidence">信心度 {{ reportConfidencePercent }}%</div>
@@ -634,7 +633,6 @@
     <div class="report-score-badge">
       <span class="report-score-num">{{ reportScore100 }}</span>
       <span class="report-score-text">Rental Score</span>
-      <span class="report-score-note">分類加權</span>
     </div>
   </div>
 
@@ -732,7 +730,7 @@
           <div class="compare-stats">
             <span>完成 {{ getRecordDone(record) }}/{{ totalCount }}</span>
             <span>問題 {{ getRecordFlagged(record) }}</span>
-            <span>分數 {{ getRecordScore(record) }}/100（分類加權）</span>
+            <span>分數 {{ getRecordScore(record) }}/100</span>
           </div>
         </article>
       }
