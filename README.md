@@ -27,12 +27,14 @@ rental-buddy/
 │   ├── src/app/           ← UI 與互動邏輯
 │   └── dist/              ← build 產物（執行 build 後產生）
 ├── docs/                  ← GitHub Pages 部署輸出
-├── project-docs/          ← 專案文件資料夾（見該目錄 README 索引）
-│   ├── README.md          ← 文件索引（v1 / v2 階段說明）
-│   ├── v1-開發文件-功能路線與待辦.md
-│   ├── v1-開發文件-專案進度總表.md
-│   ├── v1-開發文件-查核表資訊架構草案-F013.md
-│   └── v2-開發文件-InBody報告生成規格.md
+├── project-docs/          ← 專案文件（見該目錄 README 索引）
+│   ├── README.md          ← 索引
+│   ├── v1/                ← 階段 v1（英文檔名）
+│   │   ├── feature-roadmap.md
+│   │   ├── progress.md
+│   │   └── checklist-ia-f013.md
+│   └── v2/
+│       └── inbody-report-gen-spec.md
 └── README.md              ← 本文件
 ```
 

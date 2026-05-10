@@ -1,6 +1,6 @@
 # Rental Buddy - InBody 風格報告生成與實作規格
 
-> **v2 開發文件**。`project-docs` 全目錄索引見 [README.md](./README.md)。
+> **v2**：路徑 `v2/inbody-report-gen-spec.md`。全目錄索引見 [README.md](../README.md)。
 
 ## 1) 文件目的
 本文件用於規劃 Rental Buddy 的「看房決策報告（InBody 風格）」。
