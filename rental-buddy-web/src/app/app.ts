@@ -429,6 +429,12 @@ export class App implements OnInit, OnDestroy {
   editingRecordName = '';
   isRecordMenuOpen = false;
   isCategoryMenuOpen = false;
+  /** 戶型區：與 `.custom-select` 同風格的下拉（layoutType / kitchenType） */
+  overviewDropdownOpen: null | 'layoutType' | 'kitchenType' = null;
+  /** 戶型區：房／廳／衛、廚房為選填，經「填寫更多」展開 */
+  overviewLayoutExtraExpanded = false;
+  readonly layoutTypePresetOptions = ['套房', '雅房', '整層住家', '分租套房', '分租雅房'];
+  readonly kitchenTypePresetOptions = ['開放式', '獨立廚房', '半開放式', '共用廚房', '無廚房'];
   currentCat = 'all';
   currentPage: 'checklist' | 'report' = 'checklist';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
@@ -613,6 +619,46 @@ export class App implements OnInit, OnDestroy {
     if (!this.activeRecord) return;
     this.activeRecord.layoutNotes = value;
     this.touchActiveRecord();
+  }
+
+  /** 套房／雅房：多半不需填房廳衛；選取時自動收合輔助區 */
+  get isSuiteLikeLayoutType(): boolean {
+    const t = this.layoutType.trim();
+    return t === '套房' || t === '雅房';
+  }
+
+  toggleOverviewLayoutExtra(event: Event): void {
+    event.stopPropagation();
+    this.overviewLayoutExtraExpanded = !this.overviewLayoutExtraExpanded;
+    this.overviewDropdownOpen = null;
+  }
+
+  private applyLayoutTypeSideEffects(value: string): void {
+    if (!this.activeRecord) return;
+    const v = value.trim();
+    if (v === '套房') {
+      this.activeRecord.layoutRooms = '1';
+      this.activeRecord.layoutLivingRooms = '0';
+      this.activeRecord.layoutBathrooms = '1';
+      this.activeRecord.layoutKitchenType = '無廚房';
+      this.touchActiveRecord();
+      return;
+    }
+    if (v === '雅房') {
+      this.activeRecord.layoutRooms = '1';
+      this.activeRecord.layoutLivingRooms = '0';
+      this.activeRecord.layoutBathrooms = '0';
+      this.activeRecord.layoutKitchenType = '無廚房';
+      this.touchActiveRecord();
+    }
+  }
+
+  onLayoutTypeCustomInput(value: string): void {
+    if (!this.activeRecord) return;
+    this.activeRecord.layoutType = value;
+    this.applyLayoutTypeSideEffects(value);
+    this.touchActiveRecord();
+    this.cdr.detectChanges();
   }
 
   getPropertyChoiceValue(field: PropertyChoiceField): string {
@@ -1140,6 +1186,8 @@ export class App implements OnInit, OnDestroy {
     this.syncEditingRecordName();
     this.reconcileLinkedChecklistFromProperty();
     this.isRecordMenuOpen = false;
+    this.overviewDropdownOpen = null;
+    this.overviewLayoutExtraExpanded = false;
     this.saveState();
     void this.loadAttachmentThumbs();
   }
@@ -1147,7 +1195,10 @@ export class App implements OnInit, OnDestroy {
   toggleRecordMenu(event: Event): void {
     event.stopPropagation();
     this.isRecordMenuOpen = !this.isRecordMenuOpen;
-    if (this.isRecordMenuOpen) this.isCategoryMenuOpen = false;
+    if (this.isRecordMenuOpen) {
+      this.isCategoryMenuOpen = false;
+      this.overviewDropdownOpen = null;
+    }
   }
 
   selectRecordOption(recordId: string): void {
@@ -1191,12 +1242,38 @@ export class App implements OnInit, OnDestroy {
     this.closeMapPicker();
     this.isRecordMenuOpen = false;
     this.isCategoryMenuOpen = false;
+    this.overviewDropdownOpen = null;
+    this.overviewLayoutExtraExpanded = false;
     this.showAiImportPanel = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   toggleOverviewExtra(): void {
     this.overviewExtraExpanded = !this.overviewExtraExpanded;
+    this.overviewDropdownOpen = null;
+    if (!this.overviewExtraExpanded) {
+      this.overviewLayoutExtraExpanded = false;
+    }
+  }
+
+  toggleOverviewDropdown(which: 'layoutType' | 'kitchenType', event: Event): void {
+    event.stopPropagation();
+    this.overviewDropdownOpen = this.overviewDropdownOpen === which ? null : which;
+  }
+
+  pickOverviewLayoutType(value: string, event: Event): void {
+    event.stopPropagation();
+    this.layoutType = value;
+    this.applyLayoutTypeSideEffects(value);
+    this.overviewDropdownOpen = null;
+    this.cdr.detectChanges();
+  }
+
+  pickOverviewKitchenType(value: string, event: Event): void {
+    event.stopPropagation();
+    this.layoutKitchenType = value;
+    this.overviewDropdownOpen = null;
+    this.cdr.detectChanges();
   }
 
   async locateCurrentPosition(): Promise<void> {
@@ -3082,6 +3159,7 @@ ${this.reportDataJson}`;
     if (!target?.closest('.custom-select') && !target?.closest('.record-menu')) {
       this.isRecordMenuOpen = false;
       this.isCategoryMenuOpen = false;
+      this.overviewDropdownOpen = null;
     }
   }
 }

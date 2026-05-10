@@ -191,29 +191,124 @@
   @if (overviewExtraExpanded) {
   <div id="overview-extra-panel" class="overview-extra-panel" role="region" aria-labelledby="overview-extra-toggle">
   <div class="overview-layout-grid">
-    <div class="overview-meta-item">
-      <span class="k">戶型類型</span>
-      <input class="overview-input" type="text" placeholder="例如：1房1廳1衛" [ngModel]="layoutType" (ngModelChange)="layoutType = $event" />
-    </div>
-    <div class="overview-meta-item">
-      <span class="k">房</span>
-      <input class="overview-input" type="text" placeholder="例如：1" [ngModel]="layoutRooms" (ngModelChange)="layoutRooms = $event" />
-    </div>
-    <div class="overview-meta-item">
-      <span class="k">廳</span>
-      <input class="overview-input" type="text" placeholder="例如：1" [ngModel]="layoutLivingRooms" (ngModelChange)="layoutLivingRooms = $event" />
-    </div>
-    <div class="overview-meta-item">
-      <span class="k">衛</span>
-      <input class="overview-input" type="text" placeholder="例如：1" [ngModel]="layoutBathrooms" (ngModelChange)="layoutBathrooms = $event" />
-    </div>
-    <div class="overview-meta-item">
-      <span class="k">廚房型態</span>
-      <input class="overview-input" type="text" placeholder="例如：開放式" [ngModel]="layoutKitchenType" (ngModelChange)="layoutKitchenType = $event" />
+    <div class="overview-meta-item overview-layout-type-row">
+      <div class="overview-meta-label-row">
+        <span class="k">戶型類型</span>
+        <button
+          type="button"
+          class="overview-fill-more-btn"
+          (click)="toggleOverviewLayoutExtra($event)"
+          [attr.aria-expanded]="overviewLayoutExtraExpanded"
+        >
+          {{ overviewLayoutExtraExpanded ? '收合' : '填寫更多' }}
+        </button>
+      </div>
+      <div class="custom-select">
+        <button
+          type="button"
+          class="custom-select-trigger"
+          [class.open]="overviewDropdownOpen === 'layoutType'"
+          (click)="toggleOverviewDropdown('layoutType', $event)"
+        >
+          <span class="custom-select-value">{{ layoutType || '請選擇' }}</span>
+          <span class="custom-select-arrow" aria-hidden="true">▾</span>
+        </button>
+        @if (overviewDropdownOpen === 'layoutType') {
+          <div class="custom-select-menu" role="listbox">
+            <button
+              type="button"
+              class="custom-select-option"
+              [class.active]="!layoutType"
+              (click)="pickOverviewLayoutType('', $event)"
+            >
+              請選擇
+            </button>
+            @for (opt of layoutTypePresetOptions; track opt) {
+              <button
+                type="button"
+                class="custom-select-option"
+                [class.active]="layoutType === opt"
+                (click)="pickOverviewLayoutType(opt, $event)"
+              >
+                {{ opt }}
+              </button>
+            }
+            <div class="custom-select-menu-footer" (click)="$event.stopPropagation()">
+              <input
+                class="overview-input"
+                type="text"
+                placeholder="自訂（可直接輸入）"
+                [ngModel]="layoutType"
+                (ngModelChange)="onLayoutTypeCustomInput($event)"
+              />
+            </div>
+          </div>
+        }
+      </div>
+      @if (overviewLayoutExtraExpanded) {
+        <div class="overview-layout-extra">
+          @if (isSuiteLikeLayoutType) {
+            <p class="overview-layout-extra-hint">套房／雅房多半不需填寫；若要紀錄格局可在此補齊。</p>
+          }
+          <div class="overview-layout-extra-block">
+            <span class="overview-layout-extra-label">房／廳／衛</span>
+            <div class="layout-count-grid">
+              <input class="overview-input" type="number" min="0" step="1" inputmode="numeric" placeholder="房" [ngModel]="layoutRooms" (ngModelChange)="layoutRooms = $event" />
+              <input class="overview-input" type="number" min="0" step="1" inputmode="numeric" placeholder="廳" [ngModel]="layoutLivingRooms" (ngModelChange)="layoutLivingRooms = $event" />
+              <input class="overview-input" type="number" min="0" step="1" inputmode="numeric" placeholder="衛" [ngModel]="layoutBathrooms" (ngModelChange)="layoutBathrooms = $event" />
+            </div>
+          </div>
+          <div class="overview-layout-extra-block">
+            <span class="overview-layout-extra-label">廚房型態</span>
+            <div class="custom-select overview-layout-extra-kitchen-select">
+              <button
+                type="button"
+                class="custom-select-trigger"
+                [class.open]="overviewDropdownOpen === 'kitchenType'"
+                (click)="toggleOverviewDropdown('kitchenType', $event)"
+              >
+                <span class="custom-select-value">{{ layoutKitchenType || '請選擇' }}</span>
+                <span class="custom-select-arrow" aria-hidden="true">▾</span>
+              </button>
+              @if (overviewDropdownOpen === 'kitchenType') {
+                <div class="custom-select-menu" role="listbox">
+                  <button
+                    type="button"
+                    class="custom-select-option"
+                    [class.active]="!layoutKitchenType"
+                    (click)="pickOverviewKitchenType('', $event)"
+                  >
+                    請選擇
+                  </button>
+                  @for (opt of kitchenTypePresetOptions; track opt) {
+                    <button
+                      type="button"
+                      class="custom-select-option"
+                      [class.active]="layoutKitchenType === opt"
+                      (click)="pickOverviewKitchenType(opt, $event)"
+                    >
+                      {{ opt }}
+                    </button>
+                  }
+                  <div class="custom-select-menu-footer" (click)="$event.stopPropagation()">
+                    <input
+                      class="overview-input"
+                      type="text"
+                      placeholder="自訂（可直接輸入）"
+                      [ngModel]="layoutKitchenType"
+                      (ngModelChange)="layoutKitchenType = $event"
+                    />
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
     </div>
     <div class="overview-meta-item">
       <span class="k">室內坪數</span>
-      <input class="overview-input" type="text" placeholder="例如：12.5" [ngModel]="layoutAreaPing" (ngModelChange)="layoutAreaPing = $event" />
+      <input class="overview-input" type="number" min="0" step="0.1" inputmode="decimal" placeholder="例如：12.5" [ngModel]="layoutAreaPing" (ngModelChange)="layoutAreaPing = $event" />
     </div>
   </div>
   <div class="overview-meta-item layout-note-item">

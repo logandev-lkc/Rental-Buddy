@@ -376,6 +376,75 @@
   gap: 8px;
 }
 
+.overview-layout-grid > .overview-layout-type-row {
+  grid-column: 1 / -1;
+}
+
+.overview-meta-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.overview-meta-label-row .k {
+  margin-bottom: 0;
+}
+
+.overview-fill-more-btn {
+  flex-shrink: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--rose-deep);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overview-layout-extra {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overview-layout-extra-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-light);
+  line-height: 1.45;
+}
+
+.overview-layout-extra-label {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-light);
+  margin-bottom: 6px;
+}
+
+.overview-layout-extra-block .layout-count-grid {
+  margin-top: 0;
+}
+
+.overview-layout-extra-kitchen-select {
+  width: 100%;
+}
+
+.layout-count-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
 .overview-meta-item {
   padding: 8px;
   border: 1px solid var(--border);
@@ -398,6 +467,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.overview-meta-item > .custom-select {
+  width: 100%;
 }
 
 .overview-input {
@@ -930,7 +1003,7 @@
 
 .custom-select-value {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -963,16 +1036,42 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--ink-mid);
+  color: var(--ink);
   text-align: left;
   padding: 8px 10px;
   font-size: 13px;
+  font-weight: 400;
 }
 
 .custom-select-option.active {
   background: rgba(217, 123, 108, 0.14);
   color: var(--rose-deep);
   font-weight: 700;
+}
+
+.custom-select-menu-footer {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(44, 36, 32, 0.08);
+}
+
+.custom-select-menu-footer .overview-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* 與 styles.css 中 input 的 16px 對齊（iOS 避免聚焦縮放）；自訂下拉非原生 input 需手動跟上 */
+@media (max-width: 768px) {
+  .custom-select-value,
+  .custom-select-option {
+    font-size: 16px;
+  }
+
+  .custom-select-arrow {
+    font-size: 14px;
+  }
 }
 
 .content {
