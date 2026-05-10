@@ -333,6 +333,42 @@
   gap: 8px;
 }
 
+.overview-meta-grid .overview-meta-item-address {
+  grid-column: 1 / -1;
+}
+
+.overview-meta-grid .overview-meta-item-rent {
+  grid-column: 1 / -1;
+}
+
+.overview-address-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.overview-address-head .k {
+  display: inline;
+  margin-bottom: 0;
+  flex: 0 1 auto;
+}
+
+.overview-map-link-inline {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  max-width: 100%;
+  text-align: right;
+}
+
+.overview-meta-grid .map-picker-panel {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
 .overview-layout-grid {
   margin-top: 8px;
   display: grid;
@@ -391,6 +427,12 @@
   cursor: pointer;
 }
 
+.overview-map-link.overview-map-link-inline {
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
 .overview-map-hint {
   display: block;
   color: var(--ink-light);
@@ -439,29 +481,61 @@
 
 .map-picker-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 12px 10px;
 }
 
 .map-picker-actions .btn-outline.small {
   min-height: 34px;
+  flex: 1 1 140px;
 }
 
 .map-picker-canvas {
   height: 280px;
   width: 100%;
   background: var(--blush);
+  position: relative;
+  z-index: 0;
+}
+
+.map-picker-canvas .leaflet-container {
+  height: 100%;
+  font-family: inherit;
+}
+
+.map-picker-canvas .leaflet-control-attribution {
+  max-width: calc(100% - 52px);
+  font-size: 10px;
+  line-height: 1.25;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 6px;
 }
 
 .map-picker-footer {
+  position: relative;
+  z-index: 1;
   padding: 9px 12px;
   color: var(--ink-mid);
   font-size: 12px;
   font-weight: 700;
   border-top: 1px solid rgba(44, 36, 32, 0.08);
+  background: rgba(252, 250, 248, 0.98);
 }
 
-.map-picker-footer .loading {
+.map-picker-footer--busy {
+  border-top-color: rgba(217, 123, 108, 0.28);
+}
+
+.map-picker-status {
+  display: block;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.map-picker-footer--busy .map-picker-status {
   color: var(--rose-deep);
 }
 

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { SwUpdate } from '@angular/service-worker';
@@ -470,6 +470,7 @@ export class App implements OnInit, OnDestroy {
 
   constructor(
     private readonly zone: NgZone,
+    private readonly cdr: ChangeDetectorRef,
     private readonly swUpdate: SwUpdate
   ) {
     this.loadState();
@@ -1201,23 +1202,38 @@ export class App implements OnInit, OnDestroy {
   async locateCurrentPosition(): Promise<void> {
     if (!navigator.geolocation) {
       this.mapPickerStatus = '此裝置不支援定位，請改用地圖點選。';
+      this.cdr.detectChanges();
       return;
     }
-    this.isLocating = true;
-    this.mapPickerStatus = '正在取得目前位置...';
+    this.zone.run(() => {
+      this.isLocating = true;
+      this.mapPickerStatus = '正在取得目前位置...';
+    });
+    this.cdr.detectChanges();
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000
-        });
+        navigator.geolocation.getCurrentPosition(
+          (pos) => this.zone.run(() => resolve(pos)),
+          (err) => this.zone.run(() => reject(err)),
+          {
+            enableHighAccuracy: true,
+            timeout: 10000
+          }
+        );
       });
       await this.selectMapPoint(position.coords.latitude, position.coords.longitude);
-      this.mapInstance?.setView([position.coords.latitude, position.coords.longitude], 17);
+      this.zone.run(() => {
+        this.mapInstance?.setView([position.coords.latitude, position.coords.longitude], 17);
+      });
     } catch {
-      this.mapPickerStatus = '定位失敗，請確認權限後重試或直接點地圖。';
+      this.zone.run(() => {
+        this.mapPickerStatus = '定位失敗，請確認權限後重試或直接點地圖。';
+      });
     } finally {
-      this.isLocating = false;
+      this.zone.run(() => {
+        this.isLocating = false;
+      });
+      this.cdr.detectChanges();
     }
   }
 
@@ -1271,25 +1287,36 @@ export class App implements OnInit, OnDestroy {
 
   private async selectMapPoint(lat: number, lng: number): Promise<void> {
     if (!this.activeRecord) return;
-    this.activeRecord.latitude = Number(lat.toFixed(6));
-    this.activeRecord.longitude = Number(lng.toFixed(6));
-    this.syncMapMarker();
-    this.mapPickerStatus = '正在查詢相似地址...';
-    this.isReverseGeocoding = true;
+
+    this.zone.run(() => {
+      this.activeRecord!.latitude = Number(lat.toFixed(6));
+      this.activeRecord!.longitude = Number(lng.toFixed(6));
+      this.syncMapMarker();
+      this.mapPickerStatus = '正在查詢相似地址...';
+      this.isReverseGeocoding = true;
+    });
 
     try {
       const address = await this.reverseGeocode(lat, lng);
-      if (address) {
-        this.activeRecord.address = address;
-        this.mapPickerStatus = '已帶入相似地址，可再手動修正。';
-      } else {
-        this.mapPickerStatus = '已選擇位置，但沒有查到相似地址。';
-      }
+      this.zone.run(() => {
+        if (!this.activeRecord) return;
+        if (address) {
+          this.activeRecord.address = address;
+          this.mapPickerStatus = '已帶入相似地址，可再手動修正。';
+        } else {
+          this.mapPickerStatus = '已選擇位置，但沒有查到相似地址。';
+        }
+      });
     } catch {
-      this.mapPickerStatus = '已選擇位置；地址反查暫時失敗，可手動輸入。';
+      this.zone.run(() => {
+        this.mapPickerStatus = '已選擇位置；地址反查暫時失敗，可手動輸入。';
+      });
     } finally {
-      this.isReverseGeocoding = false;
-      this.touchActiveRecord();
+      this.zone.run(() => {
+        this.isReverseGeocoding = false;
+        this.touchActiveRecord();
+      });
+      this.cdr.detectChanges();
     }
   }
 

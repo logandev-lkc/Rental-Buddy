@@ -1,6 +1,6 @@
 # Rental Buddy 專案文件索引
 
-本資料夾依**開發階段**分子目錄：`v1/` 為產品主軸與查核，`v2/` 為報告／InBody 規格。檔名一律使用**英文**（kebab-case），方便版本控制與跨平台路徑。
+本資料夾依**開發階段**分子目錄：`v1/` 為產品主軸與查核，`v2/` 為報告／InBody 規格，`v3/` 為第三版範圍與新 Backlog。檔名一律使用**英文**（kebab-case），方便版本控制與跨平台路徑。
 
 ## v1
 
@@ -16,9 +16,18 @@
 | --- | --- |
 | [v2/inbody-report-gen-spec.md](./v2/inbody-report-gen-spec.md) | 報告 JSON、章節結構、Phase 2～6 與 AI 整合 |
 
-## v3 之後
+## v3
 
-新增專題時建議建立 `v3/` 目錄，檔名沿用英文 kebab-case（例如 `v3/some-topic-spec.md`），並於本檔補上表格列舉。
+| 檔案／目錄 | 說明 |
+| --- | --- |
+| [v3/README.md](./v3/README.md) | 第三版入口：定位、與 v1/v2 關係、開發原則與本版文件索引 |
+| [v3/feature-roadmap.md](./v3/feature-roadmap.md) | 第三版 Backlog（建議新 ID 自 F-015 起）、切片與 Out of scope |
+| [v3/progress.md](./v3/progress.md) | 第三版進度總表 |
+| [v3/decisions.md](./v3/decisions.md) | 第三版決策紀錄（D-002 起） |
+| [v3/specs/checklist-ux-v3-spec.md](./v3/specs/checklist-ux-v3-spec.md) | 查核表 UX 第三版（摘要／分類／狀態與細節）討論稿 |
+| [v3/specs/](./v3/specs/) | 其他長篇專題規格（見目錄內說明） |
+
+單一專題篇幅過長時，於 [v3/specs/](./v3/specs/) 新增 `*-spec.md`，並於 [v3/README.md](./v3/README.md) 文件索引補列連結。
 
 ## 路徑沿革（對照）
 
@@ -28,3 +37,4 @@
 | `PROGRESS.md` | `v1-開發文件-專案進度總表.md` | `v1/progress.md` |
 | `F-013-CHECKLIST-IA-DRAFT.md` | `v1-開發文件-查核表資訊架構草案-F013.md` | `v1/checklist-ia-f013.md` |
 | `INBODY-REPORT-GEN-SPEC.md` | `v2-開發文件-InBody報告生成規格.md` | `v2/inbody-report-gen-spec.md` |
+| `v3/overview.md` | （同一次建立後更名） | `v3/README.md` |

@@ -127,50 +127,54 @@
     <div class="overview-title">現場快速摘要</div>
   </div>
   <div class="overview-meta-grid">
-    <div class="overview-meta-item">
-      <span class="k">地址</span>
+    <div class="overview-meta-item overview-meta-item-address">
+      <div class="overview-address-head">
+        <span class="k">地址</span>
+        <button type="button" class="overview-map-link overview-map-link-inline" (click)="openMapPicker()">
+          開啟地圖選地址
+        </button>
+      </div>
       <input
         class="overview-input"
         type="text"
         placeholder="可手動修正相似地址"
         [(ngModel)]="address"
-        (ngModelChange)="address = $event"
+        autocomplete="street-address"
       />
-      <button type="button" class="overview-map-link" (click)="openMapPicker()">在地圖上選地址</button>
-      <span class="overview-map-hint">{{ mapLocationText }}</span>
     </div>
-    <div class="overview-meta-item">
+    @if (showMapPicker) {
+      <section class="map-picker-panel">
+        <div class="map-picker-head">
+          <div>
+            <div class="map-picker-title">地圖選址</div>
+            <p class="map-picker-desc">點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。</p>
+          </div>
+          <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
+        </div>
+        <div class="map-picker-actions">
+          <button type="button" class="btn-outline small" (click)="locateCurrentPosition()" [disabled]="isLocating">
+            @if (isLocating) { 定位中... } @else { 使用目前位置 }
+          </button>
+          <button type="button" class="btn-outline small" (click)="clearMapLocation()">清除已選位置</button>
+        </div>
+        <div id="mapPickerCanvas" class="map-picker-canvas" aria-label="地圖選址"></div>
+        <div class="map-picker-footer" [class.map-picker-footer--busy]="isReverseGeocoding">
+          <span class="map-picker-status">{{ mapPickerStatus }}</span>
+        </div>
+      </section>
+    }
+    <div class="overview-meta-item overview-meta-item-rent">
       <span class="k">月租</span>
       <input
         class="overview-input"
         type="text"
-        placeholder="輸入月租金（例如：18000）"
+        inputmode="numeric"
+        placeholder="例如：18000"
         [ngModel]="monthlyRent"
         (ngModelChange)="monthlyRent = $event"
       />
     </div>
   </div>
-  @if (showMapPicker) {
-    <section class="map-picker-panel">
-      <div class="map-picker-head">
-        <div>
-          <div class="map-picker-title">地圖選址</div>
-          <p class="map-picker-desc">點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。</p>
-        </div>
-        <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
-      </div>
-      <div class="map-picker-actions">
-        <button type="button" class="btn-outline small" (click)="locateCurrentPosition()" [disabled]="isLocating">
-          @if (isLocating) { 定位中... } @else { 使用目前位置 }
-        </button>
-        <button type="button" class="btn-outline small" (click)="clearMapLocation()">清除已選位置</button>
-      </div>
-      <div id="mapPickerCanvas" class="map-picker-canvas" aria-label="地圖選址"></div>
-      <div class="map-picker-footer">
-        <span [class.loading]="isReverseGeocoding">{{ mapPickerStatus }}</span>
-      </div>
-    </section>
-  }
   <div class="overview-extra-bar">
     <button
       type="button"
