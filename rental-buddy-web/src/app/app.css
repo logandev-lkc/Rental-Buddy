@@ -417,11 +417,27 @@
   gap: 14px;
 }
 
-.overview-layout-extra-hint {
+.overview-layout-extra-label-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.overview-layout-extra-label-row .overview-layout-extra-label {
+  margin-bottom: 0;
+}
+
+.overview-layout-extra-hint-inline {
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 600;
   color: var(--ink-light);
-  line-height: 1.45;
+  line-height: 1.35;
+  text-align: right;
+  flex: 1;
+  min-width: 0;
 }
 
 .overview-layout-extra-label {

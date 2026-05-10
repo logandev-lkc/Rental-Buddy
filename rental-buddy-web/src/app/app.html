@@ -247,11 +247,13 @@
       </div>
       @if (overviewLayoutExtraExpanded) {
         <div class="overview-layout-extra">
-          @if (isSuiteLikeLayoutType) {
-            <p class="overview-layout-extra-hint">套房／雅房多半不需填寫；若要紀錄格局可在此補齊。</p>
-          }
           <div class="overview-layout-extra-block">
-            <span class="overview-layout-extra-label">房／廳／衛</span>
+            <div class="overview-layout-extra-label-row">
+              <span class="overview-layout-extra-label">房／廳／衛</span>
+              @if (isSuiteLikeLayoutType) {
+                <span class="overview-layout-extra-hint-inline">套房／雅房多半不需填寫；若要紀錄格局可在此補齊。</span>
+              }
+            </div>
             <div class="layout-count-grid">
               <input class="overview-input" type="number" min="0" step="1" inputmode="numeric" placeholder="房" [ngModel]="layoutRooms" (ngModelChange)="layoutRooms = $event" />
               <input class="overview-input" type="number" min="0" step="1" inputmode="numeric" placeholder="廳" [ngModel]="layoutLivingRooms" (ngModelChange)="layoutLivingRooms = $event" />
