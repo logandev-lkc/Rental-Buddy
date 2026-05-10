@@ -885,6 +885,15 @@ export class App implements OnInit, OnDestroy {
     return this.getRecordScore(this.activeRecord);
   }
 
+  /** 總分用：各分類在 overall 中的權重（供報告 JSON／畫面說明） */
+  get reportOverallCategoryWeights(): Array<{ axisId: string; label: string; weight: number }> {
+    return this.radarAxisIds.map((axisId) => ({
+      axisId,
+      label: this.categoryMap[axisId] ?? axisId,
+      weight: this.categoryScoreWeightByAxis[axisId]
+    }));
+  }
+
   get reportConfidencePercent(): number {
     return this.getRecordConfidencePercent(this.activeRecord);
   }
@@ -1913,6 +1922,8 @@ export class App implements OnInit, OnDestroy {
       },
       score: {
         overall: this.reportScore100,
+        overallScoreMethod: 'weighted_category_average',
+        overallCategoryWeights: this.reportOverallCategoryWeights,
         grade: this.reportGrade,
         gradeText: this.reportGradeText,
         riskLevel: this.reportRiskLevelLabel,
@@ -1933,15 +1944,20 @@ export class App implements OnInit, OnDestroy {
         pendingCount: this.leftCount,
         keyRiskSummary: this.reportKeyRiskSummary
       },
-      categoryScores: this.reportCategoryStats.map((stat) => ({
-        name: stat.label,
-        score: stat.score,
-        confirmed: stat.confirmed,
-        total: stat.total,
-        flagged: stat.flagged,
-        pending: stat.pending,
-        analysis: stat.analysis
-      })),
+      categoryScores: this.radarAxisIds.map((axisId) => {
+        const stat = this.getCategoryEvaluationStat(axisId);
+        return {
+          axisId,
+          name: stat.label,
+          score: stat.score,
+          weightInOverall: this.categoryScoreWeightByAxis[axisId],
+          confirmed: stat.confirmed,
+          total: stat.total,
+          flagged: stat.flagged,
+          pending: stat.pending,
+          analysis: stat.analysis
+        };
+      }),
       aiSummaryFallback: {
         conclusion: {
           title: this.reportDecisionTitle,
@@ -3222,6 +3238,8 @@ interface ReportDataPayload {
   property: Record<string, string>;
   score: {
     overall: number;
+    overallScoreMethod: 'weighted_category_average';
+    overallCategoryWeights: Array<{ axisId: string; label: string; weight: number }>;
     grade: 'A' | 'B' | 'C';
     gradeText: string;
     riskLevel: string;
@@ -3243,8 +3261,10 @@ interface ReportDataPayload {
     keyRiskSummary: string;
   };
   categoryScores: Array<{
+    axisId: string;
     name: string;
     score: number;
+    weightInOverall: number;
     confirmed: number;
     total: number;
     flagged: number;

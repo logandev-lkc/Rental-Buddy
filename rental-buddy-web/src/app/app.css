@@ -1499,8 +1499,10 @@
 }
 
 .report-score-badge {
-  width: 82px;
-  height: 82px;
+  min-width: 82px;
+  min-height: 82px;
+  height: auto;
+  padding: 10px 8px;
   border-radius: 24px;
   display: grid;
   place-items: center;
@@ -1520,6 +1522,15 @@
   margin-top: 4px;
   font-size: 11px;
   opacity: 0.9;
+}
+
+.report-score-note {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0.88;
+  text-align: center;
 }
 
 .report-summary-grid {
@@ -2283,7 +2294,9 @@
 .report-page:not(.report-export-formal) .report-score-badge {
   border-radius: 50%;
   width: 96px;
-  height: 96px;
+  min-height: 96px;
+  height: auto;
+  padding: 12px 8px;
   box-shadow: 0 12px 28px rgba(176, 88, 72, 0.28);
 }
 
@@ -2465,6 +2478,14 @@
   margin-top: 2px;
   font-size: 11px;
   color: var(--ink-mid);
+}
+
+.print-sheet--preview .print-score-note {
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.25;
+  color: var(--ink-light);
+  font-weight: 600;
 }
 
 .print-sheet--preview .print-grade {
@@ -3045,8 +3066,9 @@
 
   .report-page:not(.report-export-formal) .report-score-badge {
     width: 104px;
-    height: 104px;
-    min-height: unset;
+    min-height: 104px;
+    height: auto;
+    padding: 12px 8px;
     margin-left: auto;
     margin-right: auto;
     border-radius: 50%;
@@ -3417,6 +3439,14 @@
     font-size: 10px;
     color: #333;
     margin-top: 2px;
+  }
+
+  body.printing-report .print-score-note {
+    margin-top: 3px;
+    font-size: 8px;
+    line-height: 1.2;
+    color: #555;
+    font-weight: 600;
   }
 
   body.printing-report .print-grade {
