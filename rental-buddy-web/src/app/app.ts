@@ -25,7 +25,6 @@ export class App implements OnInit, OnDestroy {
   readonly supportAuthorHref = 'https://buymeacoffee.com/';
   readonly supportAuthorLabel = '請作者喝杯咖啡';
   readonly categories = [
-    { id: 'all', label: '全部' },
     { id: 'contract', label: '合約條件' },
     { id: 'facility', label: '設備狀態' },
     { id: 'safety', label: '安全採光' },
@@ -65,6 +64,21 @@ export class App implements OnInit, OnDestroy {
     { value: 'ok', label: '可接受' },
     { value: 'attention', label: '需注意' },
     { value: 'unknown', label: '尚未確認' }
+  ];
+  readonly checklistFilterOptions: Array<{ id: ChecklistFilterId; label: string; group: ChecklistFilterGroupId }> = [
+    { id: 'pending', label: '尚未確認', group: 'status' },
+    { id: 'confirmed', label: '已確認', group: 'status' },
+    { id: 'good', label: '良好', group: 'quick' },
+    { id: 'ok', label: '可接受', group: 'quick' },
+    { id: 'attention', label: '需注意', group: 'quick' },
+    { id: 'priority_high', label: '高優先', group: 'priority' },
+    { id: 'priority_normal', label: '一般', group: 'priority' },
+    { id: 'priority_later', label: '可後補', group: 'priority' }
+  ];
+  readonly checklistFilterGroups: Array<{ id: ChecklistFilterGroupId; label: string }> = [
+    { id: 'status', label: '狀態' },
+    { id: 'quick', label: '快速評等' },
+    { id: 'priority', label: '重要性' }
   ];
   readonly propertyChoiceGroups: Array<{ field: PropertyChoiceField; label: string; options: string[] }> = [
     { field: 'buildingType', label: '建物類型', options: ['電梯大樓', '公寓', '套房', '雅房', '分租'] },
@@ -448,13 +462,17 @@ export class App implements OnInit, OnDestroy {
   editingRecordName = '';
   isRecordMenuOpen = false;
   isCategoryMenuOpen = false;
+  checklistFilterPanelOpen = false;
+  activeChecklistFilters: ChecklistFilterId[] = [];
+  draftChecklistFilters: ChecklistFilterId[] = [];
   /** 戶型區：與 `.custom-select` 同風格的下拉（layoutType / kitchenType） */
   overviewDropdownOpen: null | 'layoutType' | 'kitchenType' = null;
   /** 戶型區：房／廳／衛、廚房為選填，經「填寫更多」展開 */
   overviewLayoutExtraExpanded = false;
   readonly layoutTypePresetOptions = ['套房', '雅房', '整層住家', '分租套房', '分租雅房'];
   readonly kitchenTypePresetOptions = ['開放式', '獨立廚房', '半開放式', '共用廚房', '無廚房'];
-  currentCat = 'all';
+  /** 空陣列＝未篩選分類（顯示全部）；多選時依陣列順序顯示各分類區塊 */
+  selectedCategoryIds: string[] = [];
   currentPage: 'checklist' | 'report' = 'checklist';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
   reportDataCopyState = '';
@@ -914,19 +932,30 @@ export class App implements OnInit, OnDestroy {
   }
 
   get filteredItems(): ChecklistItem[] {
-    return this.currentCat === 'all'
-      ? this.items
-      : this.items.filter((item) => item.cat === this.currentCat);
+    const baseItems =
+      this.selectedCategoryIds.length === 0
+        ? this.items
+        : this.items.filter((item) => this.selectedCategoryIds.includes(item.cat));
+    if (this.activeChecklistFilters.length === 0) return baseItems;
+    return baseItems.filter((item) => this.matchesChecklistFilters(item));
   }
 
   get groupedItems(): Array<{ cat: string; items: ChecklistItem[] }> {
-    const groups = new Map<string, ChecklistItem[]>();
-    this.filteredItems.forEach((item) => {
-      const list = groups.get(item.cat) ?? [];
-      list.push(item);
-      groups.set(item.cat, list);
-    });
-    return Array.from(groups.entries()).map(([cat, items]) => ({ cat, items }));
+    if (this.selectedCategoryIds.length === 0) {
+      const groups = new Map<string, ChecklistItem[]>();
+      this.filteredItems.forEach((item) => {
+        const list = groups.get(item.cat) ?? [];
+        list.push(item);
+        groups.set(item.cat, list);
+      });
+      return Array.from(groups.entries()).map(([cat, items]) => ({ cat, items }));
+    }
+    return this.selectedCategoryIds
+      .map((cat) => ({
+        cat,
+        items: this.filteredItems.filter((item) => item.cat === cat)
+      }))
+      .filter((g) => g.items.length > 0);
   }
 
   get totalCount(): number {
@@ -1095,14 +1124,23 @@ export class App implements OnInit, OnDestroy {
     return this.items.filter((item) => this.state[item.id]?.flagged);
   }
 
-  setCategory(cat: string): void {
-    this.currentCat = cat;
+  isCategorySelected(catId: string): boolean {
+    return this.selectedCategoryIds.includes(catId);
+  }
+
+  toggleCategory(catId: string): void {
+    const idx = this.selectedCategoryIds.indexOf(catId);
+    if (idx === -1) {
+      this.selectedCategoryIds = [...this.selectedCategoryIds, catId];
+    } else {
+      this.selectedCategoryIds = this.selectedCategoryIds.filter((id) => id !== catId);
+    }
   }
 
   getCategoryDisplayLabel(catId: string): string {
+    if (!catId) return `全部（${this.doneCount}/${this.totalCount}）`;
     const cat = this.categories.find((item) => item.id === catId);
     if (!cat) return '全部';
-    if (cat.id === 'all') return `${cat.label}（${this.doneCount}/${this.totalCount}）`;
     return `${cat.label}（${this.countDoneByCategory(cat.id)}）`;
   }
 
@@ -1243,8 +1281,73 @@ export class App implements OnInit, OnDestroy {
   }
 
   selectCategoryOption(catId: string): void {
-    this.setCategory(catId);
+    this.selectedCategoryIds = [catId];
     this.isCategoryMenuOpen = false;
+  }
+
+  toggleChecklistFilterPanel(): void {
+    if (this.checklistFilterPanelOpen) {
+      this.closeChecklistFilterPanel();
+      return;
+    }
+    this.checklistFilterPanelOpen = true;
+    this.draftChecklistFilters = [...this.activeChecklistFilters];
+  }
+
+  closeChecklistFilterPanel(): void {
+    this.checklistFilterPanelOpen = false;
+    this.draftChecklistFilters = [...this.activeChecklistFilters];
+  }
+
+  toggleChecklistFilter(filterId: ChecklistFilterId): void {
+    const selected = new Set(this.draftChecklistFilters);
+    if (selected.has(filterId)) {
+      selected.delete(filterId);
+    } else {
+      selected.add(filterId);
+    }
+    this.draftChecklistFilters = Array.from(selected);
+  }
+
+  clearChecklistFilters(): void {
+    if (this.checklistFilterPanelOpen) {
+      this.draftChecklistFilters = [];
+      return;
+    }
+    this.activeChecklistFilters = [];
+    this.draftChecklistFilters = [];
+  }
+
+  applyChecklistFilters(): void {
+    this.activeChecklistFilters = [...this.draftChecklistFilters];
+    this.closeChecklistFilterPanel();
+  }
+
+  getFiltersByGroup(groupId: ChecklistFilterGroupId): Array<{ id: ChecklistFilterId; label: string; group: ChecklistFilterGroupId }> {
+    return this.checklistFilterOptions.filter((option) => option.group === groupId);
+  }
+
+  applyChecklistFilterPreset(preset: ChecklistFilterPreset): void {
+    if (preset === 'clear') {
+      this.clearChecklistFilters();
+      return;
+    }
+    if (preset === 'pending_only') {
+      this.draftChecklistFilters = ['pending'];
+      return;
+    }
+    if (preset === 'attention_only') {
+      this.draftChecklistFilters = ['attention'];
+      return;
+    }
+    this.draftChecklistFilters = ['priority_high'];
+  }
+
+  isChecklistFilterPresetActive(preset: ChecklistFilterPreset): boolean {
+    if (preset === 'clear') return this.draftChecklistFilters.length === 0;
+    if (preset === 'pending_only') return this.hasOnlyChecklistFilters(['pending'], this.draftChecklistFilters);
+    if (preset === 'attention_only') return this.hasOnlyChecklistFilters(['attention'], this.draftChecklistFilters);
+    return this.hasOnlyChecklistFilters(['priority_high'], this.draftChecklistFilters);
   }
 
   openMapPicker(): void {
@@ -3201,6 +3304,39 @@ ${this.reportDataJson}`;
       this.overviewDropdownOpen = null;
     }
   }
+
+  private matchesChecklistFilters(item: ChecklistItem): boolean {
+    const state = this.state[item.id];
+    if (!state) return false;
+    const isConfirmed = state.checked || state.flagged;
+    const quickStatus = state.quickStatus ?? 'unknown';
+    const riskConfig = this.getItemRiskConfig(item);
+    const statusFilters = this.activeChecklistFilters.filter((filter) => this.getChecklistFilterGroup(filter) === 'status');
+    const quickFilters = this.activeChecklistFilters.filter((filter) => this.getChecklistFilterGroup(filter) === 'quick');
+    const priorityFilters = this.activeChecklistFilters.filter((filter) => this.getChecklistFilterGroup(filter) === 'priority');
+    const statusMatched = statusFilters.length === 0 || statusFilters.some((filter) => {
+      if (filter === 'pending') return !isConfirmed;
+      return isConfirmed;
+    });
+    const quickMatched = quickFilters.length === 0 || quickFilters.some((filter) => quickStatus === filter);
+    const priorityMatched = priorityFilters.length === 0 || priorityFilters.some((filter) => {
+      if (filter === 'priority_high') return riskConfig.weight >= 4;
+      if (filter === 'priority_normal') return riskConfig.weight >= 2 && riskConfig.weight <= 3;
+      return riskConfig.weight <= 1;
+    });
+    return statusMatched && quickMatched && priorityMatched;
+  }
+
+  private hasOnlyChecklistFilters(filters: ChecklistFilterId[], source: ChecklistFilterId[]): boolean {
+    if (source.length !== filters.length) return false;
+    return filters.every((filter) => source.includes(filter));
+  }
+
+  private getChecklistFilterGroup(filterId: ChecklistFilterId): ChecklistFilterGroupId {
+    if (filterId === 'pending' || filterId === 'confirmed') return 'status';
+    if (filterId === 'good' || filterId === 'ok' || filterId === 'attention') return 'quick';
+    return 'priority';
+  }
 }
 
 interface ChecklistItem {
@@ -3236,6 +3372,17 @@ interface ItemState {
 }
 
 type QuickStatus = 'good' | 'ok' | 'attention' | 'unknown';
+type ChecklistFilterId =
+  | 'pending'
+  | 'confirmed'
+  | 'good'
+  | 'ok'
+  | 'attention'
+  | 'priority_high'
+  | 'priority_normal'
+  | 'priority_later';
+type ChecklistFilterGroupId = 'status' | 'quick' | 'priority';
+type ChecklistFilterPreset = 'pending_only' | 'attention_only' | 'priority_high_only' | 'clear';
 
 type PropertyChoiceField =
   | 'buildingType'

@@ -498,28 +498,92 @@
 }
 
 @if (currentPage === 'checklist') {
-<div class="category-toolbar">
-  <label class="category-label">分類切換</label>
-  <div class="category-chips" role="tablist" aria-label="分類切換">
+<div class="category-toolbar" role="region" aria-labelledby="category-toolbar-heading">
+  <div class="category-toolbar-head">
+    <div class="category-toolbar-title" id="category-toolbar-heading">分類</div>
+    <p class="category-toolbar-hint" title="可多選分類；未選＝顯示全部；多選時依點選順序顯示各分類。">可多選；未選＝全部</p>
+  </div>
+  <div class="category-chips" role="group" aria-label="分類篩選（可多選；未選＝全部）">
     @for (cat of categories; track cat.id) {
       <button
         type="button"
         class="category-chip"
-        [class.active]="cat.id === currentCat"
-        (click)="setCategory(cat.id)"
+        [attr.aria-pressed]="isCategorySelected(cat.id)"
+        [class.active]="isCategorySelected(cat.id)"
+        (click)="toggleCategory(cat.id)"
       >
         <span class="name">{{ cat.label }}</span>
-        <span class="count">
-          @if (cat.id === 'all') {
-            共 {{ totalCount }} 項
-          } @else {
-            {{ countDoneByCategory(cat.id) }}
-          }
-        </span>
+        <span class="count">{{ countDoneByCategory(cat.id) }}</span>
       </button>
     }
+    <button
+      type="button"
+      class="category-chip category-chip-filter"
+      [class.active]="checklistFilterPanelOpen || activeChecklistFilters.length > 0"
+      (click)="toggleChecklistFilterPanel()"
+    >
+      <span class="name">篩選</span>
+      <span class="count">{{ activeChecklistFilters.length > 0 ? '已選 ' + activeChecklistFilters.length : '全部' }}</span>
+    </button>
   </div>
 </div>
+@if (checklistFilterPanelOpen) {
+  <div class="modal-overlay category-filter-overlay" (click)="closeChecklistFilterPanel()">
+    <section class="modal-sheet category-filter-sheet" role="dialog" aria-modal="true" aria-label="查核條件篩選" (click)="$event.stopPropagation()">
+      <div class="category-filter-sheet-head">
+        <strong>篩選條件</strong>
+        <button type="button" class="btn-outline small" (click)="closeChecklistFilterPanel()">關閉</button>
+      </div>
+      @for (group of checklistFilterGroups; track group.id) {
+        <div class="property-choice-group">
+          <div class="property-choice-label">{{ group.label }}</div>
+          <div class="property-choice-chips">
+            @for (filter of getFiltersByGroup(group.id); track filter.id) {
+              <button
+                type="button"
+                class="property-choice-chip"
+                [class.active]="draftChecklistFilters.includes(filter.id)"
+                (click)="toggleChecklistFilter(filter.id)"
+              >
+                {{ filter.label }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+      <div class="property-choice-group">
+        <div class="property-choice-label">快捷</div>
+        <div class="property-choice-chips">
+          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('pending_only')" (click)="applyChecklistFilterPreset('pending_only')">
+            只看待確認
+          </button>
+          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('attention_only')" (click)="applyChecklistFilterPreset('attention_only')">
+            只看問題
+          </button>
+          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('priority_high_only')" (click)="applyChecklistFilterPreset('priority_high_only')">
+            只看高優先
+          </button>
+          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('clear')" (click)="applyChecklistFilterPreset('clear')">
+            清除全部篩選
+          </button>
+        </div>
+      </div>
+      <div class="property-choice-chips">
+        <button
+          type="button"
+          class="btn-outline small"
+          [disabled]="draftChecklistFilters.length === 0"
+          (click)="clearChecklistFilters()"
+        >
+          清除篩選
+        </button>
+        <button type="button" class="btn-primary small" (click)="applyChecklistFilters()">
+          套用條件
+        </button>
+      </div>
+    </section>
+  </div>
+}
 }
 
 @if (currentPage === 'report') {
@@ -1216,7 +1280,7 @@
 <div class="content">
   @for (group of groupedItems; track group.cat) {
     <section class="section">
-      @if (currentCat === 'all') {
+      @if (selectedCategoryIds.length !== 1) {
         <h2 class="section-title">{{ categoryMap[group.cat] }}</h2>
       }
       <div class="checklist">
