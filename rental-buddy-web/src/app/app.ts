@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { SwUpdate } from '@angular/service-worker';
@@ -500,6 +500,13 @@ export class App implements OnInit, OnDestroy {
   showUpdateBanner = false;
   attachmentThumbs: AttachmentThumb[] = [];
   attachmentSelectionMode = false;
+  /** 選檔寫入 IndexedDB 與重建預覽期間 */
+  attachmentUploadBusy = false;
+  /** 全站自訂確認（取代 window.confirm，配合無 Zone 變更偵測） */
+  appConfirmOpen = false;
+  appConfirmTitle = '請確認';
+  appConfirmMessage = '';
+  private appConfirmResolver: ((ok: boolean) => void) | null = null;
   selectedAttachmentIds: string[] = [];
   attachmentPreviewUrl = '';
   attachmentPreviewName = '';
@@ -517,7 +524,8 @@ export class App implements OnInit, OnDestroy {
   constructor(
     private readonly zone: NgZone,
     private readonly cdr: ChangeDetectorRef,
-    private readonly swUpdate: SwUpdate
+    private readonly swUpdate: SwUpdate,
+    private readonly appRef: ApplicationRef
   ) {
     this.loadState();
   }
@@ -1630,18 +1638,22 @@ export class App implements OnInit, OnDestroy {
     this.touchActiveRecord();
   }
 
-  deleteActiveRecord(): void {
+  async deleteActiveRecord(): Promise<void> {
     if (this.records.length <= 1) {
       window.alert('至少需要保留一筆看房紀錄。');
       return;
     }
-    if (!window.confirm(`確定要刪除「${this.activeRecord.name}」嗎？`)) return;
+    if (!(await this.openAppConfirm(`確定要刪除「${this.activeRecord.name}」嗎？\n刪除後無法復原。`, '刪除紀錄'))) return;
     const removedId = this.activeRecordId;
     this.records = this.records.filter((record) => record.id !== removedId);
     this.compareIds = this.compareIds.filter((id) => id !== removedId);
     this.activeRecordId = this.records[0].id;
     this.syncEditingRecordName();
     this.saveState();
+    this.zone.run(() => {
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   toggleCompareRecord(recordId: string): void {
@@ -1662,8 +1674,8 @@ export class App implements OnInit, OnDestroy {
     this.touchActiveRecord();
   }
 
-  resetAll(): void {
-    if (!window.confirm('確定要重置所有勾選記錄嗎？')) return;
+  async resetAll(): Promise<void> {
+    if (!(await this.openAppConfirm('將清除本筆紀錄的所有勾選、備註與戶型欄位。確定要重置嗎？', '重置查核'))) return;
     this.items.forEach((item) => {
       this.state[item.id] = {
         checked: false,
@@ -1695,6 +1707,10 @@ export class App implements OnInit, OnDestroy {
     this.activeRecord.canPet = '';
     this.activeRecord.subsidyAvailable = '';
     this.touchActiveRecord();
+    this.zone.run(() => {
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   async onAttachmentFilesSelected(event: Event): Promise<void> {
@@ -1717,22 +1733,41 @@ export class App implements OnInit, OnDestroy {
     }
 
     const now = Date.now();
-    for (const file of selected) {
-      const attachmentId = this.createAttachmentId();
-      await this.putAttachmentBlob(attachmentId, file);
-      this.activeRecord.attachments.push({
-        id: attachmentId,
-        name: file.name,
-        type: file.type || 'image/*',
-        size: file.size,
-        createdAt: now
+    this.zone.run(() => {
+      this.attachmentUploadBusy = true;
+      this.cdr.detectChanges();
+    });
+    try {
+      for (const file of selected) {
+        const attachmentId = this.createAttachmentId();
+        await this.putAttachmentBlob(attachmentId, file);
+        this.activeRecord.attachments.push({
+          id: attachmentId,
+          name: file.name,
+          type: file.type || 'image/*',
+          size: file.size,
+          createdAt: now
+        });
+      }
+
+      this.touchActiveRecord();
+      if (input) input.value = '';
+      this.clearAttachmentSelection();
+      await this.loadAttachmentThumbs();
+    } finally {
+      this.attachmentUploadBusy = false;
+      this.zone.run(() => {
+        this.cdr.detectChanges();
+        this.appRef.tick();
       });
     }
+  }
 
-    this.touchActiveRecord();
-    if (input) input.value = '';
-    this.clearAttachmentSelection();
-    void this.loadAttachmentThumbs();
+  async requestRemoveAttachment(event: Event, attachmentId: string): Promise<void> {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!(await this.openAppConfirm('刪除後無法復原。仍要移除此照片嗎？', '移除此照片'))) return;
+    await this.removeAttachment(attachmentId);
   }
 
   async removeAttachment(attachmentId: string): Promise<void> {
@@ -1742,28 +1777,11 @@ export class App implements OnInit, OnDestroy {
     await this.deleteAttachmentBlob(attachmentId);
     this.selectedAttachmentIds = this.selectedAttachmentIds.filter((id) => id !== attachmentId);
     this.touchActiveRecord();
-    void this.loadAttachmentThumbs();
-  }
-
-  moveAttachment(attachmentId: string, direction: -1 | 1): void {
-    if (this.attachmentSelectionMode) return;
-    const list = [...this.activeRecord.attachments];
-    const index = list.findIndex((item) => item.id === attachmentId);
-    if (index < 0) return;
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= list.length) return;
-    const [target] = list.splice(index, 1);
-    list.splice(nextIndex, 0, target);
-    this.activeRecord.attachments = list;
-    this.touchActiveRecord();
-    void this.loadAttachmentThumbs();
-  }
-
-  canMoveAttachment(attachmentId: string, direction: -1 | 1): boolean {
-    const index = this.activeRecord.attachments.findIndex((item) => item.id === attachmentId);
-    if (index < 0) return false;
-    const nextIndex = index + direction;
-    return nextIndex >= 0 && nextIndex < this.activeRecord.attachments.length;
+    await this.loadAttachmentThumbs();
+    this.zone.run(() => {
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   toggleAttachmentSelectionMode(): void {
@@ -1790,7 +1808,14 @@ export class App implements OnInit, OnDestroy {
 
   async removeSelectedAttachments(): Promise<void> {
     if (!this.hasSelectedAttachments) return;
-    if (!window.confirm(`確定刪除 ${this.selectedAttachmentIds.length} 張附件？`)) return;
+    if (
+      !(await this.openAppConfirm(
+        `將刪除 ${this.selectedAttachmentIds.length} 張照片，且無法復原。`,
+        '刪除附件'
+      ))
+    ) {
+      return;
+    }
     const selected = new Set(this.selectedAttachmentIds);
     this.activeRecord.attachments = this.activeRecord.attachments.filter((item) => !selected.has(item.id));
     for (const id of selected) {
@@ -1799,7 +1824,11 @@ export class App implements OnInit, OnDestroy {
     this.clearAttachmentSelection();
     this.attachmentSelectionMode = false;
     this.touchActiveRecord();
-    void this.loadAttachmentThumbs();
+    await this.loadAttachmentThumbs();
+    this.zone.run(() => {
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   openAttachmentPreview(thumb: AttachmentThumb): void {
@@ -1810,6 +1839,33 @@ export class App implements OnInit, OnDestroy {
   closeAttachmentPreview(): void {
     this.attachmentPreviewUrl = '';
     this.attachmentPreviewName = '';
+  }
+
+  openAppConfirm(message: string, title = '請確認'): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.zone.run(() => {
+        this.appConfirmTitle = title;
+        this.appConfirmMessage = message;
+        this.appConfirmOpen = true;
+        this.appConfirmResolver = resolve;
+        this.cdr.detectChanges();
+        this.appRef.tick();
+      });
+    });
+  }
+
+  closeAppConfirm(ok: boolean): void {
+    if (!this.appConfirmOpen) return;
+    this.appConfirmOpen = false;
+    const r = this.appConfirmResolver;
+    this.appConfirmResolver = null;
+    this.appConfirmMessage = '';
+    this.appConfirmTitle = '請確認';
+    if (r) r(ok);
+    this.zone.run(() => {
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   get reportLabel(): string {
@@ -2585,7 +2641,7 @@ ${this.reportDataJson}`;
       }
       const hint =
         '還原將取代目前的紀錄與比較設定。若備份含附件資料，會一併寫回本機（IndexedDB）。';
-      if (!window.confirm(`確定要還原備份？\n\n${hint}`)) {
+      if (!(await this.openAppConfirm(`${hint}\n\n仍要還原備份嗎？`, '還原備份'))) {
         return;
       }
       await this.applyImportedBackup(parsed);
@@ -2663,7 +2719,11 @@ ${this.reportDataJson}`;
     }
 
     this.clearAttachmentUiState();
-    void this.loadAttachmentThumbs();
+    await this.loadAttachmentThumbs();
+    this.zone.run(() => {
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   private async blobToBase64(blob: Blob): Promise<string> {
@@ -3271,18 +3331,26 @@ ${this.reportDataJson}`;
 
   private async loadAttachmentThumbs(): Promise<void> {
     this.revokeAttachmentObjectUrls();
-    const picks = this.activeAttachments.slice(0, 3);
+    const picks = this.activeAttachments.slice(0, this.attachmentLimit);
+    const nextUrls: string[] = [];
+    const nextThumbs: AttachmentThumb[] = [];
     for (const item of picks) {
       try {
         const blob = await this.getAttachmentBlob(item.id);
         if (!blob) continue;
         const url = URL.createObjectURL(blob);
-        this.attachmentObjectUrls.push(url);
-        this.attachmentThumbs.push({ id: item.id, url, name: item.name });
+        nextUrls.push(url);
+        nextThumbs.push({ id: item.id, url, name: item.name });
       } catch {
         // ignore preview failures
       }
     }
+    this.zone.run(() => {
+      this.attachmentObjectUrls = nextUrls;
+      this.attachmentThumbs = nextThumbs;
+      this.cdr.detectChanges();
+      this.appRef.tick();
+    });
   }
 
   private clearAttachmentSelection(): void {
@@ -3303,6 +3371,13 @@ ${this.reportDataJson}`;
       this.isCategoryMenuOpen = false;
       this.overviewDropdownOpen = null;
     }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    if (!this.appConfirmOpen || event.key !== 'Escape') return;
+    event.preventDefault();
+    this.closeAppConfirm(false);
   }
 
   private matchesChecklistFilters(item: ChecklistItem): boolean {

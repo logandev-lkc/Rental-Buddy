@@ -453,14 +453,20 @@
           }
         </div>
 
-        <label class="overview-nm-upload">
-          <span class="overview-nm-upload-icon" aria-hidden="true">＋</span>
-          <span class="overview-nm-upload-text">
-            <span class="overview-nm-upload-primary">新增照片</span>
-            <span class="overview-nm-upload-secondary">從相簿選取，可多張</span>
-          </span>
-          <input class="sr-only" type="file" accept="image/*" multiple (change)="onAttachmentFilesSelected($event)" />
-        </label>
+        @if (attachmentUploadBusy) {
+          <p class="overview-nm-upload-status" role="status" aria-live="polite">上傳並載入預覽中…</p>
+        }
+
+        @if (activeAttachmentCount < attachmentLimit && !attachmentUploadBusy && !attachmentSelectionMode) {
+          <label class="overview-nm-upload">
+            <span class="overview-nm-upload-icon" aria-hidden="true">＋</span>
+            <span class="overview-nm-upload-text">
+              <span class="overview-nm-upload-primary">新增照片</span>
+              <span class="overview-nm-upload-secondary">從相簿選取，可多張</span>
+            </span>
+            <input class="sr-only" type="file" accept="image/*" multiple (change)="onAttachmentFilesSelected($event)" />
+          </label>
+        }
 
         @if (attachmentSelectionMode) {
           <div class="overview-nm-batch-row">
@@ -469,26 +475,45 @@
           </div>
         }
         @if (attachmentThumbs.length > 0) {
-          <div class="overview-nm-thumbs">
+          <div class="overview-nm-thumbs" role="region" aria-label="已上傳照片，可左右滑動瀏覽">
             @for (thumb of attachmentThumbs; track thumb.id) {
-              <div class="overview-nm-thumb">
-                @if (attachmentSelectionMode) {
-                  <label class="overview-nm-check">
-                    <input type="checkbox" [checked]="isAttachmentSelected(thumb.id)" (change)="toggleAttachmentSelected(thumb.id)" />
-                    選取
-                  </label>
-                }
-                <button type="button" class="overview-nm-image-btn" (click)="openAttachmentPreview(thumb)">
-                  <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
-                </button>
-                @if (!attachmentSelectionMode) {
-                  <div class="overview-nm-actions">
-                    <button type="button" class="overview-nm-sort" [disabled]="!canMoveAttachment(thumb.id, -1)" (click)="moveAttachment(thumb.id, -1)">往前</button>
-                    <button type="button" class="overview-nm-sort" [disabled]="!canMoveAttachment(thumb.id, 1)" (click)="moveAttachment(thumb.id, 1)">往後</button>
+              @if (attachmentSelectionMode) {
+                <label
+                  class="overview-nm-thumb overview-nm-thumb--selectable"
+                  [class.overview-nm-thumb--checked]="isAttachmentSelected(thumb.id)"
+                  [attr.aria-label]="(isAttachmentSelected(thumb.id) ? '取消選取' : '選取') + (thumb.name ? '「' + thumb.name + '」' : '此照片')"
+                >
+                  <div class="overview-nm-select-row">
+                    <input
+                      type="checkbox"
+                      [checked]="isAttachmentSelected(thumb.id)"
+                      (change)="toggleAttachmentSelected(thumb.id)"
+                    />
+                    <span class="overview-nm-select-label">選取</span>
                   </div>
-                  <button type="button" class="overview-nm-remove" (click)="removeAttachment(thumb.id)">移除</button>
-                }
-              </div>
+                  <div class="overview-nm-thumb-frame">
+                    <span class="overview-nm-image-btn overview-nm-image-btn--static">
+                      <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
+                    </span>
+                  </div>
+                </label>
+              } @else {
+                <div class="overview-nm-thumb">
+                  <div class="overview-nm-thumb-frame">
+                    <button type="button" class="overview-nm-image-btn" (click)="openAttachmentPreview(thumb)">
+                      <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
+                    </button>
+                    <button
+                      type="button"
+                      class="overview-nm-thumb-remove"
+                      aria-label="移除此照片"
+                      (click)="requestRemoveAttachment($event, thumb.id)"
+                    >
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  </div>
+                </div>
+              }
             }
           </div>
         }
@@ -849,7 +874,7 @@
       @if (activeAttachmentCount > 0) {
         <section class="print-card print-card--wide print-card--attachments" aria-label="列印版附件照片">
           <div class="print-card-title">現場附件照片</div>
-          <p class="print-attachment-intro">共 {{ activeAttachmentCount }} 張（下列為排序在前之三張預覽）</p>
+          <p class="print-attachment-intro">共 {{ activeAttachmentCount }} 張（依排序顯示預覽）</p>
           @if (attachmentThumbs.length > 0) {
             <div class="print-attachment-grid">
               @for (thumb of attachmentThumbs; track thumb.id) {
@@ -1429,4 +1454,23 @@
     </div>
   }
 </footer>
+}
+
+@if (appConfirmOpen) {
+  <div class="app-confirm-backdrop" role="presentation" (click)="closeAppConfirm(false)">
+    <div
+      class="app-confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="app-confirm-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="app-confirm-title" class="app-confirm-title">{{ appConfirmTitle }}</h2>
+      <p class="app-confirm-message">{{ appConfirmMessage }}</p>
+      <div class="app-confirm-actions">
+        <button type="button" class="btn-outline small" (click)="closeAppConfirm(false)">取消</button>
+        <button type="button" class="btn-primary small" (click)="closeAppConfirm(true)">確定</button>
+      </div>
+    </div>
+  </div>
 }
