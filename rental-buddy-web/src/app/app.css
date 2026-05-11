@@ -823,7 +823,10 @@
 
 .overview-nm-textarea {
   width: 100%;
-  min-height: 68px;
+  min-height: calc(1.45em + 18px);
+  max-height: min(280px, 42vh);
+  overflow-y: auto;
+  field-sizing: content;
   border-radius: 8px;
   border: 1px solid rgba(44, 36, 32, 0.08);
   padding: 8px 10px;
@@ -3524,7 +3527,8 @@
   .overview-nm-textarea,
   .item-note-input,
   .ai-import-input {
-    min-height: 76px;
+    min-height: calc(1.45em + 20px);
+    max-height: min(260px, 38vh);
     padding-top: 10px;
     padding-bottom: 10px;
   }
