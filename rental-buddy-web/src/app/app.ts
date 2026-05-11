@@ -102,7 +102,7 @@ export class App implements OnInit, OnDestroy {
     'canPet',
     'subsidyAvailable'
   ];
-  /** 補充資訊收在單一「更多條件」內（部分可線上取得，建議現場再核對） */
+  /** 次要戶型欄位（摺疊在「更多補充條件」） */
   readonly propertySecondaryFields: ReadonlyArray<PropertyChoiceField> = [
     'buildingType',
     'floorLevel',
