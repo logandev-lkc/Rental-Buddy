@@ -529,46 +529,45 @@
 </div>
 @if (checklistFilterPanelOpen) {
   <div class="modal-overlay category-filter-overlay" (click)="closeChecklistFilterPanel()">
-    <section class="modal-sheet category-filter-sheet" role="dialog" aria-modal="true" aria-label="查核條件篩選" (click)="$event.stopPropagation()">
-      <div class="category-filter-sheet-head">
-        <strong>篩選條件</strong>
+    <section class="category-filter-sheet" role="dialog" aria-modal="true" aria-label="查核條件篩選" (click)="$event.stopPropagation()">
+      <header class="category-filter-sheet-head">
+        <h2 class="category-filter-sheet-title">篩選條件</h2>
         <button type="button" class="btn-outline small" (click)="closeChecklistFilterPanel()">關閉</button>
-      </div>
-      @for (group of checklistFilterGroups; track group.id) {
+      </header>
+      <div class="category-filter-sheet-body">
+        @for (group of checklistFilterGroups; track group.id) {
+          <div class="property-choice-group">
+            <div class="property-choice-label">{{ group.label }}</div>
+            <div class="property-choice-chips">
+              @for (filter of getFiltersByGroup(group.id); track filter.id) {
+                <button
+                  type="button"
+                  class="property-choice-chip"
+                  [class.active]="draftChecklistFilters.includes(filter.id)"
+                  (click)="toggleChecklistFilter(filter.id)"
+                >
+                  {{ filter.label }}
+                </button>
+              }
+            </div>
+          </div>
+        }
         <div class="property-choice-group">
-          <div class="property-choice-label">{{ group.label }}</div>
+          <div class="property-choice-label">快捷</div>
           <div class="property-choice-chips">
-            @for (filter of getFiltersByGroup(group.id); track filter.id) {
-              <button
-                type="button"
-                class="property-choice-chip"
-                [class.active]="draftChecklistFilters.includes(filter.id)"
-                (click)="toggleChecklistFilter(filter.id)"
-              >
-                {{ filter.label }}
-              </button>
-            }
+            <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('pending_only')" (click)="applyChecklistFilterPreset('pending_only')">
+              只看待確認
+            </button>
+            <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('attention_only')" (click)="applyChecklistFilterPreset('attention_only')">
+              只看問題
+            </button>
+            <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('priority_high_only')" (click)="applyChecklistFilterPreset('priority_high_only')">
+              只看高優先
+            </button>
           </div>
         </div>
-      }
-      <div class="property-choice-group">
-        <div class="property-choice-label">快捷</div>
-        <div class="property-choice-chips">
-          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('pending_only')" (click)="applyChecklistFilterPreset('pending_only')">
-            只看待確認
-          </button>
-          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('attention_only')" (click)="applyChecklistFilterPreset('attention_only')">
-            只看問題
-          </button>
-          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('priority_high_only')" (click)="applyChecklistFilterPreset('priority_high_only')">
-            只看高優先
-          </button>
-          <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('clear')" (click)="applyChecklistFilterPreset('clear')">
-            清除全部篩選
-          </button>
-        </div>
       </div>
-      <div class="property-choice-chips">
+      <footer class="category-filter-sheet-foot">
         <button
           type="button"
           class="btn-outline small"
@@ -580,7 +579,7 @@
         <button type="button" class="btn-primary small" (click)="applyChecklistFilters()">
           套用條件
         </button>
-      </div>
+      </footer>
     </section>
   </div>
 }
