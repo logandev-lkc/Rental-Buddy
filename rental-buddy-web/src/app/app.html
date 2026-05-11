@@ -145,9 +145,14 @@
     @if (showMapPicker) {
       <section class="map-picker-panel">
         <div class="map-picker-head">
-          <div>
+          <div class="map-picker-head-text">
             <div class="map-picker-title">地圖選址</div>
-            <p class="map-picker-desc">點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。</p>
+            <p
+              class="map-picker-desc"
+              title="點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。"
+            >
+              點選地圖位置後，系統會帶入相似地址；若不精準，可再手動修正地址欄。
+            </p>
           </div>
           <button type="button" class="map-picker-close" (click)="closeMapPicker()">關閉</button>
         </div>
@@ -175,21 +180,21 @@
       />
     </div>
   </div>
-  <div class="overview-extra-bar">
+  <div class="overview-disclosure overview-disclosure--preflight" [class.overview-disclosure--expanded]="overviewExtraExpanded">
     <button
       type="button"
-      class="overview-extra-toggle"
+      class="overview-extra-toggle overview-disclosure__trigger"
       (click)="toggleOverviewExtra()"
       [attr.aria-expanded]="overviewExtraExpanded"
       aria-controls="overview-extra-panel"
       id="overview-extra-toggle"
     >
-      <span class="overview-extra-label">看房前先記錄（戶型＋條件）</span>
+      <span class="overview-extra-label" title="看房前先記錄（戶型＋條件）">看房前先記錄（戶型＋條件）</span>
+      <span class="overview-extra-toggle-hint" title="網路或電話能先問到的戶型與條件先記；細節到現場再核對。">線上／電話先記</span>
       <span class="overview-extra-chevron" aria-hidden="true">{{ overviewExtraExpanded ? '▼' : '▶' }}</span>
     </button>
-  </div>
   @if (overviewExtraExpanded) {
-  <div id="overview-extra-panel" class="overview-extra-panel" role="region" aria-labelledby="overview-extra-toggle">
+  <div id="overview-extra-panel" class="overview-extra-panel overview-disclosure__panel" role="region" aria-labelledby="overview-extra-toggle">
   <div class="overview-layout-grid">
     <div class="overview-meta-item overview-layout-type-row">
       <div class="overview-meta-label-row">
@@ -322,10 +327,10 @@
       }
     </div>
   </div>
-  <div class="overview-property-panel">
+    <div class="overview-property-panel">
     <div class="overview-property-head">
       <div class="overview-property-title">看房前先記錄</div>
-      <p class="overview-property-hint">先記錄網路或電話能問到的資訊；細節到現場再補。</p>
+      <p class="overview-property-hint" title="戶型與條件可先選；到現場再核對細節。">戶型與條件可先選；到現場再核對細節。</p>
     </div>
     <div class="overview-property-grid">
       @for (group of propertyPrimaryChoiceGroups; track group.field) {
@@ -346,12 +351,16 @@
         </div>
       }
       <div class="property-choice-more-wrap">
-        <button type="button" class="property-choice-more-toggle" (click)="toggleOverviewPropertyMore($event)" [attr.aria-expanded]="overviewPropertyMoreExpanded">
-          {{ overviewPropertyMoreExpanded ? '收起補充條件' : '更多補充條件' }}
-        </button>
+        <div class="property-choice-more-head">
+          <button type="button" class="property-choice-more-toggle" (click)="toggleOverviewPropertyMore($event)" [attr.aria-expanded]="overviewPropertyMoreExpanded">
+            {{ overviewPropertyMoreExpanded ? '收起補充條件' : '更多補充條件' }}
+          </button>
+          @if (overviewPropertyMoreExpanded) {
+            <p class="property-choice-more-hint" title="以下為補充資訊，部分可線上取得，建議現場再核對。">以下為補充資訊，部分可線上取得，建議現場再核對。</p>
+          }
+        </div>
       </div>
       @if (overviewPropertyMoreExpanded) {
-        <p class="property-choice-more-hint">以下為補充資訊，部分可線上取得，建議現場再核對。</p>
         @for (group of propertySecondaryChoiceGroups; track group.field) {
           <div class="property-choice-group">
             <div class="property-choice-label">{{ group.label }}</div>
@@ -374,31 +383,32 @@
   </div>
   </div>
   }
-  <div class="overview-extra-bar">
+  </div>
+  <div class="overview-disclosure overview-disclosure--notes-media" [class.overview-disclosure--expanded]="overviewNotesMediaExpanded">
     <button
       type="button"
-      class="overview-extra-toggle"
+      class="overview-extra-toggle overview-disclosure__trigger"
       (click)="toggleOverviewNotesMedia()"
       [attr.aria-expanded]="overviewNotesMediaExpanded"
       aria-controls="overview-notes-media-panel"
       id="overview-notes-media-toggle"
     >
-      <span class="overview-extra-label">備註與現場照片</span>
+      <span class="overview-extra-label" title="備註與現場照片">備註與現場照片</span>
+      <span
+        class="overview-extra-toggle-hint"
+        title="用文字補充重點，必要時上傳現場照片（如水痕、牆角、格局）。"
+      >文字補充、附上照片。</span>
       <span class="overview-extra-chevron" aria-hidden="true">{{ overviewNotesMediaExpanded ? '▼' : '▶' }}</span>
     </button>
-  </div>
   @if (overviewNotesMediaExpanded) {
-  <div id="overview-notes-media-panel" class="overview-extra-panel" role="region" aria-labelledby="overview-notes-media-toggle">
-  <div class="overview-notes-media-card">
-    <header class="overview-nm-card-head">
-      <p class="overview-nm-card-lede">線上或電話先記重點、約看與待辦；到現場再補觀察，並上傳水痕、格局等照片。</p>
-    </header>
+  <div id="overview-notes-media-panel" class="overview-extra-panel overview-disclosure__panel" role="region" aria-labelledby="overview-notes-media-toggle">
+  <div class="overview-notes-media-card overview-notes-media-card--in-disclosure">
 
     <div class="overview-nm-split">
       <section class="overview-nm-pane overview-nm-pane--notes" aria-labelledby="overview-nm-notes-heading">
         <div class="overview-nm-pane-head">
           <span class="overview-property-title" id="overview-nm-notes-heading">看房備註</span>
-          <p class="overview-nm-pane-hint">約看時段、待回覆、仲介口述重點，可先寫在這裡。</p>
+          <p class="overview-nm-pane-hint" title="約看時段、待回覆、仲介口述重點，可先寫在這裡。">約看時段、待回覆、仲介口述重點，可先寫在這裡。</p>
         </div>
         <label class="sr-only" for="checklist-overview-layout-notes">備註內容</label>
         <textarea
@@ -413,7 +423,12 @@
       <section class="overview-nm-pane overview-nm-pane--photos" aria-labelledby="overview-nm-photos-heading">
         <div class="overview-nm-pane-head">
           <span class="overview-property-title" id="overview-nm-photos-heading">現場照片</span>
-          <p class="overview-nm-pane-hint">最多 {{ attachmentLimit }} 張；建議拍水痕、牆角、門窗、衛浴。</p>
+          <p
+            class="overview-nm-pane-hint"
+            [attr.title]="'最多 ' + attachmentLimit + ' 張；建議拍水痕、牆角、門窗、衛浴。'"
+          >
+            最多 {{ attachmentLimit }} 張；建議拍水痕、牆角、門窗、衛浴。
+          </p>
         </div>
 
         <div class="overview-nm-photo-toolbar">
@@ -477,6 +492,7 @@
   </div>
   </div>
   }
+  </div>
 </section>
 
 }
