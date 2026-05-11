@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1778497063003,
+  "timestamp": 1778497408990,
   "index": "/Rental-Buddy/index.html",
   "assetGroups": [
     {
@@ -13,7 +13,7 @@
       "urls": [
         "/Rental-Buddy/favicon.ico",
         "/Rental-Buddy/index.html",
-        "/Rental-Buddy/main-MAKMJCZJ.js",
+        "/Rental-Buddy/main-R57D4ZKP.js",
         "/Rental-Buddy/manifest.webmanifest",
         "/Rental-Buddy/styles-6MOEZWMB.css"
       ],
@@ -82,8 +82,8 @@
     "/Rental-Buddy/icons/icon-512x512.png": "1de182f76f7329dfa8f9fcdd1fdcdd695bea6a99",
     "/Rental-Buddy/icons/icon-72x72.png": "aa88a6096bd973be7f6d7a5489bfa6bc2463f8c4",
     "/Rental-Buddy/icons/icon-96x96.png": "7fb8f59c30ce2ff12c700321a0b39e14b3dc8f95",
-    "/Rental-Buddy/index.html": "9b33580e4876f4192b03fd00afc2e4f992a3737a",
-    "/Rental-Buddy/main-MAKMJCZJ.js": "21184532858e1c6fc3fcca11f855a27e8a18171d",
+    "/Rental-Buddy/index.html": "c6848c7cc91367663460221f4debfaa84ecf767a",
+    "/Rental-Buddy/main-R57D4ZKP.js": "4919d14179d7e9fd02c6be1e2ee75e5b5699b35e",
     "/Rental-Buddy/manifest.webmanifest": "6a850e7e0bd752455e4fcc024bee1ea7cc5b9845",
     "/Rental-Buddy/media/layers-2x-TBM42ERR.png": "152a162333e46d24f9d89f566312fc0c64011dee",
     "/Rental-Buddy/media/layers-55W3Q4RM.png": "c9e7528e491a39232ba24a2706c6c739d6fb0f06",

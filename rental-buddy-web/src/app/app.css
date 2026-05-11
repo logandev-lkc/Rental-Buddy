@@ -1777,13 +1777,6 @@
   gap: 6px;
 }
 
-.autosave-note {
-  margin-bottom: 8px;
-  text-align: center;
-  font-size: 11px;
-  color: var(--ink-light);
-}
-
 .action-row-3 .btn-outline,
 .action-row-3 .btn-primary {
   flex: 1;
