@@ -184,7 +184,7 @@
       aria-controls="overview-extra-panel"
       id="overview-extra-toggle"
     >
-      <span class="overview-extra-label">戶型與房源條件</span>
+      <span class="overview-extra-label">看房前先記錄（戶型＋條件）</span>
       <span class="overview-extra-chevron" aria-hidden="true">{{ overviewExtraExpanded ? '▼' : '▶' }}</span>
     </button>
   </div>
@@ -322,14 +322,10 @@
       }
     </div>
   </div>
-  <div class="overview-meta-item layout-note-item">
-    <span class="k">戶型備註</span>
-    <textarea class="overview-textarea" placeholder="例如：動線順，但客廳採光較弱" [ngModel]="layoutNotes" (ngModelChange)="layoutNotes = $event"></textarea>
-  </div>
   <div class="overview-property-panel">
     <div class="overview-property-head">
-      <div class="overview-property-title">看房前快速篩選</div>
-      <p class="overview-property-hint">先確認這些資訊，判斷是否值得約看；其餘在現場再補充。</p>
+      <div class="overview-property-title">看房前先記錄</div>
+      <p class="overview-property-hint">先記錄網路或電話能問到的資訊；細節到現場再補。</p>
     </div>
     <div class="overview-property-grid">
       @for (group of propertyPrimaryChoiceGroups; track group.field) {
@@ -351,10 +347,11 @@
       }
       <div class="property-choice-more-wrap">
         <button type="button" class="property-choice-more-toggle" (click)="toggleOverviewPropertyMore($event)" [attr.aria-expanded]="overviewPropertyMoreExpanded">
-          {{ overviewPropertyMoreExpanded ? '收起更多條件' : '更多條件' }}
+          {{ overviewPropertyMoreExpanded ? '收起補充條件' : '更多補充條件' }}
         </button>
       </div>
       @if (overviewPropertyMoreExpanded) {
+        <p class="property-choice-more-hint">以下為補充資訊，部分可線上取得，建議現場再核對。</p>
         @for (group of propertySecondaryChoiceGroups; track group.field) {
           <div class="property-choice-group">
             <div class="property-choice-label">{{ group.label }}</div>
@@ -375,51 +372,108 @@
       }
     </div>
   </div>
-  <div class="overview-property-panel overview-attachment-panel">
-    <div class="overview-attachment-title-row">
-      <div class="overview-property-title">現場照片附件</div>
-      @if (activeAttachmentCount > 0) {
-        <button type="button" class="overview-attachment-mode" (click)="toggleAttachmentSelectionMode()">
-          {{ attachmentSelectionMode ? '取消多選' : '多選刪除' }}
-        </button>
-      }
-    </div>
-    <p class="overview-attachment-hint">可上傳 {{ attachmentLimit }} 張，建議先拍「水痕、牆角、門窗、衛浴」。</p>
-    <label class="overview-attachment-upload">
-      <span>新增照片</span>
-      <input type="file" accept="image/*" multiple (change)="onAttachmentFilesSelected($event)" />
-    </label>
-    <p class="overview-attachment-meta">已上傳 {{ activeAttachmentCount }} 張，尚可上傳 {{ activeAttachmentRemaining }} 張。</p>
-    @if (attachmentSelectionMode) {
-      <div class="overview-attachment-batch-row">
-        <span>已選 {{ selectedAttachmentIds.length }} 張</span>
-        <button type="button" class="btn-outline small" [disabled]="!hasSelectedAttachments" (click)="removeSelectedAttachments()">刪除已選</button>
-      </div>
-    }
-    @if (attachmentThumbs.length > 0) {
-      <div class="overview-attachment-thumbs">
-        @for (thumb of attachmentThumbs; track thumb.id) {
-          <div class="overview-attachment-thumb">
-            @if (attachmentSelectionMode) {
-              <label class="overview-attachment-check">
-                <input type="checkbox" [checked]="isAttachmentSelected(thumb.id)" (change)="toggleAttachmentSelected(thumb.id)" />
-                選取
-              </label>
-            }
-            <button type="button" class="overview-attachment-image-btn" (click)="openAttachmentPreview(thumb)">
-              <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
+  </div>
+  }
+  <div class="overview-extra-bar">
+    <button
+      type="button"
+      class="overview-extra-toggle"
+      (click)="toggleOverviewNotesMedia()"
+      [attr.aria-expanded]="overviewNotesMediaExpanded"
+      aria-controls="overview-notes-media-panel"
+      id="overview-notes-media-toggle"
+    >
+      <span class="overview-extra-label">備註與現場照片</span>
+      <span class="overview-extra-chevron" aria-hidden="true">{{ overviewNotesMediaExpanded ? '▼' : '▶' }}</span>
+    </button>
+  </div>
+  @if (overviewNotesMediaExpanded) {
+  <div id="overview-notes-media-panel" class="overview-extra-panel" role="region" aria-labelledby="overview-notes-media-toggle">
+  <div class="overview-notes-media-card">
+    <header class="overview-nm-card-head">
+      <p class="overview-nm-card-lede">線上或電話先記重點、約看與待辦；到現場再補觀察，並上傳水痕、格局等照片。</p>
+    </header>
+
+    <div class="overview-nm-split">
+      <section class="overview-nm-pane overview-nm-pane--notes" aria-labelledby="overview-nm-notes-heading">
+        <div class="overview-nm-pane-head">
+          <span class="overview-property-title" id="overview-nm-notes-heading">看房備註</span>
+          <p class="overview-nm-pane-hint">約看時段、待回覆、仲介口述重點，可先寫在這裡。</p>
+        </div>
+        <label class="sr-only" for="checklist-overview-layout-notes">備註內容</label>
+        <textarea
+          id="checklist-overview-layout-notes"
+          class="overview-nm-textarea"
+          placeholder="例如：線上問到的約看時段、待回覆事項、或電話裡先記的重點"
+          [ngModel]="layoutNotes"
+          (ngModelChange)="layoutNotes = $event"
+        ></textarea>
+      </section>
+
+      <section class="overview-nm-pane overview-nm-pane--photos" aria-labelledby="overview-nm-photos-heading">
+        <div class="overview-nm-pane-head">
+          <span class="overview-property-title" id="overview-nm-photos-heading">現場照片</span>
+          <p class="overview-nm-pane-hint">最多 {{ attachmentLimit }} 張；建議拍水痕、牆角、門窗、衛浴。</p>
+        </div>
+
+        <div class="overview-nm-photo-toolbar">
+          <div class="overview-nm-quota" aria-live="polite">
+            <span class="overview-nm-quota-pill">
+              <span class="overview-nm-quota-num">{{ activeAttachmentCount }}</span>
+              <span class="overview-nm-quota-sep">/</span>
+              <span class="overview-nm-quota-max">{{ attachmentLimit }}</span>
+              <span class="overview-nm-quota-unit">張</span>
+            </span>
+            <span class="overview-nm-quota-rest">尚可 {{ activeAttachmentRemaining }} 張</span>
+          </div>
+          @if (activeAttachmentCount > 0) {
+            <button type="button" class="overview-nm-photo-mode" (click)="toggleAttachmentSelectionMode()">
+              {{ attachmentSelectionMode ? '取消多選' : '多選刪除' }}
             </button>
-            @if (!attachmentSelectionMode) {
-              <div class="overview-attachment-actions">
-                <button type="button" class="overview-attachment-sort" [disabled]="!canMoveAttachment(thumb.id, -1)" (click)="moveAttachment(thumb.id, -1)">往前</button>
-                <button type="button" class="overview-attachment-sort" [disabled]="!canMoveAttachment(thumb.id, 1)" (click)="moveAttachment(thumb.id, 1)">往後</button>
+          }
+        </div>
+
+        <label class="overview-nm-upload">
+          <span class="overview-nm-upload-icon" aria-hidden="true">＋</span>
+          <span class="overview-nm-upload-text">
+            <span class="overview-nm-upload-primary">新增照片</span>
+            <span class="overview-nm-upload-secondary">從相簿選取，可多張</span>
+          </span>
+          <input class="sr-only" type="file" accept="image/*" multiple (change)="onAttachmentFilesSelected($event)" />
+        </label>
+
+        @if (attachmentSelectionMode) {
+          <div class="overview-nm-batch-row">
+            <span>已選 {{ selectedAttachmentIds.length }} 張</span>
+            <button type="button" class="btn-outline small" [disabled]="!hasSelectedAttachments" (click)="removeSelectedAttachments()">刪除已選</button>
+          </div>
+        }
+        @if (attachmentThumbs.length > 0) {
+          <div class="overview-nm-thumbs">
+            @for (thumb of attachmentThumbs; track thumb.id) {
+              <div class="overview-nm-thumb">
+                @if (attachmentSelectionMode) {
+                  <label class="overview-nm-check">
+                    <input type="checkbox" [checked]="isAttachmentSelected(thumb.id)" (change)="toggleAttachmentSelected(thumb.id)" />
+                    選取
+                  </label>
+                }
+                <button type="button" class="overview-nm-image-btn" (click)="openAttachmentPreview(thumb)">
+                  <img [src]="thumb.url" [alt]="thumb.name || '附件預覽'" />
+                </button>
+                @if (!attachmentSelectionMode) {
+                  <div class="overview-nm-actions">
+                    <button type="button" class="overview-nm-sort" [disabled]="!canMoveAttachment(thumb.id, -1)" (click)="moveAttachment(thumb.id, -1)">往前</button>
+                    <button type="button" class="overview-nm-sort" [disabled]="!canMoveAttachment(thumb.id, 1)" (click)="moveAttachment(thumb.id, 1)">往後</button>
+                  </div>
+                  <button type="button" class="overview-nm-remove" (click)="removeAttachment(thumb.id)">移除</button>
+                }
               </div>
-              <button type="button" class="overview-attachment-remove" (click)="removeAttachment(thumb.id)">移除</button>
             }
           </div>
         }
-      </div>
-    }
+      </section>
+    </div>
   </div>
   </div>
   }

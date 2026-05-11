@@ -79,16 +79,22 @@ export class App implements OnInit, OnDestroy {
     { field: 'canPet', label: '寵物', options: ['可', '不可', '需確認'] },
     { field: 'subsidyAvailable', label: '租補', options: ['可申請', '不可', '需確認'] }
   ];
-  /** 線上先快篩的重點條件（預設直接顯示） */
-  readonly propertyPrimaryFields: ReadonlyArray<PropertyChoiceField> = ['depositMonths', 'managementFeeType', 'canCook', 'canPet', 'subsidyAvailable'];
-  /** 其餘補充條件收在單一「更多條件」內，避免每組都需展開 */
+  /** 看房前多數可從網路/電話先取得的基本資訊（預設直接顯示） */
+  readonly propertyPrimaryFields: ReadonlyArray<PropertyChoiceField> = [
+    'depositMonths',
+    'managementFeeType',
+    'minLeaseTerm',
+    'canCook',
+    'canPet',
+    'subsidyAvailable'
+  ];
+  /** 補充資訊收在單一「更多條件」內（部分可線上取得，建議現場再核對） */
   readonly propertySecondaryFields: ReadonlyArray<PropertyChoiceField> = [
     'buildingType',
     'floorLevel',
     'buildingAgeRange',
     'hasElevator',
-    'hasManager',
-    'minLeaseTerm'
+    'hasManager'
   ];
   readonly propertyPrimaryChoiceGroups = this.propertyChoiceGroups.filter((g) => this.propertyPrimaryFields.includes(g.field));
   readonly propertySecondaryChoiceGroups = this.propertyChoiceGroups.filter((g) => this.propertySecondaryFields.includes(g.field));
@@ -460,6 +466,8 @@ export class App implements OnInit, OnDestroy {
   showMapPicker = false;
   /** 戶型／房源條件預設收合，降低查核表首屏高度（F-013 S3） */
   overviewExtraExpanded = false;
+  /** 備註與現場照片區預設收合 */
+  overviewNotesMediaExpanded = false;
   overviewPropertyMoreExpanded = false;
   mapPickerStatus = '點一下地圖，會自動帶入相似地址。';
   isReverseGeocoding = false;
@@ -1275,6 +1283,15 @@ export class App implements OnInit, OnDestroy {
     if (!this.overviewExtraExpanded) {
       this.overviewLayoutExtraExpanded = false;
       this.overviewPropertyMoreExpanded = false;
+    }
+  }
+
+  toggleOverviewNotesMedia(): void {
+    this.overviewNotesMediaExpanded = !this.overviewNotesMediaExpanded;
+    if (!this.overviewNotesMediaExpanded) {
+      this.attachmentSelectionMode = false;
+      this.selectedAttachmentIds = [];
+      this.closeAttachmentPreview();
     }
   }
 
