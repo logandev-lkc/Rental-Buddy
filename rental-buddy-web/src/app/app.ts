@@ -1183,6 +1183,15 @@ export class App implements OnInit, OnDestroy {
     this.reportViewMode = mode;
   }
 
+  onChecklistItemRowClick(id: string, event: Event): void {
+    const el = event.target as HTMLElement | null;
+    if (el?.closest('button, textarea, input, a, label, .item-note-wrap')) return;
+    const current = this.state[id];
+    if (!current) return;
+    current.expanded = !current.expanded;
+    this.touchActiveRecord();
+  }
+
   toggleExpand(id: string, event: Event): void {
     event.stopPropagation();
     const current = this.state[id];
