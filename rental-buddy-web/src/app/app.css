@@ -1564,7 +1564,7 @@
 
 .quick-status-chip {
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--ink-mid);
   padding: 10px 12px;
@@ -1577,17 +1577,16 @@
   justify-content: center;
 }
 
-.quick-status-chip.active.good,
-.quick-status-chip.active.ok {
+.quick-status-chip.active.good {
   border-color: rgba(77, 124, 87, 0.35);
   background: rgba(77, 124, 87, 0.12);
   color: var(--sage-dark);
 }
 
 .quick-status-chip.active.attention {
-  border-color: rgba(217, 123, 108, 0.4);
-  background: rgba(217, 123, 108, 0.14);
-  color: var(--rose-deep);
+  border-color: rgba(191, 96, 46, 0.42);
+  background: rgba(191, 96, 46, 0.14);
+  color: #9f4f25;
 }
 
 .detail-option-chip {

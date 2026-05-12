@@ -229,13 +229,13 @@ select {
   background: rgba(122, 146, 117, 0.95);
 }
 .check-item-rail--ok {
-  background: rgba(37, 99, 235, 0.75);
+  background: rgba(202, 138, 4, 0.8);
 }
 .check-item-rail--attention {
-  background: rgba(217, 123, 108, 0.95);
+  background: rgba(191, 96, 46, 0.9);
 }
 .check-item-rail--bad {
-  background: rgba(153, 27, 27, 0.92);
+  background: rgba(147, 28, 28, 0.95);
 }
 
 .item-title-row {
@@ -275,9 +275,15 @@ select {
 }
 
 .quick-status-chip.active.bad {
-  border-color: rgba(185, 28, 28, 0.5);
-  background: rgba(185, 28, 28, 0.12);
-  color: #991b1b;
+  border-color: rgba(147, 28, 28, 0.5);
+  background: rgba(147, 28, 28, 0.12);
+  color: #8b1e1e;
+}
+
+.quick-status-chip.active.ok {
+  border-color: rgba(202, 138, 4, 0.38);
+  background: rgba(202, 138, 4, 0.12);
+  color: #8a5a00;
 }
 
 /* 查核表列尾：展開詳情（低調；放全域以降低 app.css budget） */
