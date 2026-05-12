@@ -19,6 +19,16 @@
   box-sizing: border-box;
 }
 
+/* 歡迎頁期間隱藏主 shell（含 fixed footer），避免雙指縮放時底層內容從邊緣露出 */
+.app-shell {
+  display: block;
+}
+
+.app-shell--inactive {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .app-header {
   position: sticky;
   top: 0;
@@ -3769,8 +3779,13 @@
 .intro-screen {
   position: fixed;
   inset: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--cream);
-  z-index: 40;
+  /* 高於 bottom-bar(38)／PWA 條(39)／附件預覽(65)，低於全站確認框(70) */
+  z-index: 68;
+  isolation: isolate;
+  overscroll-behavior: none;
   display: flex;
   flex-direction: column;
   align-items: center;
