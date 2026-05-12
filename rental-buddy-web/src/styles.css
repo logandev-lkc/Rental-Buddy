@@ -286,6 +286,35 @@ select {
   color: #8a5a00;
 }
 
+.detail-option-chip:hover,
+.detail-option-chip:focus-visible {
+  border-color: rgba(44, 36, 32, 0.2);
+  background: rgba(255, 255, 255, 1);
+  color: var(--ink);
+  outline: none;
+}
+
+.detail-option-chip.active:hover,
+.detail-option-chip.active:focus-visible {
+  border-color: rgba(122, 146, 117, 0.36);
+  background: rgba(122, 146, 117, 0.12);
+  color: #5f735c;
+}
+
+.detail-option-chip.risk:hover,
+.detail-option-chip.risk:focus-visible {
+  border-color: rgba(176, 88, 72, 0.34);
+  background: rgba(176, 88, 72, 0.08);
+  color: var(--ink);
+}
+
+.detail-option-chip.risk.active:hover,
+.detail-option-chip.risk.active:focus-visible {
+  border-color: rgba(191, 96, 46, 0.44);
+  background: rgba(191, 96, 46, 0.14);
+  color: #9f4f25;
+}
+
 /* 查核表列尾：展開詳情（低調；放全域以降低 app.css budget） */
 .item-actions {
   display: flex;
