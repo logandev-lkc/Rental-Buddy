@@ -199,3 +199,116 @@ select {
   display: block;
   cursor: inherit;
 }
+
+/* 查核表：收合時評等列（chip 仍維持至少約 44px 觸控高） */
+.quick-status-wrap--compact {
+  margin-top: 4px;
+}
+.quick-status-wrap--compact .quick-status-chips {
+  gap: 6px;
+}
+.quick-status-wrap--compact .quick-status-chip {
+  padding: 8px 10px;
+  min-height: 44px;
+  font-size: 10px;
+}
+
+/* 左側唯讀狀態條（非按鈕） */
+.check-item-rail {
+  width: 4px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  align-self: stretch;
+  min-height: 44px;
+  background: rgba(168, 148, 142, 0.35);
+}
+.check-item-rail--unknown {
+  background: rgba(168, 148, 142, 0.35);
+}
+.check-item-rail--good {
+  background: rgba(122, 146, 117, 0.95);
+}
+.check-item-rail--ok {
+  background: rgba(37, 99, 235, 0.75);
+}
+.check-item-rail--attention {
+  background: rgba(217, 123, 108, 0.95);
+}
+.check-item-rail--bad {
+  background: rgba(153, 27, 27, 0.92);
+}
+
+.item-title-row {
+  width: 100%;
+}
+.item-title-trigger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.item-title-trigger:focus-visible {
+  outline: 2px solid rgba(217, 123, 108, 0.55);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.item-unrated-hint {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(107, 90, 84, 0.55);
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(44, 36, 32, 0.08);
+  background: rgba(44, 36, 32, 0.03);
+}
+
+.quick-status-chip.active.bad {
+  border-color: rgba(185, 28, 28, 0.5);
+  background: rgba(185, 28, 28, 0.12);
+  color: #991b1b;
+}
+
+/* 查核表列尾：展開詳情（低調；放全域以降低 app.css budget） */
+.item-actions {
+  display: flex;
+  gap: 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(107, 90, 84, 0.45);
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  color: var(--ink-mid);
+  border-color: rgba(44, 36, 32, 0.08);
+  background: rgba(44, 36, 32, 0.03);
+  outline: none;
+}
+.icon-btn.active {
+  background: rgba(44, 36, 32, 0.05);
+  border-color: rgba(44, 36, 32, 0.08);
+  color: var(--ink-mid);
+}

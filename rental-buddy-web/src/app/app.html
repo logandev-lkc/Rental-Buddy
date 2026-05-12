@@ -1320,35 +1320,61 @@
             [class.checked]="state[item.id].checked"
             [class.flagged]="state[item.id].flagged"
             [class.expanded]="state[item.id].expanded"
-            (click)="toggleCheck(item.id)"
           >
-            <div class="check-box">
-              @if (state[item.id].checked) { ✓ }
-              @if (state[item.id].flagged) { ! }
-            </div>
+            <div
+              class="check-item-rail"
+              [class.check-item-rail--unknown]="state[item.id].quickStatus === 'unknown'"
+              [class.check-item-rail--good]="state[item.id].quickStatus === 'good'"
+              [class.check-item-rail--ok]="state[item.id].quickStatus === 'ok'"
+              [class.check-item-rail--attention]="state[item.id].quickStatus === 'attention'"
+              [class.check-item-rail--bad]="state[item.id].quickStatus === 'bad'"
+              aria-hidden="true"
+            ></div>
             <div class="item-content">
-              <div class="item-title">{{ item.title }}</div>
+              <div class="item-title-row">
+                <button
+                  type="button"
+                  class="item-title-trigger"
+                  [attr.aria-expanded]="state[item.id].expanded"
+                  [attr.aria-label]="state[item.id].expanded ? '收合此題詳情' : '展開此題詳情'"
+                  (click)="toggleExpand(item.id, $event)"
+                >
+                  <span class="item-title">{{ item.title }}</span>
+                  @if (state[item.id].quickStatus === 'unknown') {
+                    <span class="item-unrated-hint">未評</span>
+                  }
+                </button>
+              </div>
               @if (state[item.id].expanded) {
                 <div class="item-tip">{{ item.tip }}</div>
-                <div class="quick-status-wrap" (click)="$event.stopPropagation()">
-                  <div class="quick-status-label">快速狀態</div>
-                  <div class="quick-status-chips" aria-label="快速狀態">
-                    @for (option of quickStatusOptions; track option.value) {
-                      <button
-                        type="button"
-                        class="quick-status-chip"
-                        [class.active]="state[item.id].quickStatus === option.value"
-                        [class.good]="option.value === 'good'"
-                        [class.ok]="option.value === 'ok'"
-                        [class.attention]="option.value === 'attention'"
-                        [class.unknown]="option.value === 'unknown'"
-                        (click)="setItemQuickStatus(item.id, option.value, $event)"
-                      >
-                        {{ option.label }}
-                      </button>
-                    }
-                  </div>
+              }
+              <div
+                class="quick-status-wrap"
+                [class.quick-status-wrap--compact]="!state[item.id].expanded"
+                (click)="$event.stopPropagation()"
+              >
+                @if (state[item.id].expanded) {
+                  <div class="quick-status-label">評等</div>
+                }
+                <div class="quick-status-chips" aria-label="評等">
+                  @for (option of quickStatusOptions; track option.value) {
+                    <button
+                      type="button"
+                      class="quick-status-chip"
+                      [attr.title]="option.title"
+                      [class.active]="state[item.id].quickStatus === option.value"
+                      [class.good]="option.value === 'good'"
+                      [class.ok]="option.value === 'ok'"
+                      [class.attention]="option.value === 'attention'"
+                      [class.bad]="option.value === 'bad'"
+                      (click)="setItemQuickStatus(item.id, option.value, $event)"
+                    >
+                      {{ option.label }}
+                    </button>
+                  }
                 </div>
+              </div>
+              @if (state[item.id].expanded) {
                 @if (getItemOptions(item.id).length > 0) {
                   <div class="detail-options-wrap" (click)="$event.stopPropagation()">
                     <div class="quick-status-label">細節選項</div>
@@ -1380,18 +1406,14 @@
             </div>
             <div class="item-actions">
               <button
-                class="icon-btn"
-                [class.active]="state[item.id].flagged"
-                (click)="toggleFlag(item.id, $event)"
-              >
-                ⚑
-              </button>
-              <button
+                type="button"
                 class="icon-btn"
                 [class.active]="state[item.id].expanded"
+                [attr.aria-expanded]="state[item.id].expanded"
+                [attr.aria-label]="state[item.id].expanded ? '收合詳情' : '展開詳情'"
                 (click)="toggleExpand(item.id, $event)"
               >
-                ?
+                {{ state[item.id].expanded ? '▲' : '▼' }}
               </button>
             </div>
           </article>

@@ -59,11 +59,27 @@ export class App implements OnInit, OnDestroy {
 
   readonly radarCenter = 150;
   readonly radarRadius = 86;
-  readonly quickStatusOptions: Array<{ value: QuickStatus; label: string }> = [
-    { value: 'good', label: '良好' },
-    { value: 'ok', label: '可接受' },
-    { value: 'attention', label: '需注意' },
-    { value: 'unknown', label: '尚未確認' }
+  readonly quickStatusOptions: Array<{ value: QuickStatus; label: string; title: string }> = [
+    {
+      value: 'good',
+      label: '良好',
+      title: '大致滿意、未見明顯扣分點（+2）。已選時再點「良好」可回到未評。'
+    },
+    {
+      value: 'ok',
+      label: '可接受',
+      title: '大致可行，有可談的小妥協或資訊落差（+1）。已選時再點「可接受」可回到未評。'
+    },
+    {
+      value: 'attention',
+      label: '需注意',
+      title: '有疑慮或待核對，建議追問或列待辦（-1）。已選時再點「需注意」可回到未評。'
+    },
+    {
+      value: 'bad',
+      label: '很不理想',
+      title: '狀況偏差或有明顯硬傷，建議慎重評估（-2）。已選時再點「很不理想」可回到未評。'
+    }
   ];
   readonly checklistFilterOptions: Array<{ id: ChecklistFilterId; label: string; group: ChecklistFilterGroupId }> = [
     { id: 'pending', label: '尚未確認', group: 'status' },
@@ -71,13 +87,14 @@ export class App implements OnInit, OnDestroy {
     { id: 'good', label: '良好', group: 'quick' },
     { id: 'ok', label: '可接受', group: 'quick' },
     { id: 'attention', label: '需注意', group: 'quick' },
+    { id: 'bad', label: '很不理想', group: 'quick' },
     { id: 'priority_high', label: '高優先', group: 'priority' },
     { id: 'priority_normal', label: '一般', group: 'priority' },
     { id: 'priority_later', label: '可後補', group: 'priority' }
   ];
   readonly checklistFilterGroups: Array<{ id: ChecklistFilterGroupId; label: string }> = [
     { id: 'status', label: '狀態' },
-    { id: 'quick', label: '快速評等' },
+    { id: 'quick', label: '評等' },
     { id: 'priority', label: '重要性' }
   ];
   readonly propertyChoiceGroups: Array<{ field: PropertyChoiceField; label: string; options: string[] }> = [
@@ -1166,25 +1183,6 @@ export class App implements OnInit, OnDestroy {
     this.reportViewMode = mode;
   }
 
-  toggleCheck(id: string): void {
-    const current = this.state[id];
-    if (!current) return;
-    current.checked = !current.checked;
-    if (current.checked) current.flagged = false;
-    current.quickStatus = current.checked ? 'good' : 'unknown';
-    this.touchActiveRecord();
-  }
-
-  toggleFlag(id: string, event: Event): void {
-    event.stopPropagation();
-    const current = this.state[id];
-    if (!current) return;
-    current.flagged = !current.flagged;
-    if (current.flagged) current.checked = false;
-    current.quickStatus = current.flagged ? 'attention' : 'unknown';
-    this.touchActiveRecord();
-  }
-
   toggleExpand(id: string, event: Event): void {
     event.stopPropagation();
     const current = this.state[id];
@@ -1204,9 +1202,18 @@ export class App implements OnInit, OnDestroy {
     event.stopPropagation();
     const current = this.state[id];
     if (!current) return;
+    if (current.quickStatus === status) {
+      current.selectedOptions = [];
+      this.syncQuickStatusFromOptions(current);
+      if (id === 'c1' || id === 'c3' || id === 'c4' || id === 'n4') {
+        this.syncPropertyFieldsFromLinkedChecklist(id, current);
+      }
+      this.touchActiveRecord();
+      return;
+    }
     current.quickStatus = status;
     current.checked = status === 'good' || status === 'ok';
-    current.flagged = status === 'attention';
+    current.flagged = status === 'attention' || status === 'bad';
     this.touchActiveRecord();
   }
 
@@ -1345,7 +1352,7 @@ export class App implements OnInit, OnDestroy {
       return;
     }
     if (preset === 'attention_only') {
-      this.draftChecklistFilters = ['attention'];
+      this.draftChecklistFilters = ['attention', 'bad'];
       return;
     }
     this.draftChecklistFilters = ['priority_high'];
@@ -1354,7 +1361,7 @@ export class App implements OnInit, OnDestroy {
   isChecklistFilterPresetActive(preset: ChecklistFilterPreset): boolean {
     if (preset === 'clear') return this.draftChecklistFilters.length === 0;
     if (preset === 'pending_only') return this.hasOnlyChecklistFilters(['pending'], this.draftChecklistFilters);
-    if (preset === 'attention_only') return this.hasOnlyChecklistFilters(['attention'], this.draftChecklistFilters);
+    if (preset === 'attention_only') return this.hasOnlyChecklistFilters(['attention', 'bad'], this.draftChecklistFilters);
     return this.hasOnlyChecklistFilters(['priority_high'], this.draftChecklistFilters);
   }
 
@@ -2831,10 +2838,14 @@ ${this.reportDataJson}`;
       ...this.createEmptyState(),
       ...(record.state ?? {})
     };
+    const allowedQuick = new Set<QuickStatus>(['good', 'ok', 'attention', 'bad', 'unknown']);
     this.items.forEach((item) => {
       const state = normalizedState[item.id];
-      if (!state.quickStatus) {
+      const rawQs = state.quickStatus as unknown;
+      if (typeof rawQs !== 'string' || !allowedQuick.has(rawQs as QuickStatus)) {
         state.quickStatus = state.flagged ? 'attention' : state.checked ? 'good' : 'unknown';
+      } else {
+        state.quickStatus = rawQs as QuickStatus;
       }
       state.selectedOptions = state.selectedOptions ?? [];
     });
@@ -2967,6 +2978,7 @@ ${this.reportDataJson}`;
   }
 
   private getQuickStatusLabel(status: QuickStatus): string {
+    if (status === 'unknown') return '尚未確認';
     return this.quickStatusOptions.find((option) => option.value === status)?.label ?? '尚未確認';
   }
 
@@ -2977,7 +2989,7 @@ ${this.reportDataJson}`;
     if (note) return note;
     if (selectedOptions) return selectedOptions;
     if (state?.quickStatus && state.quickStatus !== 'unknown') {
-      return `快速狀態：${this.getQuickStatusLabel(state.quickStatus)}`;
+      return `評等：${this.getQuickStatusLabel(state.quickStatus)}`;
     }
     return this.getDefaultChecklistNote(status);
   }
@@ -3062,13 +3074,13 @@ ${this.reportDataJson}`;
   }
 
   /**
-   * Per-item score factor 0–1: good = full, ok = partial, attention / unknown = no credit.
+   * Per-item score factor 0–1: good = full, ok = partial, attention / bad / unknown = no credit.
    * Legacy rows with checked but no quickStatus are treated like good.
    */
   private getItemQuickScoreFactor(state: ItemState | undefined): number {
     if (!state) return 0;
     const qs = state.quickStatus ?? 'unknown';
-    if (state.flagged || qs === 'attention') return 0;
+    if (state.flagged || qs === 'attention' || qs === 'bad') return 0;
     if (qs === 'good') return 1;
     if (qs === 'ok') return 0.65;
     if (state.checked && !state.flagged) return 1;
@@ -3404,12 +3416,13 @@ ${this.reportDataJson}`;
 
   private hasOnlyChecklistFilters(filters: ChecklistFilterId[], source: ChecklistFilterId[]): boolean {
     if (source.length !== filters.length) return false;
-    return filters.every((filter) => source.includes(filter));
+    const set = new Set(filters);
+    return filters.every((filter) => source.includes(filter)) && source.every((f) => set.has(f));
   }
 
   private getChecklistFilterGroup(filterId: ChecklistFilterId): ChecklistFilterGroupId {
     if (filterId === 'pending' || filterId === 'confirmed') return 'status';
-    if (filterId === 'good' || filterId === 'ok' || filterId === 'attention') return 'quick';
+    if (filterId === 'good' || filterId === 'ok' || filterId === 'attention' || filterId === 'bad') return 'quick';
     return 'priority';
   }
 }
@@ -3446,13 +3459,14 @@ interface ItemState {
   selectedOptions: string[];
 }
 
-type QuickStatus = 'good' | 'ok' | 'attention' | 'unknown';
+type QuickStatus = 'good' | 'ok' | 'attention' | 'bad' | 'unknown';
 type ChecklistFilterId =
   | 'pending'
   | 'confirmed'
   | 'good'
   | 'ok'
   | 'attention'
+  | 'bad'
   | 'priority_high'
   | 'priority_normal'
   | 'priority_later';
