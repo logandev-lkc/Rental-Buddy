@@ -23,6 +23,8 @@
 | [progress.md](./progress.md) | v3 進度總表（已完成／進行中／待辦） |
 | [decisions.md](./decisions.md) | v3 決策紀錄（**D-002** 起；與 v1 決策分檔，便於稽核） |
 | [specs/checklist-ux-v3-spec.md](./specs/checklist-ux-v3-spec.md) | 查核表 UX：摘要區／分類／快速狀態與細節（討論稿＋待填矩陣） |
+| [specs/checklist-items-overview.md](./specs/checklist-items-overview.md) | 查核卡項目一覽：項目／分類／註解／細節選項（與程式同步） |
+| [specs/checklist-full-risk-model-from-source-pdf.md](./specs/checklist-full-risk-model-from-source-pdf.md) | 完整風險模型查核表（依外部 PDF 整理：風險程度＋placeholder＋與 App 差異摘要） |
 | [specs/](./specs/) | 其他長篇專題規格 |
 
 ## 4) 第三版開發原則（延續 v1）

@@ -1401,7 +1401,7 @@
                     class="item-note-input"
                     [ngModel]="state[item.id].note"
                     (ngModelChange)="updateItemNote(item.id, $event)"
-                    placeholder="例如：浴室沒有抽風機，但有對外窗"
+                    [attr.placeholder]="getItemNotePlaceholder(item.id)"
                   ></textarea>
                 </div>
               }

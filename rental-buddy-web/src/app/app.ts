@@ -17,27 +17,30 @@ type BeforeInstallPromptEventLike = Event & {
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
-  readonly storageKey = 'rental-buddy-records-v1';
-  readonly backupFormatVersion = 2;
+  /** v2：查核題改為 PDF 完整風險模型（rb_*）；舊 v1 localStorage 金鑰不再讀取 */
+  readonly storageKey = 'rental-buddy-records-v2';
+  readonly backupFormatVersion = 3;
+  /** 與房源條件 chips 雙向同步的查核題 id */
+  private readonly propertySyncChecklistIds = new Set<string>(['rb_001', 'rb_002', 'rb_023', 'rb_037', 'rb_025']);
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly attachmentLimit = 10;
   /** F-009：外連至 Buy Me a Coffee（請替換為你的個人頁網址） */
   readonly supportAuthorHref = 'https://buymeacoffee.com/';
   readonly supportAuthorLabel = '請作者喝杯咖啡';
   readonly categories = [
-    { id: 'contract', label: '合約條件' },
-    { id: 'facility', label: '設備狀態' },
-    { id: 'safety', label: '安全採光' },
-    { id: 'living', label: '生活機能' },
-    { id: 'neighbor', label: '環境鄰居' }
+    { id: 'contract', label: '合約與權責' },
+    { id: 'facility', label: '設備與空間' },
+    { id: 'safety', label: '安全與居住品質' },
+    { id: 'living', label: '生活便利性' },
+    { id: 'neighbor', label: '環境與管理' }
   ];
 
   readonly categoryMap: Record<string, string> = {
-    contract: '合約條件',
-    facility: '設備狀態',
-    safety: '安全採光',
-    living: '生活機能',
-    neighbor: '環境鄰居'
+    contract: '合約與權責',
+    facility: '設備與空間',
+    safety: '安全與居住品質',
+    living: '生活便利性',
+    neighbor: '環境與管理'
   };
 
   // 5 個分類對應到「五角形」雷達圖軸
@@ -131,347 +134,398 @@ export class App implements OnInit, OnDestroy {
   readonly propertySecondaryChoiceGroups = this.propertyChoiceGroups.filter((g) => this.propertySecondaryFields.includes(g.field));
 
   readonly items: ChecklistItem[] = [
-    { id: 'c1', cat: 'contract', title: '租屋補助資格', tip: '部分房東不願配合申請租屋補助，租前務必確認。' },
-    { id: 'c2', cat: 'contract', title: '水電費計算方式', tip: '確認是台電計價或房東自訂價。' },
-    { id: 'c3', cat: 'contract', title: '押金金額', tip: '依法押金不得超過兩個月租金。' },
-    { id: 'c4', cat: 'contract', title: '管理費另計嗎', tip: '確認管理費金額與繳費方式。' },
-    { id: 'c5', cat: 'contract', title: '合約期限與違約金', tip: '先確認提前解約條件，避免後續爭議。' },
-    { id: 'c6', cat: 'contract', title: '網路費用', tip: '確認是否含網路，若不含是否可自行安裝。' },
-    { id: 'c7', cat: 'contract', title: '可否養寵物 / 開伙', tip: '租前先談清楚，避免入住後衝突。' },
-    { id: 'f1', cat: 'facility', title: '冷氣是否為變頻款', tip: '變頻通常更省電，長住差很多。' },
-    { id: 'f2', cat: 'facility', title: '熱水能持續多久', tip: '現場實測 30 秒以上確認穩定。' },
-    { id: 'f3', cat: 'facility', title: '飲水機 / 濾水設備', tip: '若沒有，需自行添購並估算成本。' },
-    { id: 'f4', cat: 'facility', title: 'WiFi 是否穩定', tip: '可用手機現場測速。' },
-    { id: 'f5', cat: 'facility', title: '洗曬衣空間', tip: '確認獨立或共用，是否有額外費用。' },
-    { id: 'f6', cat: 'facility', title: '廚房設備', tip: '確認冰箱、爐具、抽風等是否正常。' },
-    { id: 'f7', cat: 'facility', title: '工作空間', tip: '若常在家工作，桌面與插座很重要。' },
-    { id: 'f8', cat: 'facility', title: '停車空間', tip: '確認位置、費用、進出動線。' },
-    { id: 'f9', cat: 'facility', title: '插座與電力配置', tip: '確認插座數量、位置與是否老舊，避免延長線過多。' },
-    { id: 'f10', cat: 'facility', title: '收納空間', tip: '確認衣櫃、鞋櫃與雜物空間是否足夠。' },
-    { id: 's1', cat: 'safety', title: '對外窗方向', tip: '採光與通風會直接影響居住舒適度。' },
-    { id: 's2', cat: 'safety', title: '是否有壁癌 / 漏水', tip: '注意牆角、窗框與天花板痕跡。' },
-    { id: 's3', cat: 'safety', title: '頂加 / 違建確認', tip: '評估噪音、熱度與潛在風險。' },
-    { id: 's4', cat: 'safety', title: '門鎖安全性', tip: '確認鎖具狀況，是否可換鎖。' },
-    { id: 's5', cat: 'safety', title: '滅火器 / 逃生設備', tip: '確認逃生動線與設施可用性。' },
-    { id: 's6', cat: 'safety', title: '隔音狀況', tip: '現場安靜不代表夜晚安靜，建議多問。' },
-    { id: 's7', cat: 'safety', title: '浴室通風與乾濕狀況', tip: '確認是否有對外窗或抽風設備，並觀察潮濕與霉味。' },
-    { id: 'l1', cat: 'living', title: '附近超市 / 便利商店', tip: '步行 5 分鐘內有採買點最方便。' },
-    { id: 'l2', cat: 'living', title: '通勤路線確認', tip: '建議實際走一趟通勤路線。' },
-    { id: 'l3', cat: 'living', title: '垃圾處理方式', tip: '確認垃圾車時間與分類方式。' },
-    { id: 'l4', cat: 'living', title: '洗衣機排水問題', tip: '注意排水孔與浴室地排是否順。' },
-    { id: 'l5', cat: 'living', title: '手機訊號強度', tip: '不同角落都測一下比較準。' },
-    { id: 'n1', cat: 'neighbor', title: '鄰居組成', tip: '觀察生活作息是否與自己相容。' },
-    { id: 'n2', cat: 'neighbor', title: '房東溝通風格', tip: '看房互動能反映未來溝通品質。' },
-    { id: 'n3', cat: 'neighbor', title: '周邊噪音來源', tip: '注意夜市、酒吧、工地等噪音風險。' },
-    { id: 'n4', cat: 'neighbor', title: '大樓管理員', tip: '有管理員通常更安全也更便利。' },
-    { id: 'n5', cat: 'neighbor', title: '室內氣味', tip: '留意菸味、油煙味、霉味或寵物味，這些通常不容易短期改善。' },
-    { id: 'n6', cat: 'neighbor', title: '蟲害跡象', tip: '檢查廚房、浴室、排水孔與櫃體角落是否有蟑螂、螞蟻或蟲卵痕跡。' }
+    { id: 'rb_001', cat: 'contract', title: '租屋補助資格', tip: '部分房東可能不配合租屋補助申請，建議簽約前先確認。', notePlaceholder: '例如：房東願意協助租補，但需額外簽切結書', riskTier: 'must' as const },
+    { id: 'rb_002', cat: 'contract', title: '押金金額', tip: '依法押金不得超過兩個月租金，建議簽約前確認。', notePlaceholder: '例如：押金為 3 個月，需確認是否合法', riskTier: 'must' as const },
+    { id: 'rb_003', cat: 'contract', title: '合約期限與違約金', tip: '建議提前確認租期、提前解約條件與違約金規則。', notePlaceholder: '例如：提前解約需支付 1 個月違約金', riskTier: 'must' as const },
+    { id: 'rb_004', cat: 'contract', title: '設備維修與費用責任', tip: '建議提前確認維修責任、聯絡流程與費用負擔方式。', notePlaceholder: '例如：小型維修需房客自行負擔', riskTier: 'must' as const },
+    { id: 'rb_005', cat: 'contract', title: '退租告知與看房規則', tip: '需確認退租提前通知時間，以及房東是否可帶新房客看房。', notePlaceholder: '例如：退租需提前兩個月通知，期間可能安排帶看', riskTier: 'must' as const },
+    { id: 'rb_006', cat: 'contract', title: '房東進入與隱私規則', tip: '建議確認房東是否能自行進入房屋或臨時帶看。', notePlaceholder: '例如：房東持有備份鑰匙，但表示會提前通知', riskTier: 'must' as const },
+    { id: 'rb_007', cat: 'facility', title: '熱水穩定度', tip: '建議實際測試熱水、水壓與穩定度。', notePlaceholder: '例如：洗澡時熱水容易忽冷忽熱', riskTier: 'must' as const },
+    { id: 'rb_008', cat: 'safety', title: '天花板與夾層狀況', tip: '需注意漏水痕跡、輕鋼架與天花板內部狀況。', notePlaceholder: '例如：浴室為輕鋼架，需確認是否曾漏水', riskTier: 'must' as const },
+    { id: 'rb_009', cat: 'safety', title: '是否有壁癌／漏水', tip: '注意牆角、窗框與天花板是否有潮濕、水痕或壁癌。', notePlaceholder: '例如：窗邊牆角有疑似壁癌痕跡', riskTier: 'must' as const },
+    { id: 'rb_010', cat: 'safety', title: '頂樓加蓋與違建風險', tip: '需留意隔熱、漏水、消防與違建相關風險。', notePlaceholder: '例如：夏天室內偏熱，需確認隔熱狀況', riskTier: 'must' as const },
+    { id: 'rb_011', cat: 'safety', title: '門鎖安全性', tip: '確認鎖具狀況與是否可自行更換門鎖。', notePlaceholder: '例如：房東持有備份鑰匙，需確認是否會進入房間', riskTier: 'must' as const },
+    { id: 'rb_012', cat: 'safety', title: '滅火器／逃生設備', tip: '確認逃生動線、滅火器與消防設備是否可正常使用。', notePlaceholder: '例如：逃生梯堆放雜物，可能影響逃生', riskTier: 'must' as const },
+    { id: 'rb_013', cat: 'safety', title: '室內隔音狀況', tip: '白天安靜不代表夜晚安靜，建議確認夜間噪音。', notePlaceholder: '例如：晚上可聽到樓上腳步聲與關門聲', riskTier: 'must' as const },
+    { id: 'rb_014', cat: 'safety', title: '浴室通風與乾濕狀況', tip: '確認是否有對外窗、抽風設備與潮濕問題。', notePlaceholder: '例如：浴室沒有抽風機，但有對外窗', riskTier: 'must' as const },
+    { id: 'rb_015', cat: 'safety', title: '室內潮濕程度', tip: '台灣潮濕環境常影響居住品質與健康。', notePlaceholder: '例如：衣櫃內有潮濕味，雨季可能更明顯', riskTier: 'must' as const },
+    { id: 'rb_016', cat: 'safety', title: '排水與異味問題', tip: '老屋常有排水反味與管線問題。', notePlaceholder: '例如：下雨後浴室會有排水味', riskTier: 'must' as const },
+    { id: 'rb_017', cat: 'safety', title: '室內監視器與偷拍風險', tip: '建議確認房內是否有可疑鏡頭、監視器或異常設備。', notePlaceholder: '例如：床鋪附近有不明電子設備', riskTier: 'must' as const },
+    { id: 'rb_018', cat: 'neighbor', title: '周邊噪音與夜間環境', tip: '注意夜市、酒吧、工地與主要道路噪音。', notePlaceholder: '例如：附近酒吧晚上較吵，凌晨仍有人潮', riskTier: 'must' as const },
+    { id: 'rb_019', cat: 'neighbor', title: '緊急聯絡與管理窗口', tip: '確認設備故障、漏水或突發狀況時的聯絡窗口。', notePlaceholder: '例如：漏水需聯絡代管公司', riskTier: 'must' as const },
+    { id: 'rb_020', cat: 'neighbor', title: '蟲害與衛生狀況', tip: '檢查廚房、浴室與排水孔周圍是否有蟲害跡象。', notePlaceholder: '例如：廚房角落有疑似蟑螂痕跡', riskTier: 'must' as const },
+    { id: 'rb_021', cat: 'neighbor', title: '夜間周邊安全感', tip: '建議晚上再次查看周邊環境與人流狀況。', notePlaceholder: '例如：巷口偏暗，晚上人較少', riskTier: 'must' as const },
+    { id: 'rb_022', cat: 'contract', title: '水電費計算方式', tip: '確認是否依台水台電帳單計費，或由房東自行訂價。', notePlaceholder: '例如：電費依房東計算，每度 6 元', riskTier: 'should' as const },
+    { id: 'rb_023', cat: 'contract', title: '管理費與其他費用', tip: '確認管理費、清潔費或其他固定支出是否包含在租金內。', notePlaceholder: '例如：管理費每月 1500 元，未包含在租金內', riskTier: 'should' as const },
+    { id: 'rb_024', cat: 'contract', title: '可否登記戶籍', tip: '部分房東不接受戶籍登記，可能影響租補、報稅或行政需求。', notePlaceholder: '例如：房東表示可登記，但需提前告知', riskTier: 'should' as const },
+    { id: 'rb_025', cat: 'contract', title: '寵物與開伙限制', tip: '建議確認是否可養寵物、開伙，以及相關限制。', notePlaceholder: '例如：可養貓，但不可養狗與明火開伙', riskTier: 'should' as const },
+    { id: 'rb_026', cat: 'facility', title: '冷氣是否為變頻款', tip: '變頻冷氣通常較省電，長期居住差異明顯。', notePlaceholder: '例如：冷氣年份較舊，需確認耗電情況', riskTier: 'should' as const },
+    { id: 'rb_027', cat: 'facility', title: '網路與 WiFi 穩定度', tip: '建議現場測試網速與訊號穩定性。', notePlaceholder: '例如：房間內訊號偏弱，客廳較穩定', riskTier: 'should' as const },
+    { id: 'rb_028', cat: 'facility', title: '插座與電力配置', tip: '確認插座數量、位置與電線狀況，避免延長線過多。', notePlaceholder: '例如：床邊沒有插座，可能需要延長線', riskTier: 'should' as const },
+    { id: 'rb_029', cat: 'safety', title: '隔間與牆面材質', tip: '隔音、安全性與耐用度，通常與隔間材質有關。', notePlaceholder: '例如：與隔壁僅輕隔間，可聽到說話聲', riskTier: 'should' as const },
+    { id: 'rb_030', cat: 'safety', title: '採光與通風方向', tip: '採光與通風會直接影響居住舒適度。', notePlaceholder: '例如：窗戶朝內側，白天採光偏弱', riskTier: 'should' as const },
+    { id: 'rb_031', cat: 'safety', title: '西曬與室內溫度', tip: '西曬與頂樓容易影響夏季室內溫度。', notePlaceholder: '例如：下午西曬明顯，室內溫度偏高', riskTier: 'should' as const },
+    { id: 'rb_032', cat: 'living', title: '通勤便利性', tip: '建議實際走一趟通勤路線與轉乘動線。', notePlaceholder: '例如：通勤需轉乘兩次，尖峰時段較擁擠', riskTier: 'should' as const },
+    { id: 'rb_033', cat: 'living', title: '垃圾處理方式', tip: '確認垃圾車時間、分類方式與是否有代收。', notePlaceholder: '例如：需固定時間追垃圾車，假日沒有清運', riskTier: 'should' as const },
+    { id: 'rb_034', cat: 'living', title: '手機訊號與死角', tip: '建議測試不同位置的手機訊號強度。', notePlaceholder: '例如：房間內訊號偏弱，窗邊正常', riskTier: 'should' as const },
+    { id: 'rb_035', cat: 'neighbor', title: '環境與鄰里組成', tip: '觀察鄰居類型與生活作息是否適合自己。', notePlaceholder: '例如：鄰居多為學生，晚上較晚休息', riskTier: 'should' as const },
+    { id: 'rb_036', cat: 'neighbor', title: '房東溝通與配合度', tip: '看房時的回覆速度與態度，通常能反映後續溝通品質。', notePlaceholder: '例如：房東回覆較慢，部分條件未明確說明', riskTier: 'should' as const },
+    { id: 'rb_037', cat: 'neighbor', title: '大樓管理與出入安全', tip: '有管理員通常能提升安全性與便利性。', notePlaceholder: '例如：管理員只在白天值班', riskTier: 'should' as const },
+    { id: 'rb_038', cat: 'neighbor', title: '室內氣味與空氣狀況', tip: '留意霉味、油煙味、菸味與寵物氣味。', notePlaceholder: '例如：房間有淡淡霉味，雨天可能更明顯', riskTier: 'should' as const },
+    { id: 'rb_039', cat: 'neighbor', title: '公共區域維護狀況', tip: '公共區域整潔會直接影響居住品質。', notePlaceholder: '例如：樓梯間長期堆放雜物', riskTier: 'should' as const },
+    { id: 'rb_040', cat: 'facility', title: '飲水與濾水設備', tip: '若未提供飲水或濾水設備，需自行添購並評估成本。', notePlaceholder: '例如：僅有共用飲水機，房內無濾水設備', riskTier: 'later' as const },
+    { id: 'rb_041', cat: 'facility', title: '洗曬衣空間', tip: '確認曬衣空間是否獨立、共用，以及是否方便使用。', notePlaceholder: '例如：陽台空間較小，雨天可能不易晾乾', riskTier: 'later' as const },
+    { id: 'rb_042', cat: 'facility', title: '廚房設備', tip: '確認冰箱、爐具、抽風設備是否正常。', notePlaceholder: '例如：抽油煙機較弱，煮飯時油煙較重', riskTier: 'later' as const },
+    { id: 'rb_043', cat: 'facility', title: '工作與桌面空間', tip: '若有遠端工作需求，建議確認桌面空間與插座配置。', notePlaceholder: '例如：桌面空間較小，可能不適合雙螢幕', riskTier: 'later' as const },
+    { id: 'rb_044', cat: 'facility', title: '停車空間', tip: '確認停車位置、費用與進出動線。', notePlaceholder: '例如：機車位需額外抽籤，汽車位另租', riskTier: 'later' as const },
+    { id: 'rb_045', cat: 'facility', title: '收納空間', tip: '確認衣櫃、鞋櫃與雜物收納空間是否足夠。', notePlaceholder: '例如：冬季衣物可能不夠放', riskTier: 'later' as const },
+    { id: 'rb_046', cat: 'living', title: '日常採買便利性', tip: '步行 5 分鐘內有超商或超市會較方便。', notePlaceholder: '例如：晚上附近只有超商，沒有超市', riskTier: 'later' as const },
   ];
 
   readonly itemRiskConfig: Record<string, ItemRiskConfig> = {
-    c1: { weight: 3, riskLevel: 'medium' },
-    c2: { weight: 4, riskLevel: 'medium' },
-    c3: { weight: 4, riskLevel: 'high' },
-    c4: { weight: 3, riskLevel: 'medium' },
-    c5: { weight: 5, riskLevel: 'high' },
-    c6: { weight: 2, riskLevel: 'low' },
-    c7: { weight: 3, riskLevel: 'medium' },
-    f1: { weight: 3, riskLevel: 'medium' },
-    f2: { weight: 4, riskLevel: 'high' },
-    f3: { weight: 1, riskLevel: 'low' },
-    f4: { weight: 2, riskLevel: 'medium' },
-    f5: { weight: 3, riskLevel: 'medium' },
-    f6: { weight: 3, riskLevel: 'medium' },
-    f7: { weight: 2, riskLevel: 'low' },
-    f8: { weight: 2, riskLevel: 'low' },
-    f9: { weight: 3, riskLevel: 'medium' },
-    f10: { weight: 2, riskLevel: 'low' },
-    s1: { weight: 3, riskLevel: 'medium' },
-    s2: { weight: 5, riskLevel: 'high' },
-    s3: { weight: 5, riskLevel: 'high' },
-    s4: { weight: 5, riskLevel: 'high' },
-    s5: { weight: 5, riskLevel: 'high' },
-    s6: { weight: 4, riskLevel: 'medium' },
-    s7: { weight: 4, riskLevel: 'medium' },
-    l1: { weight: 2, riskLevel: 'low' },
-    l2: { weight: 4, riskLevel: 'medium' },
-    l3: { weight: 3, riskLevel: 'medium' },
-    l4: { weight: 4, riskLevel: 'high' },
-    l5: { weight: 2, riskLevel: 'low' },
-    n1: { weight: 3, riskLevel: 'medium' },
-    n2: { weight: 4, riskLevel: 'high' },
-    n3: { weight: 4, riskLevel: 'high' },
-    n4: { weight: 3, riskLevel: 'medium' },
-    n5: { weight: 4, riskLevel: 'medium' },
-    n6: { weight: 5, riskLevel: 'high' }
+    rb_001: { weight: 4, riskLevel: 'high' },
+    rb_002: { weight: 4, riskLevel: 'high' },
+    rb_003: { weight: 4, riskLevel: 'high' },
+    rb_004: { weight: 4, riskLevel: 'high' },
+    rb_005: { weight: 4, riskLevel: 'high' },
+    rb_006: { weight: 4, riskLevel: 'high' },
+    rb_007: { weight: 4, riskLevel: 'high' },
+    rb_008: { weight: 4, riskLevel: 'high' },
+    rb_009: { weight: 5, riskLevel: 'high' },
+    rb_010: { weight: 5, riskLevel: 'high' },
+    rb_011: { weight: 4, riskLevel: 'high' },
+    rb_012: { weight: 5, riskLevel: 'high' },
+    rb_013: { weight: 4, riskLevel: 'high' },
+    rb_014: { weight: 4, riskLevel: 'high' },
+    rb_015: { weight: 4, riskLevel: 'high' },
+    rb_016: { weight: 5, riskLevel: 'high' },
+    rb_017: { weight: 4, riskLevel: 'high' },
+    rb_018: { weight: 4, riskLevel: 'high' },
+    rb_019: { weight: 4, riskLevel: 'high' },
+    rb_020: { weight: 5, riskLevel: 'high' },
+    rb_021: { weight: 4, riskLevel: 'high' },
+    rb_022: { weight: 3, riskLevel: 'medium' },
+    rb_023: { weight: 3, riskLevel: 'medium' },
+    rb_024: { weight: 3, riskLevel: 'medium' },
+    rb_025: { weight: 3, riskLevel: 'medium' },
+    rb_026: { weight: 3, riskLevel: 'medium' },
+    rb_027: { weight: 3, riskLevel: 'medium' },
+    rb_028: { weight: 3, riskLevel: 'medium' },
+    rb_029: { weight: 3, riskLevel: 'medium' },
+    rb_030: { weight: 3, riskLevel: 'medium' },
+    rb_031: { weight: 3, riskLevel: 'medium' },
+    rb_032: { weight: 3, riskLevel: 'medium' },
+    rb_033: { weight: 3, riskLevel: 'medium' },
+    rb_034: { weight: 3, riskLevel: 'medium' },
+    rb_035: { weight: 3, riskLevel: 'medium' },
+    rb_036: { weight: 3, riskLevel: 'medium' },
+    rb_037: { weight: 3, riskLevel: 'medium' },
+    rb_038: { weight: 3, riskLevel: 'medium' },
+    rb_039: { weight: 3, riskLevel: 'medium' },
+    rb_040: { weight: 1, riskLevel: 'low' },
+    rb_041: { weight: 1, riskLevel: 'low' },
+    rb_042: { weight: 1, riskLevel: 'low' },
+    rb_043: { weight: 1, riskLevel: 'low' },
+    rb_044: { weight: 1, riskLevel: 'low' },
+    rb_045: { weight: 1, riskLevel: 'low' },
+    rb_046: { weight: 1, riskLevel: 'low' },
   };
 
   readonly itemReportCopyConfig: Record<string, ItemReportCopyConfig> = {
-    c1: {
-      positiveText: '租屋補助申請條件已釐清，可降低租金負擔的不確定性。',
-      riskText: '補助資格或房東配合度不明，可能影響實際月租支出。',
-      nextAction: '確認是否符合申請資格，並與房東書面約定配合文件與撥款帳戶。'
-    },
-    c2: {
-      positiveText: '費用計算方式清楚，可降低入住後帳單爭議。',
-      riskText: '水電計價不明容易造成長期支出超出預期。',
-      nextAction: '請房東提供水電計價方式，並確認是否可寫進租約。'
-    },
-    c3: {
-      positiveText: '押金條件已確認，簽約金額較可控。',
-      riskText: '押金條件異常可能增加簽約風險與退租爭議。',
-      nextAction: '確認押金月數、退還條件與扣款規則。'
-    },
-    c4: {
-      positiveText: '管理費收取方式已確認，每月固定支出較可預估。',
-      riskText: '管理費另計或金額不明，容易造成預算低估。',
-      nextAction: '確認管理費金額、繳費週期與是否含公共電費、清潔與電梯。'
-    },
-    c5: {
-      positiveText: '合約期限與違約金已確認，租期風險較低。',
-      riskText: '提前解約或違約金不清楚，可能影響搬遷彈性。',
-      nextAction: '要求提前解約條件與違約金計算方式白紙黑字列入合約。'
-    },
-    c6: {
-      positiveText: '網路方案與費用已確認，入住後銜接較順。',
-      riskText: '網路費用或自行申裝條件不明，可能增加開銷與等待時間。',
-      nextAction: '確認是否含網路、頻寬與可否自行申辦光世代或社區網路。'
-    },
-    c7: {
-      positiveText: '開伙與寵物規範已確認，入住後較不易與房東衝突。',
-      riskText: '規範不清可能衍生違約爭議或被迫搬遷。',
-      nextAction: '將可否開伙、寵物種類／數量與清潔／押金約定寫入租約。'
-    },
-    f1: {
-      positiveText: '冷氣型號與能耗條件較清楚，長住電費較可預估。',
-      riskText: '冷氣老舊或非變頻可能造成夏季電費偏高。',
-      nextAction: '確認冷氣年份、能源標示與清洗／維修責任歸屬。'
-    },
-    f2: {
-      positiveText: '熱水穩定，基本生活舒適度較有保障。',
-      riskText: '熱水不穩會直接影響日常使用，尤其冬天風險較高。',
-      nextAction: '現場連續測試熱水 1 到 2 分鐘，確認水溫與水壓。'
-    },
-    f3: {
-      positiveText: '用水與飲水設備已確認，日常成本與動線較清楚。',
-      riskText: '無濾水或需自行添購會增加開銷與檯面負擔。',
-      nextAction: '確認是否附設備、濾心更換頻率與費用由誰負擔。'
-    },
-    f4: {
-      positiveText: '網路品質已現場確認，居家上班或影音需求較安心。',
-      riskText: '網路不穩或頻寬不足會影響工作與日常生活。',
-      nextAction: '現場測速並確認路由器位置，必要時詢問可否拉線或升級頻寬。'
-    },
-    f5: {
-      positiveText: '洗曬動線已確認，長住家事負擔較可預期。',
-      riskText: '洗曬空間不足或需共用，雨天與換洗大件會較不便。',
-      nextAction: '確認陽台、室外曬衣或共用區規則與是否另計費用。'
-    },
-    f6: {
-      positiveText: '廚房設備已確認，日常使用與開伙需求較明確。',
-      riskText: '廚房設備不明可能帶來油煙、用電與維修責任問題。',
-      nextAction: '確認爐具、抽風、冰箱與維修責任。'
-    },
-    f7: {
-      positiveText: '工作區與桌面條件尚可，居家辦公可行性較高。',
-      riskText: '桌面或插座不足會影響長期在家工作效率。',
-      nextAction: '丈量桌面深度與插座位置，評估書桌燈或延長線需求。'
-    },
-    f8: {
-      positiveText: '停車方式已確認，通勤與搬運較方便。',
-      riskText: '無車位或車位昂貴會增加固定支出與繞路時間。',
-      nextAction: '確認車位位置、月租費、是否固定車位與訪客／臨停規定。'
-    },
-    f9: {
-      positiveText: '插座與電力配置足夠，日常使用與工作需求較穩定。',
-      riskText: '插座不足或線路老舊可能造成使用不便與用電安全疑慮。',
-      nextAction: '檢查主要使用區的插座數量、位置與是否有燒焦或鬆動痕跡。'
-    },
-    f10: {
-      positiveText: '收納空間已確認，長住時物品擺放壓力較小。',
-      riskText: '收納不足會讓小坪數房源更容易雜亂，影響長住舒適度。',
-      nextAction: '確認衣櫃、鞋櫃與床下或高處收納是否足夠。'
-    },
-    s1: {
-      positiveText: '採光與座向條件已掌握，居住舒適度較可預期。',
-      riskText: '採光不足或座向不佳可能影響日夜溫差與晾曬。',
-      nextAction: '白天再確認日照時間與窗戶可否正常開啟與隔音狀況。'
-    },
-    s2: {
-      positiveText: '目前未見明顯漏水或壁癌，屋況風險較低。',
-      riskText: '壁癌或漏水屬重大屋況風險，可能影響健康與修繕成本。',
-      nextAction: '拍照記錄牆角、窗框與天花板，並詢問是否曾漏水。'
-    },
-    s3: {
-      positiveText: '建物狀態已確認，法規與安全疑慮較少。',
-      riskText: '頂加或違建可能帶來隔熱、防火與租約保障風險。',
-      nextAction: '確認是否為合法使用空間，必要時避免簽長約。'
-    },
-    s4: {
-      positiveText: '門鎖安全已確認，入住安全性較高。',
-      riskText: '門鎖或門框不穩會直接影響人身與財物安全。',
-      nextAction: '確認是否可換鎖，並檢查門框、鎖舌與防盜鏈。'
-    },
-    s5: {
-      positiveText: '逃生與消防設備已確認，安全基礎較完整。',
-      riskText: '逃生設備不足屬高風險項目，不建議忽略。',
-      nextAction: '實際走一次逃生路線，確認滅火器、警報器與出口。'
-    },
-    s6: {
-      positiveText: '隔音狀況可接受，居住穩定性較高。',
-      riskText: '隔音問題可能長期影響睡眠與生活品質。',
-      nextAction: '建議晚上或尖峰時段再訪，確認車流與鄰戶噪音。'
-    },
-    s7: {
-      positiveText: '浴室通風狀況已確認，潮濕與霉味風險較低。',
-      riskText: '浴室通風不佳容易造成潮濕、霉味與清潔負擔。',
-      nextAction: '確認是否有對外窗或抽風機，並觀察天花板、矽利康與牆角是否發霉。'
-    },
-    l1: {
-      positiveText: '周邊採買便利，日常生活銜接成本低。',
-      riskText: '採買不便會放大外送或開車採購的時間與費用。',
-      nextAction: '步行或騎車實測一次採買路線與超商營業時間。'
-    },
-    l2: {
-      positiveText: '通勤路線已確認，日常移動成本較可預期。',
-      riskText: '通勤不明會放大時間成本，入住後較難改善。',
-      nextAction: '用實際通勤時間測試尖峰與離峰路線。'
-    },
-    l3: {
-      positiveText: '垃圾處理方式已確認，日常生活銜接較順。',
-      riskText: '垃圾處理不便會造成長期生活負擔。',
-      nextAction: '確認垃圾車時間、代收方式與是否需專用垃圾袋。'
-    },
-    l4: {
-      positiveText: '排水狀況已確認，浴室與洗衣使用風險較低。',
-      riskText: '排水不良容易造成積水、異味與潮濕問題。',
-      nextAction: '現場測試排水速度，並查看地排是否有異味。'
-    },
-    l5: {
-      positiveText: '室內訊號已確認，通話與行動網路較穩定。',
-      riskText: '訊號死角會影響通話、叫車與緊急聯絡。',
-      nextAction: '在各房間角落測試訊號，必要時確認 WiFi 覆蓋或訊號放大方案。'
-    },
-    n1: {
-      positiveText: '鄰居型態已大致掌握，作息相容性較可評估。',
-      riskText: '鄰居組成不明可能影響噪音與公共空間使用。',
-      nextAction: '留意門口鞋款、垃圾與深夜動靜，必要時二次看房。'
-    },
-    n2: {
-      positiveText: '房東溝通順暢，後續維修與協調風險較低。',
-      riskText: '房東溝通不佳可能讓維修、押金與合約問題放大。',
-      nextAction: '觀察房東是否願意明確回答費用、修繕與合約細節。'
-    },
-    n3: {
-      positiveText: '周邊噪音來源已確認，生活品質較可預期。',
-      riskText: '周邊噪音可能長期影響睡眠與居住舒適度。',
-      nextAction: '晚上 20:00 後再訪一次，並確認附近是否有酒吧、工地或車流。'
-    },
-    n4: {
-      positiveText: '管理服務狀態已確認，安全與代收便利性較清楚。',
-      riskText: '無管理員或大門管制薄弱會增加陌生進出疑慮。',
-      nextAction: '確認門禁方式、收件與訪客登記規則。'
-    },
-    n5: {
-      positiveText: '室內氣味狀況可接受，入住後清潔與適應成本較低。',
-      riskText: '菸味、油煙味、霉味或寵物味通常不容易短期改善。',
-      nextAction: '關窗停留數分鐘後再次確認氣味來源，必要時詢問是否可深度清潔。'
-    },
-    n6: {
-      positiveText: '目前未見明顯蟲害跡象，衛生風險較低。',
-      riskText: '蟲害通常代表環境或管線問題，入住後處理成本高。',
-      nextAction: '檢查廚房、浴室、排水孔與櫃體角落，並詢問是否定期消毒。'
-    }
+    rb_001: { positiveText: '「租屋補助資格」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「租屋補助資格」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「租屋補助資格」補齊書面約定或二次看房再確認。' },
+    rb_002: { positiveText: '「押金金額」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「押金金額」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「押金金額」補齊書面約定或二次看房再確認。' },
+    rb_003: { positiveText: '「合約期限與違約金」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「合約期限與違約金」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「合約期限與違約金」補齊書面約定或二次看房再確認。' },
+    rb_004: { positiveText: '「設備維修與費用責任」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「設備維修與費用責任」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「設備維修與費用責任」補齊書面約定或二次看房再確認。' },
+    rb_005: { positiveText: '「退租告知與看房規則」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「退租告知與看房規則」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「退租告知與看房規則」補齊書面約定或二次看房再確認。' },
+    rb_006: { positiveText: '「房東進入與隱私規則」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「房東進入與隱私規則」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「房東進入與隱私規則」補齊書面約定或二次看房再確認。' },
+    rb_007: { positiveText: '「熱水穩定度」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「熱水穩定度」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「熱水穩定度」補齊書面約定或二次看房再確認。' },
+    rb_008: { positiveText: '「天花板與夾層狀況」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「天花板與夾層狀況」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「天花板與夾層狀況」補齊書面約定或二次看房再確認。' },
+    rb_009: { positiveText: '「是否有壁癌／漏水」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「是否有壁癌／漏水」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「是否有壁癌／漏水」補齊書面約定或二次看房再確認。' },
+    rb_010: { positiveText: '「頂樓加蓋與違建風險」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「頂樓加蓋與違建風險」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「頂樓加蓋與違建風險」補齊書面約定或二次看房再確認。' },
+    rb_011: { positiveText: '「門鎖安全性」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「門鎖安全性」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「門鎖安全性」補齊書面約定或二次看房再確認。' },
+    rb_012: { positiveText: '「滅火器／逃生設備」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「滅火器／逃生設備」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「滅火器／逃生設備」補齊書面約定或二次看房再確認。' },
+    rb_013: { positiveText: '「室內隔音狀況」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「室內隔音狀況」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「室內隔音狀況」補齊書面約定或二次看房再確認。' },
+    rb_014: { positiveText: '「浴室通風與乾濕狀況」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「浴室通風與乾濕狀況」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「浴室通風與乾濕狀況」補齊書面約定或二次看房再確認。' },
+    rb_015: { positiveText: '「室內潮濕程度」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「室內潮濕程度」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「室內潮濕程度」補齊書面約定或二次看房再確認。' },
+    rb_016: { positiveText: '「排水與異味問題」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「排水與異味問題」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「排水與異味問題」補齊書面約定或二次看房再確認。' },
+    rb_017: { positiveText: '「室內監視器與偷拍風險」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「室內監視器與偷拍風險」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「室內監視器與偷拍風險」補齊書面約定或二次看房再確認。' },
+    rb_018: { positiveText: '「周邊噪音與夜間環境」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「周邊噪音與夜間環境」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「周邊噪音與夜間環境」補齊書面約定或二次看房再確認。' },
+    rb_019: { positiveText: '「緊急聯絡與管理窗口」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「緊急聯絡與管理窗口」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「緊急聯絡與管理窗口」補齊書面約定或二次看房再確認。' },
+    rb_020: { positiveText: '「蟲害與衛生狀況」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「蟲害與衛生狀況」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「蟲害與衛生狀況」補齊書面約定或二次看房再確認。' },
+    rb_021: { positiveText: '「夜間周邊安全感」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「夜間周邊安全感」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「夜間周邊安全感」補齊書面約定或二次看房再確認。' },
+    rb_022: { positiveText: '「水電費計算方式」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「水電費計算方式」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「水電費計算方式」補齊書面約定或二次看房再確認。' },
+    rb_023: { positiveText: '「管理費與其他費用」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「管理費與其他費用」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「管理費與其他費用」補齊書面約定或二次看房再確認。' },
+    rb_024: { positiveText: '「可否登記戶籍」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「可否登記戶籍」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「可否登記戶籍」補齊書面約定或二次看房再確認。' },
+    rb_025: { positiveText: '「寵物與開伙限制」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「寵物與開伙限制」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「寵物與開伙限制」補齊書面約定或二次看房再確認。' },
+    rb_026: { positiveText: '「冷氣是否為變頻款」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「冷氣是否為變頻款」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「冷氣是否為變頻款」補齊書面約定或二次看房再確認。' },
+    rb_027: { positiveText: '「網路與 WiFi 穩定度」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「網路與 WiFi 穩定度」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「網路與 WiFi 穩定度」補齊書面約定或二次看房再確認。' },
+    rb_028: { positiveText: '「插座與電力配置」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「插座與電力配置」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「插座與電力配置」補齊書面約定或二次看房再確認。' },
+    rb_029: { positiveText: '「隔間與牆面材質」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「隔間與牆面材質」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「隔間與牆面材質」補齊書面約定或二次看房再確認。' },
+    rb_030: { positiveText: '「採光與通風方向」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「採光與通風方向」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「採光與通風方向」補齊書面約定或二次看房再確認。' },
+    rb_031: { positiveText: '「西曬與室內溫度」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「西曬與室內溫度」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「西曬與室內溫度」補齊書面約定或二次看房再確認。' },
+    rb_032: { positiveText: '「通勤便利性」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「通勤便利性」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「通勤便利性」補齊書面約定或二次看房再確認。' },
+    rb_033: { positiveText: '「垃圾處理方式」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「垃圾處理方式」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「垃圾處理方式」補齊書面約定或二次看房再確認。' },
+    rb_034: { positiveText: '「手機訊號與死角」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「手機訊號與死角」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「手機訊號與死角」補齊書面約定或二次看房再確認。' },
+    rb_035: { positiveText: '「環境與鄰里組成」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「環境與鄰里組成」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「環境與鄰里組成」補齊書面約定或二次看房再確認。' },
+    rb_036: { positiveText: '「房東溝通與配合度」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「房東溝通與配合度」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「房東溝通與配合度」補齊書面約定或二次看房再確認。' },
+    rb_037: { positiveText: '「大樓管理與出入安全」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「大樓管理與出入安全」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「大樓管理與出入安全」補齊書面約定或二次看房再確認。' },
+    rb_038: { positiveText: '「室內氣味與空氣狀況」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「室內氣味與空氣狀況」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「室內氣味與空氣狀況」補齊書面約定或二次看房再確認。' },
+    rb_039: { positiveText: '「公共區域維護狀況」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「公共區域維護狀況」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「公共區域維護狀況」補齊書面約定或二次看房再確認。' },
+    rb_040: { positiveText: '「飲水與濾水設備」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「飲水與濾水設備」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「飲水與濾水設備」補齊書面約定或二次看房再確認。' },
+    rb_041: { positiveText: '「洗曬衣空間」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「洗曬衣空間」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「洗曬衣空間」補齊書面約定或二次看房再確認。' },
+    rb_042: { positiveText: '「廚房設備」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「廚房設備」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「廚房設備」補齊書面約定或二次看房再確認。' },
+    rb_043: { positiveText: '「工作與桌面空間」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「工作與桌面空間」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「工作與桌面空間」補齊書面約定或二次看房再確認。' },
+    rb_044: { positiveText: '「停車空間」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「停車空間」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「停車空間」補齊書面約定或二次看房再確認。' },
+    rb_045: { positiveText: '「收納空間」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「收納空間」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「收納空間」補齊書面約定或二次看房再確認。' },
+    rb_046: { positiveText: '「日常採買便利性」已掌握現場狀況，有利於後續比較與簽約判斷。', riskText: '「日常採買便利性」仍有疑慮或未釐清，建議列入待辦並與房東確認。', nextAction: '針對「日常採買便利性」補齊書面約定或二次看房再確認。' },
   };
 
-  /** Phase 4：PDF「重要明細」排序加權（越大越優先進入前 8 筆；與狀態／權重並用） */
   readonly itemReportPriorityBoost: Record<string, number> = {
-    s2: 18,
-    s4: 18,
-    s5: 18,
-    s3: 16,
-    c5: 16,
-    c3: 14,
-    n6: 14,
-    l4: 12,
-    f2: 10,
-    c7: 10,
-    s7: 8,
-    n5: 8,
-    n3: 8,
-    c1: 6,
-    c4: 6
+    rb_009: 18,
+    rb_010: 16,
+    rb_012: 18,
+    rb_011: 8,
+    rb_016: 12,
+    rb_020: 14,
+    rb_017: 8,
+    rb_002: 8,
+    rb_003: 8,
+    rb_007: 8,
   };
 
   readonly itemOptionConfig: Record<string, string[]> = {
-    /** Phase 2（結構化答案）：各分類 ≥70% 題目具細節選項，現場可多以點選完成 */
-    c1: ['房東願配合申請', '可申請但房東不配合', '不符合租補資格', '租補需確認'],
-    c2: ['台水台電', '房東自訂', '包水電', '需確認'],
-    c3: ['1個月', '2個月', '超過2個月', '需確認'],
-    c4: ['含在租金內', '另計（金額已知）', '另計需確認', '無管理費'],
-    c5: ['一年約', '半年約', '可提前解約', '違約金需確認'],
-    f1: ['變頻冷氣', '定頻冷氣', '無冷氣', '需確認機型'],
-    f2: ['熱水穩定', '水壓偏弱', '忽冷忽熱', '需現場測試'],
-    f3: ['有飲水機或濾水', '需自行添購', '共用設備', '需確認'],
-    f4: ['訊號穩定', '速度偏慢', '需測速', '可自行申辦'],
-    f6: ['有冰箱', '有爐具', '抽風佳', '油煙需注意'],
-    f9: ['插座足夠', '位置不便', '線路老舊', '需延長線'],
-    f10: ['衣櫃足夠', '鞋櫃不足', '雜物空間少', '可接受'],
-    s1: ['採光通風佳', '普通', '採光偏弱', '無對外窗需確認'],
-    s2: ['無明顯痕跡', '牆角潮濕', '窗框水痕', '天花板異常'],
-    s4: ['門鎖穩固', '可換鎖', '門框鬆動', '需加強'],
-    s6: ['安靜', '車流聲', '鄰戶聲', '晚上需複查'],
-    s7: ['有對外窗', '有抽風機', '霉味明顯', '排水需確認'],
-    l1: ['步行5分內可採買', '需騎車開車', '採買偏不便', '需確認'],
-    l2: ['步行可到捷運', '需轉乘', '通勤偏久', '尖峰需測試'],
-    l3: ['垃圾代收', '追垃圾車', '固定時段', '需確認'],
-    l4: ['排水順', '排水慢', '有異味', '需測試'],
-    n1: ['鄰居類型可接受', '家庭戶為主', '套房居多', '不明需複查'],
-    n2: ['回覆清楚', '態度保留', '條件模糊', '需白紙黑字'],
-    n3: ['環境安靜', '車流噪音', '店家噪音', '夜間需複查'],
-    /** 與房源條件「管理員」同一組選項，供連動 */
-    n4: ['有', '無', '不確定'],
-    n5: ['無異味', '菸味', '霉味', '油煙味', '寵物味'],
-    n6: ['無明顯痕跡', '蟑螂跡象', '螞蟻', '排水孔可疑']
+    rb_001: ['房東願配合', '房東不配合', '不符合資格', '補助條件限制'],
+    rb_002: ['1個月', '2個月', '超過2個月', '退還條件不明'],
+    rb_003: ['一年約', '可提前解約', '違約金 1 個月', '條件不明'],
+    rb_004: ['房東負責', '房客負責', '先修後報帳', '需提前通知'],
+    rb_005: ['提前 1 個月', '提前 2 個月', '可配合帶看', '房東可自行帶看'],
+    rb_006: ['需提前通知', '房東持有鑰匙', '可自行帶看', '緊急狀況可進入'],
+    rb_007: ['熱水穩定', '水壓偏弱', '忽冷忽熱', '熱水等待較久'],
+    rb_008: ['水泥天花板', '輕鋼架', '有維修痕跡', '疑似漏水'],
+    rb_009: ['無明顯異常', '牆角潮濕', '窗框水痕', '疑似漏水'],
+    rb_010: ['非頂加', '頂樓加蓋', '疑似違建', '隔熱不足'],
+    rb_011: ['電子鎖', '可自行換鎖', '門框鬆動', '木板門'],
+    rb_012: ['有滅火器', '逃生動線正常', '逃生受阻', '消防設備不足'],
+    rb_013: ['室內安靜', '車流聲明顯', '鄰居聲明顯', '樓上腳步聲'],
+    rb_014: ['有對外窗', '有抽風機', '霉味明顯', '排水不順'],
+    rb_015: ['空氣乾爽', '潮濕感明顯', '衣物難乾', '需長時間除濕'],
+    rb_016: ['排水正常', '浴室反味', '廚房異味', '雨天異味明顯'],
+    rb_017: ['無可疑設備', '公共區域監視器', '房內可疑設備', '不明電子設備'],
+    rb_018: ['環境安靜', '車流噪音', '店家噪音', '夜間人潮較多'],
+    rb_019: ['房東本人', '包租代管', '管理員協助', '無明確窗口'],
+    rb_020: ['無明顯痕跡', '蟑螂跡象', '螞蟻出沒', '排水孔可疑'],
+    rb_021: ['巷弄明亮', '人流正常', '晚上偏暗', '可疑人士聚集'],
+    rb_022: ['台水台電', '房東計價', '包水電', '夏季另計'],
+    rb_023: ['已含租金', '另計固定金額', '另計不固定', '項目不明'],
+    rb_024: ['可登記', '不可登記', '需額外申請', '限部分用途'],
+    rb_025: ['可養寵物', '禁止寵物', '可開伙', '禁止明火'],
+    rb_026: ['變頻冷氣', '定頻冷氣', '無冷氣', '冷氣年份較舊'],
+    rb_027: ['訊號穩定', '訊號偏弱', '網速偏慢', '可自行申辦'],
+    rb_028: ['插座足夠', '位置不便', '線路老舊', '需延長線'],
+    rb_029: ['水泥隔間', '輕隔間', '木作隔間', '隔音偏差'],
+    rb_030: ['採光佳', '通風佳', '白天偏暗', '空氣不流通'],
+    rb_031: ['無西曬', '下午偏熱', '西曬明顯', '頂樓較悶熱'],
+    rb_032: ['可步行到站', '需轉乘', '通勤時間較長', '尖峰時段擁擠'],
+    rb_033: ['垃圾代收', '固定時段', '需追垃圾車', '假日無清運'],
+    rb_034: ['訊號正常', '房間偏弱', '浴室偏弱', '室內死角'],
+    rb_035: ['家庭戶', '學生多', '套房多', '生活作息差異大'],
+    rb_036: ['回覆清楚', '態度保留', '條件模糊', '需白紙黑字'],
+    rb_037: ['有管理員', '24 小時管理', '白天管理員', '無管理員'],
+    rb_038: ['空氣正常', '霉味', '菸味', '油煙味', '寵物味'],
+    rb_039: ['公共區域整潔', '樓梯雜亂', '有垃圾堆放', '公共區域異味'],
+    rb_040: ['有濾水設備', '有飲水機', '需自行添購', '共用設備'],
+    rb_041: ['獨立陽台', '共用曬衣區', '室內曬衣', '通風較差'],
+    rb_042: ['有冰箱', '有爐具', '抽風佳', '油煙較重'],
+    rb_043: ['空間足夠', '桌面偏小', '插座不足', '不適合雙螢幕'],
+    rb_044: ['有機車位', '有汽車位', '需另租', '停車位不足'],
+    rb_045: ['收納足夠', '鞋櫃不足', '雜物空間偏少', '可接受'],
+    rb_046: ['超商方便', '超市方便', '需騎車採買', '生活機能普通'],
   };
 
+  /** 細節選項子字串：命中任一視為風險 chip（PDF 版已避免「需確認」選項文字） */
   readonly riskOptionKeywords = [
-    '需確認',
-    '需測試',
-    '需複查',
-    '需注意',
-    '不明',
-    '偏弱',
-    '偏慢',
-    '不便',
-    '不足',
-    '老舊',
-    '鬆動',
-    '潮濕',
-    '水痕',
-    '異常',
-    '車流',
-    '鄰戶',
-    '噪音',
-    '霉味',
-    '異味',
-    '菸味',
-    '油煙',
-    '寵物味',
-    '蟑螂',
-    '螞蟻',
-    '可疑',
     '不配合',
     '不符合',
-    '條件模糊',
+    '條件不明',
+    '項目不明',
+    '退還條件不明',
+    '補助條件限制',
+    '房客負責',
+    '可自行帶看',
+    '房東可自行帶看',
+    '持有鑰匙',
+    '偏弱',
+    '忽冷忽熱',
+    '較久',
+    '輕鋼架',
+    '維修痕跡',
+    '疑似漏水',
+    '牆角潮濕',
+    '窗框水痕',
+    '頂樓加蓋',
+    '疑似違建',
+    '隔熱不足',
+    '門框鬆動',
+    '木板門',
+    '受阻',
+    '消防設備不足',
+    '車流聲明顯',
+    '鄰居聲明顯',
+    '樓上腳步聲',
+    '霉味明顯',
+    '排水不順',
+    '潮濕感明顯',
+    '衣物難乾',
+    '需長時間除濕',
+    '浴室反味',
+    '廚房異味',
+    '雨天異味明顯',
+    '房內可疑設備',
+    '不明電子設備',
+    '車流噪音',
+    '店家噪音',
+    '夜間人潮較多',
+    '無明確窗口',
+    '蟑螂跡象',
+    '螞蟻出沒',
+    '排水孔可疑',
+    '晚上偏暗',
+    '可疑人士聚集',
+    '房東計價',
+    '夏季另計',
+    '另計不固定',
+    '不可登記',
+    '需額外申請',
+    '限部分用途',
+    '禁止寵物',
+    '禁止明火',
+    '定頻冷氣',
+    '無冷氣',
+    '冷氣年份較舊',
+    '訊號偏弱',
+    '網速偏慢',
+    '位置不便',
+    '線路老舊',
+    '需延長線',
+    '輕隔間',
+    '木作隔間',
+    '隔音偏差',
+    '白天偏暗',
+    '空氣不流通',
+    '下午偏熱',
+    '西曬明顯',
+    '頂樓較悶熱',
+    '需轉乘',
+    '通勤時間較長',
+    '尖峰時段擁擠',
+    '需追垃圾車',
+    '假日無清運',
+    '房間偏弱',
+    '浴室偏弱',
+    '室內死角',
+    '學生多',
+    '套房多',
+    '生活作息差異大',
     '態度保留',
-    '通勤偏久',
-    '轉乘',
-    '追垃圾車',
-    '排水慢',
-    '延長線'
+    '條件模糊',
+    '無管理員',
+    '霉味',
+    '菸味',
+    '油煙味',
+    '寵物味',
+    '樓梯雜亂',
+    '有垃圾堆放',
+    '公共區域異味',
+    '需自行添購',
+    '共用設備',
+    '共用曬衣區',
+    '室內曬衣',
+    '通風較差',
+    '油煙較重',
+    '桌面偏小',
+    '插座不足',
+    '不適合雙螢幕',
+    '需另租',
+    '停車位不足',
+    '鞋櫃不足',
+    '雜物空間偏少',
+    '需騎車採買',
+    '生活機能普通',
+    '疑似漏水'
   ];
 
+  private readonly nonRiskDetailOptions = new Set<string>([
+    '24 小時管理',
+    '一年約',
+    '人流正常',
+    '先修後報帳',
+    '公共區域整潔',
+    '公共區域監視器',
+    '包租代管',
+    '另計固定金額',
+    '可接受',
+    '可提前解約',
+    '可步行到站',
+    '可登記',
+    '可自行換鎖',
+    '可自行申辦',
+    '可配合帶看',
+    '可開伙',
+    '可養寵物',
+    '台水台電',
+    '回覆清楚',
+    '固定時段',
+    '垃圾代收',
+    '室內安靜',
+    '家庭戶',
+    '已含租金',
+    '巷弄明亮',
+    '房東本人',
+    '房東負責',
+    '房東願配合',
+    '抽風佳',
+    '排水正常',
+    '採光佳',
+    '提前 1 個月',
+    '提前 2 個月',
+    '插座足夠',
+    '收納足夠',
+    '有冰箱',
+    '有對外窗',
+    '有抽風機',
+    '有機車位',
+    '有汽車位',
+    '有滅火器',
+    '有濾水設備',
+    '有爐具',
+    '有管理員',
+    '有飲水機',
+    '水泥天花板',
+    '水泥隔間',
+    '無可疑設備',
+    '無明顯異常',
+    '無明顯痕跡',
+    '無西曬',
+    '熱水穩定',
+    '環境安靜',
+    '白天管理員',
+    '空氣乾爽',
+    '空氣正常',
+    '空間足夠',
+    '管理員協助',
+    '緊急狀況可進入',
+    '訊號正常',
+    '訊號穩定',
+    '變頻冷氣',
+    '超商方便',
+    '超市方便',
+    '逃生動線正常',
+    '通風佳',
+    '違約金 1 個月',
+    '電子鎖',
+    '需提前通知',
+    '非頂加'
+  ]);
   records: HouseRecord[] = [];
   activeRecordId = '';
   compareIds: string[] = [];
@@ -759,32 +813,32 @@ export class App implements OnInit, OnDestroy {
     return parts.length > 0 ? parts.join(' / ') : '未填寫';
   }
 
-  /** InBody Phase 3：房源條件 chips 與查核題 c1/c3/c4/c7/n4 連動（房源 → 查核） */
+  /** InBody Phase 3：房源條件 chips 與查核題 rb_001／rb_002／rb_023／rb_037／rb_025 連動（房源 → 查核） */
   private syncChecklistFromPropertyChoice(field: PropertyChoiceField): void {
     switch (field) {
       case 'depositMonths':
-        this.syncDepositMonthsToC3(this.activeRecord?.depositMonths ?? '');
+        this.syncDepositMonthsToLinked(this.activeRecord?.depositMonths ?? '');
         break;
       case 'managementFeeType':
-        this.syncManagementFeeToC4(this.activeRecord?.managementFeeType ?? '');
+        this.syncManagementFeeToLinked(this.activeRecord?.managementFeeType ?? '');
         break;
       case 'subsidyAvailable':
-        this.syncSubsidyToC1(this.activeRecord?.subsidyAvailable ?? '');
+        this.syncSubsidyToLinked(this.activeRecord?.subsidyAvailable ?? '');
         break;
       case 'hasManager':
-        this.syncHasManagerToN4(this.activeRecord?.hasManager ?? '');
+        this.syncHasManagerToLinked(this.activeRecord?.hasManager ?? '');
         break;
       case 'canCook':
       case 'canPet':
-        this.syncCookPetToC7();
+        this.syncCookPetToLinked();
         break;
       default:
         break;
     }
   }
 
-  private syncDepositMonthsToC3(months: string): void {
-    const st = this.state['c3'];
+  private syncDepositMonthsToLinked(months: string): void {
+    const st = this.state['rb_002'];
     if (!st) return;
     if (!months) {
       st.selectedOptions = [];
@@ -795,14 +849,14 @@ export class App implements OnInit, OnDestroy {
     this.syncQuickStatusFromOptions(st);
   }
 
-  private syncManagementFeeToC4(fee: string): void {
-    const st = this.state['c4'];
+  private syncManagementFeeToLinked(fee: string): void {
+    const st = this.state['rb_023'];
     if (!st) return;
     const map: Record<string, string> = {
-      含租金: '含在租金內',
-      另計: '另計（金額已知）',
-      無: '無管理費',
-      需確認: '另計需確認'
+      含租金: '已含租金',
+      另計: '另計固定金額',
+      無: '已含租金',
+      需確認: '另計不固定'
     };
     const mapped = fee ? map[fee] : '';
     if (!mapped) {
@@ -814,13 +868,13 @@ export class App implements OnInit, OnDestroy {
     this.syncQuickStatusFromOptions(st);
   }
 
-  private syncSubsidyToC1(subsidy: string): void {
-    const st = this.state['c1'];
+  private syncSubsidyToLinked(subsidy: string): void {
+    const st = this.state['rb_001'];
     if (!st) return;
     const map: Record<string, string> = {
-      可申請: '房東願配合申請',
-      不可: '不符合租補資格',
-      需確認: '租補需確認'
+      可申請: '房東願配合',
+      不可: '不符合資格',
+      需確認: '補助條件限制'
     };
     const mapped = subsidy ? map[subsidy] : '';
     if (!mapped) {
@@ -832,23 +886,28 @@ export class App implements OnInit, OnDestroy {
     this.syncQuickStatusFromOptions(st);
   }
 
-  private syncHasManagerToN4(manager: string): void {
-    const st = this.state['n4'];
+  private syncHasManagerToLinked(manager: string): void {
+    const st = this.state['rb_037'];
     if (!st) return;
     if (!manager) {
       st.selectedOptions = [];
       this.syncQuickStatusFromOptions(st);
       return;
     }
-    st.selectedOptions = [manager];
+    const map: Record<string, string> = {
+      有: '有管理員',
+      無: '無管理員',
+      不確定: '白天管理員'
+    };
+    st.selectedOptions = [map[manager] ?? ''];
     this.syncQuickStatusFromOptions(st);
   }
 
-  /** 房源「開伙／寵物」與查核 c7 同步（不覆寫備註） */
-  private syncCookPetToC7(): void {
+  /** 房源「開伙／寵物」與查核 rb_025 同步（不覆寫備註；細節 chip 另由使用者點選） */
+  private syncCookPetToLinked(): void {
     const record = this.activeRecord;
     if (!record) return;
-    const st = this.state['c7'];
+    const st = this.state['rb_025'];
     if (!st) return;
     const cook = record.canCook;
     const pet = record.canPet;
@@ -876,11 +935,11 @@ export class App implements OnInit, OnDestroy {
   private reconcileLinkedChecklistFromProperty(): void {
     const record = this.activeRecord;
     if (!record) return;
-    this.syncDepositMonthsToC3(record.depositMonths);
-    this.syncManagementFeeToC4(record.managementFeeType);
-    this.syncSubsidyToC1(record.subsidyAvailable);
-    this.syncHasManagerToN4(record.hasManager);
-    this.syncCookPetToC7();
+    this.syncDepositMonthsToLinked(record.depositMonths);
+    this.syncManagementFeeToLinked(record.managementFeeType);
+    this.syncSubsidyToLinked(record.subsidyAvailable);
+    this.syncHasManagerToLinked(record.hasManager);
+    this.syncCookPetToLinked();
   }
 
   /** 查核細節選項 → 回填房源條件（與 syncChecklistFromPropertyChoice 互補） */
@@ -889,32 +948,47 @@ export class App implements OnInit, OnDestroy {
     if (!record) return;
     const pick = itemState.selectedOptions[itemState.selectedOptions.length - 1] ?? '';
 
-    if (itemId === 'c3') {
+    if (itemId === 'rb_002') {
       record.depositMonths = pick;
       return;
     }
-    if (itemId === 'n4') {
-      record.hasManager = pick;
+    if (itemId === 'rb_037') {
+      const rev: Record<string, string> = {
+        有管理員: '有',
+        '24 小時管理': '有',
+        白天管理員: '有',
+        無管理員: '無'
+      };
+      record.hasManager = pick ? rev[pick] ?? '不確定' : '';
       return;
     }
-    if (itemId === 'c4') {
+    if (itemId === 'rb_023') {
       const rev: Record<string, string> = {
-        含在租金內: '含租金',
-        '另計（金額已知）': '另計',
-        另計需確認: '需確認',
-        無管理費: '無'
+        已含租金: '含租金',
+        另計固定金額: '另計',
+        另計不固定: '需確認',
+        項目不明: '需確認'
       };
       record.managementFeeType = pick ? rev[pick] ?? '' : '';
       return;
     }
-    if (itemId === 'c1') {
+    if (itemId === 'rb_001') {
       const rev: Record<string, string> = {
-        房東願配合申請: '可申請',
-        可申請但房東不配合: '不可',
-        不符合租補資格: '不可',
-        租補需確認: '需確認'
+        房東願配合: '可申請',
+        房東不配合: '不可',
+        不符合資格: '不可',
+        補助條件限制: '需確認'
       };
       record.subsidyAvailable = pick ? rev[pick] ?? '' : '';
+      return;
+    }
+    if (itemId === 'rb_025') {
+      const sel = new Set(itemState.selectedOptions);
+      if (sel.has('禁止寵物')) record.canPet = '不可';
+      else if (sel.has('可養寵物')) record.canPet = '可';
+      if (sel.has('禁止明火')) record.canCook = '不可';
+      else if (sel.has('可開伙')) record.canCook = '可';
+      return;
     }
   }
 
@@ -1214,7 +1288,7 @@ export class App implements OnInit, OnDestroy {
     if (current.quickStatus === status) {
       current.selectedOptions = [];
       this.syncQuickStatusFromOptions(current);
-      if (id === 'c1' || id === 'c3' || id === 'c4' || id === 'n4') {
+      if (this.propertySyncChecklistIds.has(id)) {
         this.syncPropertyFieldsFromLinkedChecklist(id, current);
       }
       this.touchActiveRecord();
@@ -1228,6 +1302,11 @@ export class App implements OnInit, OnDestroy {
 
   getItemOptions(id: string): string[] {
     return this.itemOptionConfig[id] ?? [];
+  }
+
+  getItemNotePlaceholder(id: string): string {
+    const row = this.items.find((it) => it.id === id);
+    return row?.notePlaceholder ?? '補充現場觀察或待釐清事項';
   }
 
   /**
@@ -1251,13 +1330,14 @@ export class App implements OnInit, OnDestroy {
     }
     current.selectedOptions = Array.from(selected);
     this.syncQuickStatusFromOptions(current);
-    if (id === 'c1' || id === 'c3' || id === 'c4' || id === 'n4') {
+    if (this.propertySyncChecklistIds.has(id)) {
       this.syncPropertyFieldsFromLinkedChecklist(id, current);
     }
     this.touchActiveRecord();
   }
 
   isRiskOption(option: string): boolean {
+    if (this.nonRiskDetailOptions.has(option)) return false;
     return this.riskOptionKeywords.some((keyword) => option.includes(keyword));
   }
 
@@ -2859,6 +2939,11 @@ ${this.reportDataJson}`;
       state.selectedOptions = state.selectedOptions ?? [];
     });
 
+    const prunedState: Record<string, ItemState> = {};
+    this.items.forEach((item) => {
+      prunedState[item.id] = normalizedState[item.id];
+    });
+
     return {
       id: record.id,
       name: record.name || '未命名',
@@ -2899,7 +2984,7 @@ ${this.reportDataJson}`;
       aiReportContent: this.normalizeAiReportContent(record.aiReportContent) ?? null,
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
-      state: normalizedState
+      state: prunedState
     };
   }
 
@@ -3416,9 +3501,10 @@ ${this.reportDataJson}`;
     });
     const quickMatched = quickFilters.length === 0 || quickFilters.some((filter) => quickStatus === filter);
     const priorityMatched = priorityFilters.length === 0 || priorityFilters.some((filter) => {
-      if (filter === 'priority_high') return riskConfig.weight >= 4;
-      if (filter === 'priority_normal') return riskConfig.weight >= 2 && riskConfig.weight <= 3;
-      return riskConfig.weight <= 1;
+      const tier = item.riskTier;
+      if (filter === 'priority_high') return tier === 'must';
+      if (filter === 'priority_normal') return tier === 'should';
+      return tier === 'later';
     });
     return statusMatched && quickMatched && priorityMatched;
   }
@@ -3436,11 +3522,17 @@ ${this.reportDataJson}`;
   }
 }
 
+type ChecklistRiskTier = 'must' | 'should' | 'later';
+
 interface ChecklistItem {
   id: string;
   cat: string;
   title: string;
   tip: string;
+  /** PDF 每題備註 placeholder */
+  notePlaceholder: string;
+  /** PDF：必查／建議確認／可後補 */
+  riskTier: ChecklistRiskTier;
 }
 
 /** InBody Phase 2：查核項結構化輸入類型（規格允許 number／text；目前查核題未使用） */
