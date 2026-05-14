@@ -13,6 +13,13 @@ type BeforeInstallPromptEventLike = Event & {
 /** 查核清單顯示範圍：精簡／標準／完整 */
 type ChecklistScopeMode = 'compact' | 'standard' | 'full';
 
+/** 操作教學單步（anchorId 對應畫面元素 id，null 表示不捲動至特定區塊） */
+interface TutorialStepDef {
+  anchorId: string | null;
+  title: string;
+  body: string;
+}
+
 @Component({
   selector: 'app-root',
   imports: [CommonModule, FormsModule],
@@ -541,6 +548,64 @@ export class App implements OnInit, OnDestroy {
   draftChecklistFilters: ChecklistFilterId[] = [];
   /** 查核清單範圍：精簡＝必須審查題、標準＋建議審查、完整＝全部 */
   checklistScopeMode: ChecklistScopeMode = 'compact';
+  /** 首次引導／操作教學 */
+  tutorialOpen = false;
+  tutorialStepIndex = 0;
+  /** 教學浮層貼上／貼下，避免遮住目前步驟的錨點 */
+  tutorialPanelEdge: 'top' | 'bottom' = 'bottom';
+  /** 教學遮罩：off、full 全灰、hole 四向留洞（介紹區保持原色） */
+  tutorialDimMode: 'off' | 'full' | 'hole' = 'off';
+  tutorialDimTopH = 0;
+  tutorialDimLeftW = 0;
+  tutorialDimHoleT = 0;
+  tutorialDimHoleL = 0;
+  tutorialDimHoleW = 0;
+  tutorialDimHoleH = 0;
+  tutorialDimRightLeft = 0;
+  tutorialDimRightW = 0;
+  tutorialDimBottomT = 0;
+  tutorialDimBottomH = 0;
+  readonly tutorialSteps: readonly TutorialStepDef[] = [
+    {
+      anchorId: null,
+      title: '歡迎使用 Rental Buddy',
+      body: '接下來用幾步帶你認識畫面：怎麼填查核、怎麼切清單範圍、怎麼看報告。隨時可點「跳過」結束教學。'
+    },
+    {
+      anchorId: 'tutorial-anchor-site-header',
+      title: '頂部與分頁',
+      body: '進度條顏色會跟著「精簡／標準／完整」變化。右上角可切換看房紀錄、匯出或還原備份。這裡可在「查核表」與「報告」之間切換。'
+    },
+    {
+      anchorId: 'tutorial-anchor-overview',
+      title: '現場快速摘要',
+      body: '先看地址與月租；可展開「看房前先記錄」填戶型與條件，多數會和下方查核題互相帶入，減少重複輸入。'
+    },
+    {
+      anchorId: 'tutorial-anchor-toolbar',
+      title: '分類與清單範圍',
+      body: '預設「精簡」只顯示必須先確認的題目；想看得更細可改「標準」或「完整」。分類可多選，縮小要處理的區塊。'
+    },
+    {
+      anchorId: 'tutorial-anchor-filter',
+      title: '篩選條件',
+      body: '點「篩選」可依狀態、評等、查核層級再縮小列表；套用後仍會遵守目前的精簡／標準／完整範圍。'
+    },
+    {
+      anchorId: 'tutorial-anchor-checklist-body',
+      title: '查核題目',
+      body: '已為你展開上方其中一題作示範：可先選評等，需要時再勾細節選項；備註可寫現場觀察。點標題可收合說明。'
+    },
+    {
+      anchorId: 'tutorial-anchor-footer',
+      title: '統計與報告',
+      body: '下方數字對應目前清單範圍內的完成度。完成查核後點「查看報告」可整理成摘要與列印。'
+    }
+  ];
+  private readonly tutorialStorageKey = 'rental-buddy-tutorial-completed-v1';
+  private tutorialRevealTimer: ReturnType<typeof window.setTimeout> | null = null;
+  /** 教學步驟 6 自動展開的題目 id，離開該步或結束教學時收合 */
+  private tutorialAutoExpandedItemId: string | null = null;
   /** 戶型區：與 `.custom-select` 同風格的下拉（layoutType / kitchenType） */
   overviewDropdownOpen: null | 'layoutType' | 'kitchenType' = null;
   /** 戶型區：房／廳／衛、廚房為選填，經「填寫更多」展開 */
@@ -629,7 +694,10 @@ export class App implements OnInit, OnDestroy {
 
   startApp(): void {
     this.showIntro = false;
-    this.tryShowPwaInstallBanner();
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(this.tutorialStorageKey) === '1') {
+      this.tryShowPwaInstallBanner();
+    }
+    this.scheduleFirstTutorialIfNeeded();
   }
 
   ngOnDestroy(): void {
@@ -640,6 +708,10 @@ export class App implements OnInit, OnDestroy {
     if (this.pwaInstallRevealTimer) {
       window.clearTimeout(this.pwaInstallRevealTimer);
       this.pwaInstallRevealTimer = null;
+    }
+    if (this.tutorialRevealTimer) {
+      window.clearTimeout(this.tutorialRevealTimer);
+      this.tutorialRevealTimer = null;
     }
     this.revokeAttachmentObjectUrls();
     this.destroyMapPicker();
@@ -1093,6 +1165,229 @@ export class App implements OnInit, OnDestroy {
     if (this.checklistScopeMode === 'compact') return '精簡';
     if (this.checklistScopeMode === 'standard') return '標準';
     return '完整';
+  }
+
+  get currentTutorialStep(): TutorialStepDef | null {
+    return this.tutorialSteps[this.tutorialStepIndex] ?? null;
+  }
+
+  get isLastTutorialStep(): boolean {
+    return this.tutorialStepIndex >= this.tutorialSteps.length - 1;
+  }
+
+  tutorialAnchorActive(anchorId: string): boolean {
+    const step = this.currentTutorialStep;
+    return Boolean(this.tutorialOpen && step?.anchorId === anchorId);
+  }
+
+  private scheduleFirstTutorialIfNeeded(): void {
+    if (typeof localStorage === 'undefined') return;
+    if (localStorage.getItem(this.tutorialStorageKey) === '1') return;
+    if (this.tutorialRevealTimer) {
+      window.clearTimeout(this.tutorialRevealTimer);
+      this.tutorialRevealTimer = null;
+    }
+    this.tutorialRevealTimer = window.setTimeout(() => {
+      this.tutorialRevealTimer = null;
+      if (this.showIntro || this.appConfirmOpen || this.tutorialOpen) return;
+      this.beginTutorial();
+    }, 950);
+  }
+
+  beginTutorial(): void {
+    if (this.pwaInstallRevealTimer) {
+      window.clearTimeout(this.pwaInstallRevealTimer);
+      this.pwaInstallRevealTimer = null;
+    }
+    this.showPwaInstallBanner = false;
+    this.tutorialOpen = true;
+    this.tutorialStepIndex = 0;
+    this.tutorialPanelEdge = 'bottom';
+    this.tutorialDimMode = 'full';
+    this.clearTutorialAutoExpandedItem();
+    this.currentPage = 'checklist';
+    this.closeChecklistFilterPanel();
+    this.isRecordMenuOpen = false;
+    this.closeMapPicker();
+    this.focusTutorialAnchorSoon();
+    this.cdr.markForCheck();
+  }
+
+  replayTutorial(): void {
+    this.isRecordMenuOpen = false;
+    this.beginTutorial();
+  }
+
+  finishTutorial(markCompleted: boolean): void {
+    this.clearTutorialAutoExpandedItem();
+    this.tutorialOpen = false;
+    this.tutorialDimMode = 'off';
+    if (markCompleted && typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.tutorialStorageKey, '1');
+    }
+    this.cdr.markForCheck();
+    this.tryShowPwaInstallBanner();
+  }
+
+  tutorialNext(): void {
+    if (this.isLastTutorialStep) {
+      this.finishTutorial(true);
+      return;
+    }
+    this.tutorialStepIndex += 1;
+    this.tutorialDimMode = 'full';
+    this.applyTutorialChecklistDemoExpand();
+    this.focusTutorialAnchorSoon();
+    this.cdr.markForCheck();
+  }
+
+  tutorialPrevious(): void {
+    if (this.tutorialStepIndex <= 0) return;
+    this.tutorialStepIndex -= 1;
+    this.tutorialDimMode = 'full';
+    this.applyTutorialChecklistDemoExpand();
+    this.focusTutorialAnchorSoon();
+    this.cdr.markForCheck();
+  }
+
+  tutorialSkip(): void {
+    this.finishTutorial(true);
+  }
+
+  private focusTutorialAnchorSoon(): void {
+    window.setTimeout(() => {
+      const id = this.currentTutorialStep?.anchorId;
+      if (!id) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        this.flushTutorialLayoutAfterScroll();
+        return;
+      }
+      document.getElementById(id)?.scrollIntoView({ block: 'center', behavior: 'auto' });
+      this.flushTutorialLayoutAfterScroll();
+    }, 0);
+  }
+
+  /** 捲動後等版面繪製再量測洞與浮層，避免聚光燈與錨點圈選不同步或跑版 */
+  private flushTutorialLayoutAfterScroll(): void {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.updateTutorialPanelPlacement();
+      });
+    });
+  }
+
+  private clearTutorialAutoExpandedItem(): void {
+    const demo = this.tutorialAutoExpandedItemId;
+    this.tutorialAutoExpandedItemId = null;
+    if (!demo || !this.state[demo]) return;
+    if (this.state[demo].expanded) {
+      this.state[demo].expanded = false;
+      this.touchActiveRecord();
+    }
+  }
+
+  /** 步驟 6（index 5）：自動展開清單第一題；離開該步時收合 */
+  private applyTutorialChecklistDemoExpand(): void {
+    this.clearTutorialAutoExpandedItem();
+    if (!this.tutorialOpen || this.tutorialStepIndex !== 5) return;
+    const first = this.filteredItems[0];
+    if (first && this.state[first.id]) {
+      this.state[first.id].expanded = true;
+      this.tutorialAutoExpandedItemId = first.id;
+      this.touchActiveRecord();
+    }
+  }
+
+  private updateTutorialPanelPlacement(): void {
+    if (!this.tutorialOpen) return;
+    // 步驟 3／7「現場快速摘要」：固定貼螢幕底，不抬高避開 footer（上方仍易擋住摘要卡）
+    if (this.tutorialStepIndex === 2) {
+      this.tutorialPanelEdge = 'bottom';
+      this.cdr.markForCheck();
+      this.updateTutorialDimLayout();
+      return;
+    }
+    const id = this.currentTutorialStep?.anchorId;
+    if (!id) {
+      this.tutorialPanelEdge = 'bottom';
+      this.cdr.markForCheck();
+      this.updateTutorialDimLayout();
+      return;
+    }
+    const el = document.getElementById(id);
+    if (!el) {
+      this.tutorialPanelEdge = 'bottom';
+      this.cdr.markForCheck();
+      this.updateTutorialDimLayout();
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight || 1;
+    const bottomReserve = this.currentPage === 'checklist' ? 230 : 150;
+    const bottomZoneTop = vh - bottomReserve;
+    const anchorMidY = rect.top + rect.height / 2;
+    const overlapsLowerUi = rect.bottom > bottomZoneTop - 4;
+    const preferTop = overlapsLowerUi || anchorMidY > vh * 0.52;
+    const topReserve = 150;
+    const anchorMostlyInUpperBand = rect.bottom < topReserve + rect.height * 0.35;
+    this.tutorialPanelEdge = preferTop && !anchorMostlyInUpperBand ? 'top' : 'bottom';
+    this.cdr.markForCheck();
+    this.updateTutorialDimLayout();
+  }
+
+  private updateTutorialDimLayout(): void {
+    if (!this.tutorialOpen) {
+      this.tutorialDimMode = 'off';
+      return;
+    }
+    const id = this.currentTutorialStep?.anchorId;
+    if (!id) {
+      this.tutorialDimMode = 'full';
+      this.cdr.markForCheck();
+      return;
+    }
+    const el = document.getElementById(id);
+    if (!el) {
+      this.tutorialDimMode = 'full';
+      this.cdr.markForCheck();
+      return;
+    }
+    const pad = 10;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let l = rect.left - pad;
+    let t = rect.top - pad;
+    let w = rect.width + pad * 2;
+    let h = rect.height + pad * 2;
+    l = Math.max(0, Math.min(l, vw - 48));
+    t = Math.max(0, Math.min(t, vh - 48));
+    w = Math.min(Math.max(w, 32), vw - l);
+    h = Math.min(Math.max(h, 32), vh - t);
+    if (w < 28 || h < 28) {
+      this.tutorialDimMode = 'full';
+      this.cdr.markForCheck();
+      return;
+    }
+    this.tutorialDimTopH = t;
+    this.tutorialDimLeftW = l;
+    this.tutorialDimHoleT = t;
+    this.tutorialDimHoleL = l;
+    this.tutorialDimHoleW = w;
+    this.tutorialDimHoleH = h;
+    this.tutorialDimRightLeft = l + w;
+    this.tutorialDimRightW = Math.max(0, vw - l - w);
+    this.tutorialDimBottomT = t + h;
+    this.tutorialDimBottomH = Math.max(0, vh - t - h);
+    this.tutorialDimMode = 'hole';
+    this.cdr.markForCheck();
+  }
+
+  @HostListener('window:resize')
+  onWindowResizeForTutorial(): void {
+    if (this.tutorialOpen) {
+      this.updateTutorialPanelPlacement();
+    }
   }
 
   get filteredItems(): ChecklistItem[] {
@@ -2631,6 +2926,7 @@ ${this.reportDataJson}`;
 
   private canOfferPwaInstall(): boolean {
     if (this.showIntro) return false;
+    if (this.tutorialOpen) return false;
     if (this.isStandaloneDisplay()) return false;
     if (localStorage.getItem(this.pwaInstallNeverKey) === '1') return false;
     const snoozeUntil = localStorage.getItem(this.pwaInstallSnoozeKey);
@@ -3567,6 +3863,11 @@ ${this.reportDataJson}`;
 
   @HostListener('document:keydown', ['$event'])
   onDocumentKeydown(event: KeyboardEvent): void {
+    if (this.tutorialOpen && event.key === 'Escape') {
+      event.preventDefault();
+      this.finishTutorial(true);
+      return;
+    }
     if (!this.appConfirmOpen || event.key !== 'Escape') return;
     event.preventDefault();
     this.closeAppConfirm(false);

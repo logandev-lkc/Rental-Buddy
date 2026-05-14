@@ -12,7 +12,11 @@
 }
 
 <div class="app-shell" [class.app-shell--inactive]="showIntro" [attr.aria-hidden]="showIntro ? 'true' : null">
-<header class="app-header">
+<header
+  class="app-header"
+  id="tutorial-anchor-site-header"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-site-header')"
+>
   <div class="header-top">
     <button type="button" class="logo" (click)="onBrandClick()" aria-label="回到頂端並關閉已開啟的面板">
       Rental <span>Buddy</span>
@@ -84,6 +88,9 @@
               </div>
               <p class="record-menu-backup-hint">匯出 JSON 會一併內嵌附件（檔案可能較大）；還原時會寫回本機瀏覽器。</p>
             </div>
+            <div class="record-menu-tutorial">
+              <button type="button" class="btn-outline small record-menu-tutorial-btn" (click)="replayTutorial()">操作教學</button>
+            </div>
           </div>
         }
       </div>
@@ -134,7 +141,11 @@
 }
 
 @if (currentPage === 'checklist') {
-<section class="checklist-overview-card">
+<section
+  class="checklist-overview-card"
+  id="tutorial-anchor-overview"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-overview')"
+>
   <div class="overview-head">
     <div class="overview-title">現場快速摘要</div>
   </div>
@@ -541,7 +552,13 @@
 }
 
 @if (currentPage === 'checklist') {
-<div class="category-toolbar" role="region" aria-labelledby="category-toolbar-heading">
+<div
+  class="category-toolbar"
+  role="region"
+  aria-labelledby="category-toolbar-heading"
+  id="tutorial-anchor-toolbar"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-toolbar')"
+>
   <div class="category-toolbar-head">
     <div class="category-toolbar-head-text">
       <div class="category-toolbar-title-row">
@@ -600,6 +617,8 @@
     <button
       type="button"
       class="category-chip category-chip-filter"
+      id="tutorial-anchor-filter"
+      [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-filter')"
       [class.active]="checklistFilterPanelOpen || activeChecklistFilters.length > 0"
       (click)="toggleChecklistFilterPanel()"
     >
@@ -1343,7 +1362,11 @@
 }
 
 @if (currentPage === 'checklist') {
-<div class="content">
+<div
+  class="content"
+  id="tutorial-anchor-checklist-body"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-checklist-body')"
+>
   @for (group of groupedItems; track group.cat) {
     <section class="section">
       @if (selectedCategoryIds.length !== 1) {
@@ -1461,7 +1484,7 @@
 </div>
 }
 
-@if (showPwaInstallBanner && !showIntro) {
+@if (showPwaInstallBanner && !showIntro && !tutorialOpen) {
   <aside
     class="pwa-install-banner"
     role="region"
@@ -1490,7 +1513,11 @@
 }
 
 @if (currentPage === 'checklist') {
-<footer class="bottom-bar">
+<footer
+  class="bottom-bar"
+  id="tutorial-anchor-footer"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-footer')"
+>
   <div class="bottom-stats compact">
     <div class="stat-chip good"><span class="num">{{ checklistBarConfirmed }}</span>已確認</div>
     <div class="stat-chip danger"><span class="num">{{ checklistBarFlagged }}</span>問題</div>
@@ -1516,6 +1543,57 @@
 }
 
 </div>
+
+@if (tutorialOpen && !showIntro) {
+  @if (tutorialDimMode === 'full') {
+    <div class="tutorial-backdrop-full" aria-hidden="true"></div>
+  }
+  @if (tutorialDimMode === 'hole') {
+    <div class="tutorial-dim tutorial-dim--top" [style.height.px]="tutorialDimTopH" aria-hidden="true"></div>
+    <div
+      class="tutorial-dim tutorial-dim--left"
+      [style.top.px]="tutorialDimHoleT"
+      [style.left.px]="0"
+      [style.width.px]="tutorialDimLeftW"
+      [style.height.px]="tutorialDimHoleH"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="tutorial-dim tutorial-dim--right"
+      [style.top.px]="tutorialDimHoleT"
+      [style.left.px]="tutorialDimRightLeft"
+      [style.width.px]="tutorialDimRightW"
+      [style.height.px]="tutorialDimHoleH"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="tutorial-dim tutorial-dim--bottom"
+      [style.top.px]="tutorialDimBottomT"
+      [style.height.px]="tutorialDimBottomH"
+      aria-hidden="true"
+    ></div>
+  }
+  <div
+    class="tutorial-panel"
+    [class.tutorial-panel--edge-top]="tutorialPanelEdge === 'top'"
+    [class.tutorial-panel--edge-bottom]="tutorialPanelEdge === 'bottom'"
+    [class.tutorial-panel--checklist-footer-space]="currentPage === 'checklist' && tutorialPanelEdge === 'bottom' && tutorialStepIndex !== 2"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tutorial-step-title"
+    (click)="$event.stopPropagation()"
+  >
+    <p class="tutorial-step-meta" aria-live="polite">步驟 {{ tutorialStepIndex + 1 }}／{{ tutorialSteps.length }}</p>
+    <h2 id="tutorial-step-title" class="tutorial-step-title">{{ currentTutorialStep?.title }}</h2>
+    <p class="tutorial-step-body">{{ currentTutorialStep?.body }}</p>
+    <p class="tutorial-step-hint">按 Esc 可結束（與「跳過」相同，之後不會再自動顯示本引導）。</p>
+    <div class="tutorial-step-actions">
+      <button type="button" class="btn-outline small" (click)="tutorialSkip()">跳過</button>
+      <button type="button" class="btn-outline small" [disabled]="tutorialStepIndex === 0" (click)="tutorialPrevious()">上一步</button>
+      <button type="button" class="btn-primary small" (click)="tutorialNext()">{{ isLastTutorialStep ? '完成' : '下一步' }}</button>
+    </div>
+  </div>
+}
 
 @if (appConfirmOpen) {
   <div class="app-confirm-backdrop" role="presentation" (click)="closeAppConfirm(false)">

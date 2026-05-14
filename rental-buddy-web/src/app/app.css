@@ -271,6 +271,128 @@
   background: linear-gradient(90deg, #e8a89e, #8f3d32);
 }
 
+.tutorial-backdrop-full {
+  position: fixed;
+  inset: 0;
+  z-index: 62;
+  background: rgba(44, 36, 32, 0.34);
+  pointer-events: auto;
+}
+
+.tutorial-dim {
+  position: fixed;
+  z-index: 62;
+  background: rgba(44, 36, 32, 0.34);
+  pointer-events: auto;
+}
+
+.tutorial-dim--top {
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+}
+
+.tutorial-dim--left {
+  box-sizing: border-box;
+}
+
+.tutorial-dim--right {
+  box-sizing: border-box;
+}
+
+.tutorial-dim--bottom {
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+
+.tutorial-panel {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  z-index: 63;
+  max-width: var(--desktop-max, 720px);
+  margin: 0 auto;
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(217, 123, 108, 0.28);
+  background: rgba(255, 253, 252, 0.99);
+  pointer-events: auto;
+}
+
+.tutorial-panel--edge-bottom {
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  top: auto;
+  box-shadow: 0 -10px 36px rgba(44, 36, 32, 0.18);
+}
+
+.tutorial-panel--edge-bottom.tutorial-panel--checklist-footer-space {
+  bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+}
+
+.tutorial-panel--edge-top {
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  box-shadow: 0 10px 36px rgba(44, 36, 32, 0.18);
+}
+
+.tutorial-step-meta {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-light);
+  letter-spacing: 0.02em;
+}
+
+.tutorial-step-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.tutorial-step-body {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-mid);
+}
+
+.tutorial-step-hint {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-light);
+}
+
+.tutorial-step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.tutorial-anchor-highlight {
+  outline: 3px solid var(--rose-deep);
+  outline-offset: 3px;
+  border-radius: 14px;
+  /* 換步時與聚光燈洞同幀對齊，避免 outline transition 造成圈選落後 */
+  transition: none;
+}
+
+.record-menu-tutorial {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.record-menu-tutorial-btn {
+  width: 100%;
+}
+
 .page-switch {
   margin-top: 10px;
   display: grid;
@@ -3950,7 +4072,10 @@
   .report-actions,
   .ai-import-panel,
   .intro-screen,
-  .pwa-install-banner {
+  .pwa-install-banner,
+  .tutorial-backdrop-full,
+  .tutorial-dim,
+  .tutorial-panel {
     display: none !important;
   }
 
