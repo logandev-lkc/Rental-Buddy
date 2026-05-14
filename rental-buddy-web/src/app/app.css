@@ -1695,25 +1695,46 @@
   margin-bottom: 8px;
 }
 
+@keyframes pwa-install-rise {
+  from {
+    transform: translate3d(0, calc(100% + 18px), 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
 .pwa-install-banner {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 39;
-  padding: 0 12px;
+  bottom: 0;
+  z-index: 45;
+  padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
+  animation: pwa-install-rise 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pwa-install-banner {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .pwa-install-banner .pwa-install-inner {
   pointer-events: auto;
   max-width: var(--desktop-max, 720px);
   margin: 0 auto;
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 12px 14px 14px;
+  border-radius: 16px 16px 0 0;
   border: 1px solid rgba(217, 123, 108, 0.28);
-  background: rgba(255, 253, 252, 0.97);
-  box-shadow: 0 -6px 28px rgba(44, 36, 32, 0.12);
+  border-bottom: 0;
+  background: rgba(255, 253, 252, 0.99);
+  box-shadow: 0 -10px 36px rgba(44, 36, 32, 0.16);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -3766,23 +3787,13 @@
   }
 }
 
-.pwa-install-banner--above-bottom {
-  bottom: calc(168px + env(safe-area-inset-bottom, 0px)) !important;
-}
-
-@media (min-width: 900px) {
-  .pwa-install-banner--above-bottom {
-    bottom: calc(132px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-}
-
 .intro-screen {
   position: fixed;
   inset: 0;
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--cream);
-  /* 高於 bottom-bar(38)／PWA 條(39)／附件預覽(65)，低於全站確認框(70) */
+  /* 高於 bottom-bar(38)／PWA 條(45)／附件預覽(65)，低於全站確認框(70) */
   z-index: 68;
   isolation: isolate;
   overscroll-behavior: none;

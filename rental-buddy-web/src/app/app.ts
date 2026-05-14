@@ -589,6 +589,9 @@ export class App implements OnInit, OnDestroy {
   private readonly pwaInstallNeverKey = 'rental-buddy-pwa-install-never';
   private readonly pwaInstallSnoozeKey = 'rental-buddy-pwa-install-snooze-until';
   private readonly pwaInstallSnoozeMs = 7 * 24 * 60 * 60 * 1000;
+  /** 進入主畫面後稍晚再顯示 PWA 提示，避免與首屏操作搶焦點 */
+  private pwaInstallRevealTimer: ReturnType<typeof window.setTimeout> | null = null;
+  private readonly pwaInstallRevealDelayMs = 1000;
   private mapInstance: L.Map | null = null;
   private mapMarker: L.CircleMarker | null = null;
 
@@ -628,6 +631,10 @@ export class App implements OnInit, OnDestroy {
     if (this.reconnectBannerTimer) {
       window.clearTimeout(this.reconnectBannerTimer);
       this.reconnectBannerTimer = null;
+    }
+    if (this.pwaInstallRevealTimer) {
+      window.clearTimeout(this.pwaInstallRevealTimer);
+      this.pwaInstallRevealTimer = null;
     }
     this.revokeAttachmentObjectUrls();
     this.destroyMapPicker();
@@ -2557,13 +2564,30 @@ ${this.reportDataJson}`;
   }
 
   tryShowPwaInstallBanner(): void {
+    if (this.pwaInstallRevealTimer) {
+      window.clearTimeout(this.pwaInstallRevealTimer);
+      this.pwaInstallRevealTimer = null;
+    }
     if (!this.canOfferPwaInstall()) {
       this.showPwaInstallBanner = false;
       return;
     }
     const chromiumInstall = !!this.installPromptEvent;
     const iosManual = this.isIosTouchDevice() && !chromiumInstall;
-    this.showPwaInstallBanner = chromiumInstall || iosManual;
+    const shouldOffer = chromiumInstall || iosManual;
+    if (!shouldOffer) {
+      this.showPwaInstallBanner = false;
+      return;
+    }
+    this.pwaInstallRevealTimer = window.setTimeout(() => {
+      this.pwaInstallRevealTimer = null;
+      if (!this.canOfferPwaInstall()) return;
+      const chromium = !!this.installPromptEvent;
+      const ios = this.isIosTouchDevice() && !chromium;
+      if (!(chromium || ios)) return;
+      this.showPwaInstallBanner = true;
+      this.cdr.markForCheck();
+    }, this.pwaInstallRevealDelayMs);
   }
 
   private canOfferPwaInstall(): boolean {
@@ -2591,11 +2615,19 @@ ${this.reportDataJson}`;
   }
 
   snoozePwaInstall(): void {
+    if (this.pwaInstallRevealTimer) {
+      window.clearTimeout(this.pwaInstallRevealTimer);
+      this.pwaInstallRevealTimer = null;
+    }
     localStorage.setItem(this.pwaInstallSnoozeKey, String(Date.now() + this.pwaInstallSnoozeMs));
     this.showPwaInstallBanner = false;
   }
 
   dismissPwaInstallForever(): void {
+    if (this.pwaInstallRevealTimer) {
+      window.clearTimeout(this.pwaInstallRevealTimer);
+      this.pwaInstallRevealTimer = null;
+    }
     localStorage.setItem(this.pwaInstallNeverKey, '1');
     this.showPwaInstallBanner = false;
   }
