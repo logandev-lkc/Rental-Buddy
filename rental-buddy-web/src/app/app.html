@@ -21,7 +21,7 @@
       @if (currentPage === 'report') {
         <div class="progress-text">{{ confirmedCount }} / {{ totalCount }} 項已確認</div>
       } @else {
-        <span class="sr-only">進度 {{ confirmedCount }} / {{ totalCount }} 項已確認</span>
+        <span class="sr-only">進度 {{ checklistBarConfirmed }} / {{ checklistBarTotal }} 項已確認（清單範圍：{{ checklistScopeModeLabel }}）</span>
       }
       <div class="record-menu">
         <button type="button" class="record-menu-trigger" (click)="toggleRecordMenu($event)">
@@ -89,8 +89,19 @@
       </div>
     </div>
   </div>
-  <div class="progress-bar-bg">
-    <div class="progress-bar-fill" [style.width.%]="progressPercent"></div>
+  <div
+    class="progress-bar-bg"
+    [class.progress-bar-bg--scope-compact]="currentPage === 'checklist' && checklistScopeMode === 'compact'"
+    [class.progress-bar-bg--scope-standard]="currentPage === 'checklist' && checklistScopeMode === 'standard'"
+    [class.progress-bar-bg--scope-full]="currentPage === 'checklist' && checklistScopeMode === 'full'"
+  >
+    <div
+      class="progress-bar-fill"
+      [class.progress-bar-fill--scope-compact]="currentPage === 'checklist' && checklistScopeMode === 'compact'"
+      [class.progress-bar-fill--scope-standard]="currentPage === 'checklist' && checklistScopeMode === 'standard'"
+      [class.progress-bar-fill--scope-full]="currentPage === 'checklist' && checklistScopeMode === 'full'"
+      [style.width.%]="headerProgressPercent"
+    ></div>
   </div>
   <div class="page-switch">
     <button class="page-btn" [class.active]="currentPage === 'checklist'" (click)="setPage('checklist')">查核表</button>
@@ -532,8 +543,46 @@
 @if (currentPage === 'checklist') {
 <div class="category-toolbar" role="region" aria-labelledby="category-toolbar-heading">
   <div class="category-toolbar-head">
-    <div class="category-toolbar-title" id="category-toolbar-heading">分類</div>
-    <p class="category-toolbar-hint" title="可多選分類；未選＝顯示全部；多選時依點選順序顯示各分類。">可多選；未選＝全部</p>
+    <div class="category-toolbar-head-text">
+      <div class="category-toolbar-title-row">
+        <div class="category-toolbar-title" id="category-toolbar-heading">分類</div>
+        <div class="checklist-scope-switch" role="radiogroup" aria-label="清單範圍">
+          <button
+            type="button"
+            class="scope-mode-btn scope-mode-btn--compact"
+            [class.active]="checklistScopeMode === 'compact'"
+            [attr.aria-checked]="checklistScopeMode === 'compact'"
+            role="radio"
+            (click)="setChecklistScopeMode('compact')"
+          >
+            精簡
+          </button>
+          <button
+            type="button"
+            class="scope-mode-btn scope-mode-btn--standard"
+            [class.active]="checklistScopeMode === 'standard'"
+            [attr.aria-checked]="checklistScopeMode === 'standard'"
+            role="radio"
+            (click)="setChecklistScopeMode('standard')"
+          >
+            標準
+          </button>
+          <button
+            type="button"
+            class="scope-mode-btn scope-mode-btn--full"
+            [class.active]="checklistScopeMode === 'full'"
+            [attr.aria-checked]="checklistScopeMode === 'full'"
+            role="radio"
+            (click)="setChecklistScopeMode('full')"
+          >
+            完整
+          </button>
+        </div>
+      </div>
+      <p class="category-toolbar-hint" title="可多選分類；未選＝顯示全部；多選時依點選順序顯示各分類。清單範圍可縮小題數。">
+        可多選；未選＝全部 · 精簡／標準／完整切換題數
+      </p>
+    </div>
   </div>
   <div class="category-chips" role="group" aria-label="分類篩選（可多選；未選＝全部）">
     @for (cat of categories; track cat.id) {
@@ -1443,9 +1492,9 @@
 @if (currentPage === 'checklist') {
 <footer class="bottom-bar">
   <div class="bottom-stats compact">
-    <div class="stat-chip good"><span class="num">{{ confirmedCount }}</span>已確認</div>
-    <div class="stat-chip danger"><span class="num">{{ flaggedCount }}</span>問題</div>
-    <div class="stat-chip"><span class="num">{{ leftCount }}</span>待確認</div>
+    <div class="stat-chip good"><span class="num">{{ checklistBarConfirmed }}</span>已確認</div>
+    <div class="stat-chip danger"><span class="num">{{ checklistBarFlagged }}</span>問題</div>
+    <div class="stat-chip"><span class="num">{{ checklistBarLeft }}</span>待確認</div>
   </div>
   <div class="action-row">
     <button class="btn-primary" (click)="openReportPage()">查看報告</button>

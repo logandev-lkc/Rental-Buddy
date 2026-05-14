@@ -244,7 +244,31 @@
 .progress-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--rose), var(--rose-deep));
-  transition: width 0.25s ease;
+  transition: width 0.25s ease, background 0.2s ease;
+}
+
+.progress-bar-bg--scope-compact {
+  background: rgba(30, 77, 50, 0.12);
+}
+
+.progress-bar-bg--scope-standard {
+  background: rgba(148, 102, 18, 0.14);
+}
+
+.progress-bar-bg--scope-full {
+  background: rgba(180, 90, 72, 0.14);
+}
+
+.progress-bar-fill--scope-compact {
+  background: linear-gradient(90deg, #8fc4a8, #1e5a3a);
+}
+
+.progress-bar-fill--scope-standard {
+  background: linear-gradient(90deg, #f0c278, #9a6310);
+}
+
+.progress-bar-fill--scope-full {
+  background: linear-gradient(90deg, #e8a89e, #8f3d32);
 }
 
 .page-switch {
@@ -1299,10 +1323,21 @@
 
 .category-toolbar-head {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.category-toolbar-head-text {
+  width: 100%;
+}
+
+.category-toolbar-title-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .category-toolbar-title {
@@ -1315,18 +1350,63 @@
 
 .category-toolbar-hint {
   margin: 0;
-  flex: 1;
-  min-width: 0;
-  max-width: 62%;
+  width: 100%;
+  max-width: 100%;
   font-size: 9px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.35;
   letter-spacing: 0.01em;
   color: var(--ink-light);
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: left;
+  white-space: normal;
+}
+
+.checklist-scope-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(44, 36, 32, 0.06);
+  gap: 2px;
+}
+
+.scope-mode-btn {
+  margin: 0;
+  border: 0;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--ink-mid);
+  background: transparent;
+  cursor: pointer;
+  line-height: 1.2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scope-mode-btn.active.scope-mode-btn--compact {
+  background: #dbece2;
+  color: #1e4d32;
+  box-shadow: 0 0 0 1px rgba(30, 77, 50, 0.18);
+}
+
+.scope-mode-btn.active.scope-mode-btn--standard {
+  background: #fdebd0;
+  color: #5c3d09;
+  box-shadow: 0 0 0 1px rgba(148, 102, 18, 0.22);
+}
+
+.scope-mode-btn.active.scope-mode-btn--full {
+  background: rgba(232, 168, 158, 0.55);
+  color: #5c241c;
+  box-shadow: 0 0 0 1px rgba(180, 90, 72, 0.35);
+}
+
+.scope-mode-btn:focus-visible {
+  outline: 2px solid rgba(217, 123, 108, 0.55);
+  outline-offset: 2px;
 }
 
 .category-chips {

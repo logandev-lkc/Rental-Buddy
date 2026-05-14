@@ -10,6 +10,9 @@ type BeforeInstallPromptEventLike = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+/** 查核清單顯示範圍：精簡／標準／完整 */
+type ChecklistScopeMode = 'compact' | 'standard' | 'full';
+
 @Component({
   selector: 'app-root',
   imports: [CommonModule, FormsModule],
@@ -536,6 +539,8 @@ export class App implements OnInit, OnDestroy {
   checklistFilterPanelOpen = false;
   activeChecklistFilters: ChecklistFilterId[] = [];
   draftChecklistFilters: ChecklistFilterId[] = [];
+  /** 查核清單範圍：精簡＝必須審查題、標準＋建議審查、完整＝全部 */
+  checklistScopeMode: ChecklistScopeMode = 'compact';
   /** 戶型區：與 `.custom-select` 同風格的下拉（layoutType / kitchenType） */
   overviewDropdownOpen: null | 'layoutType' | 'kitchenType' = null;
   /** 戶型區：房／廳／衛、廚房為選填，經「填寫更多」展開 */
@@ -1037,11 +1042,65 @@ export class App implements OnInit, OnDestroy {
       .filter((record): record is HouseRecord => Boolean(record));
   }
 
+  get itemsInChecklistScope(): ChecklistItem[] {
+    if (this.checklistScopeMode === 'compact') {
+      return this.items.filter((item) => item.riskTier === 'must');
+    }
+    if (this.checklistScopeMode === 'standard') {
+      return this.items.filter((item) => item.riskTier === 'must' || item.riskTier === 'should');
+    }
+    return this.items;
+  }
+
+  /** 查核表頁頂進度條：依目前範圍內已確認比例 */
+  get headerProgressPercent(): number {
+    if (this.currentPage !== 'checklist') {
+      return this.progressPercent;
+    }
+    const total = this.checklistBarTotal;
+    if (total === 0) return 0;
+    return Math.round((this.checklistBarConfirmed / total) * 100);
+  }
+
+  /** 範圍內：已勾選或已標記問題（與底部「已確認」chip 一致） */
+  get checklistBarConfirmed(): number {
+    return this.itemsInChecklistScope.filter(
+      (item) => this.state[item.id]?.checked || this.state[item.id]?.flagged
+    ).length;
+  }
+
+  get checklistBarFlagged(): number {
+    return this.itemsInChecklistScope.filter((item) => this.state[item.id]?.flagged).length;
+  }
+
+  get checklistBarLeft(): number {
+    return this.itemsInChecklistScope.filter(
+      (item) => !this.state[item.id]?.checked && !this.state[item.id]?.flagged
+    ).length;
+  }
+
+  get checklistBarTotal(): number {
+    return this.itemsInChecklistScope.length;
+  }
+
+  setChecklistScopeMode(mode: ChecklistScopeMode): void {
+    if (this.checklistScopeMode === mode) return;
+    this.checklistScopeMode = mode;
+    this.saveState();
+  }
+
+  get checklistScopeModeLabel(): string {
+    if (this.checklistScopeMode === 'compact') return '精簡';
+    if (this.checklistScopeMode === 'standard') return '標準';
+    return '完整';
+  }
+
   get filteredItems(): ChecklistItem[] {
+    const scoped = this.itemsInChecklistScope;
     const baseItems =
       this.selectedCategoryIds.length === 0
-        ? this.items
-        : this.items.filter((item) => this.selectedCategoryIds.includes(item.cat));
+        ? scoped
+        : scoped.filter((item) => this.selectedCategoryIds.includes(item.cat));
     if (this.activeChecklistFilters.length === 0) return baseItems;
     return baseItems.filter((item) => this.matchesChecklistFilters(item));
   }
@@ -1349,8 +1408,11 @@ export class App implements OnInit, OnDestroy {
   }
 
   countDoneByCategory(cat: string): string {
-    const items = this.items.filter((item) => item.cat === cat);
-    const confirmed = items.filter((item) => this.state[item.id]?.checked || this.state[item.id]?.flagged).length;
+    const items = this.itemsInChecklistScope.filter((item) => item.cat === cat);
+    if (items.length === 0) return '—';
+    const confirmed = items.filter(
+      (item) => this.state[item.id]?.checked || this.state[item.id]?.flagged
+    ).length;
     return `${confirmed}/${items.length}`;
   }
 
@@ -2638,12 +2700,19 @@ ${this.reportDataJson}`;
         records?: HouseRecord[];
         activeRecordId?: string;
         compareIds?: string[];
+        checklistScopeMode?: ChecklistScopeMode;
       };
       this.records = (saved.records ?? []).map((record) => this.normalizeRecord(record));
       this.activeRecordId = saved.activeRecordId ?? '';
       this.compareIds = (saved.compareIds ?? []).filter((id) =>
         this.records.some((record) => record.id === id)
       );
+      const sm = saved.checklistScopeMode;
+      if (sm === 'compact' || sm === 'standard' || sm === 'full') {
+        this.checklistScopeMode = sm;
+      } else {
+        this.checklistScopeMode = 'compact';
+      }
     } catch {
       this.records = [];
       this.activeRecordId = '';
@@ -2675,7 +2744,8 @@ ${this.reportDataJson}`;
       JSON.stringify({
         records: this.records,
         activeRecordId: this.activeRecordId,
-        compareIds: this.compareIds
+        compareIds: this.compareIds,
+        checklistScopeMode: this.checklistScopeMode
       })
     );
   }
@@ -2712,7 +2782,8 @@ ${this.reportDataJson}`;
         data: {
           records: this.records,
           activeRecordId: this.activeRecordId,
-          compareIds: this.compareIds
+          compareIds: this.compareIds,
+          checklistScopeMode: this.checklistScopeMode
         },
         attachmentPayloads
       };
@@ -2778,6 +2849,9 @@ ${this.reportDataJson}`;
       const compareIds = Array.isArray(inner['compareIds'])
         ? (inner['compareIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
         : [];
+      const rawScope = inner['checklistScopeMode'];
+      const checklistScopeMode: ChecklistScopeMode | undefined =
+        rawScope === 'compact' || rawScope === 'standard' || rawScope === 'full' ? rawScope : undefined;
 
       let attachmentPayloads: BackupAttachmentPayload[] | undefined;
       const rawAtt = root['attachmentPayloads'];
@@ -2795,7 +2869,7 @@ ${this.reportDataJson}`;
           .filter((item): item is BackupAttachmentPayload => item !== null);
       }
 
-      return { records, activeRecordId, compareIds, attachmentPayloads };
+      return { records, activeRecordId, compareIds, attachmentPayloads, checklistScopeMode };
     } catch {
       return null;
     }
@@ -2809,6 +2883,9 @@ ${this.reportDataJson}`;
     this.records = records;
     this.compareIds = data.compareIds.filter((id) => records.some((r) => r.id === id));
     this.activeRecordId = records.some((r) => r.id === data.activeRecordId) ? data.activeRecordId : records[0].id;
+    if (data.checklistScopeMode === 'compact' || data.checklistScopeMode === 'standard' || data.checklistScopeMode === 'full') {
+      this.checklistScopeMode = data.checklistScopeMode;
+    }
     this.syncEditingRecordName();
     this.saveState();
 
@@ -3554,6 +3631,8 @@ interface ItemReportCopyConfig {
   nextAction: string;
 }
 
+type QuickStatus = 'good' | 'ok' | 'attention' | 'bad' | 'unknown';
+
 interface ItemState {
   checked: boolean;
   flagged: boolean;
@@ -3563,7 +3642,6 @@ interface ItemState {
   selectedOptions: string[];
 }
 
-type QuickStatus = 'good' | 'ok' | 'attention' | 'bad' | 'unknown';
 type ChecklistFilterId =
   | 'pending'
   | 'confirmed'
@@ -3646,6 +3724,7 @@ interface ParsedBackupPayload {
   activeRecordId: string;
   compareIds: string[];
   attachmentPayloads?: BackupAttachmentPayload[];
+  checklistScopeMode?: ChecklistScopeMode;
 }
 
 interface BackupFileV1 {
@@ -3656,6 +3735,7 @@ interface BackupFileV1 {
     records: HouseRecord[];
     activeRecordId: string;
     compareIds: string[];
+    checklistScopeMode?: ChecklistScopeMode;
   };
 }
 
