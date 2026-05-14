@@ -91,14 +91,14 @@ export class App implements OnInit, OnDestroy {
     { id: 'ok', label: '可接受', group: 'quick' },
     { id: 'attention', label: '需注意', group: 'quick' },
     { id: 'bad', label: '很不理想', group: 'quick' },
-    { id: 'priority_high', label: '高優先', group: 'priority' },
-    { id: 'priority_normal', label: '一般', group: 'priority' },
-    { id: 'priority_later', label: '可後補', group: 'priority' }
+    { id: 'priority_high', label: '必須審查', group: 'priority' },
+    { id: 'priority_normal', label: '建議審查', group: 'priority' },
+    { id: 'priority_later', label: '補充條件', group: 'priority' }
   ];
   readonly checklistFilterGroups: Array<{ id: ChecklistFilterGroupId; label: string }> = [
     { id: 'status', label: '狀態' },
     { id: 'quick', label: '評等' },
-    { id: 'priority', label: '重要性' }
+    { id: 'priority', label: '查核層級' }
   ];
   readonly propertyChoiceGroups: Array<{ field: PropertyChoiceField; label: string; options: string[] }> = [
     { field: 'buildingType', label: '建物類型', options: ['電梯大樓', '公寓', '套房', '雅房', '分租'] },
@@ -1436,29 +1436,6 @@ export class App implements OnInit, OnDestroy {
 
   getFiltersByGroup(groupId: ChecklistFilterGroupId): Array<{ id: ChecklistFilterId; label: string; group: ChecklistFilterGroupId }> {
     return this.checklistFilterOptions.filter((option) => option.group === groupId);
-  }
-
-  applyChecklistFilterPreset(preset: ChecklistFilterPreset): void {
-    if (preset === 'clear') {
-      this.clearChecklistFilters();
-      return;
-    }
-    if (preset === 'pending_only') {
-      this.draftChecklistFilters = ['pending'];
-      return;
-    }
-    if (preset === 'attention_only') {
-      this.draftChecklistFilters = ['attention', 'bad'];
-      return;
-    }
-    this.draftChecklistFilters = ['priority_high'];
-  }
-
-  isChecklistFilterPresetActive(preset: ChecklistFilterPreset): boolean {
-    if (preset === 'clear') return this.draftChecklistFilters.length === 0;
-    if (preset === 'pending_only') return this.hasOnlyChecklistFilters(['pending'], this.draftChecklistFilters);
-    if (preset === 'attention_only') return this.hasOnlyChecklistFilters(['attention', 'bad'], this.draftChecklistFilters);
-    return this.hasOnlyChecklistFilters(['priority_high'], this.draftChecklistFilters);
   }
 
   openMapPicker(): void {
@@ -3541,12 +3518,6 @@ ${this.reportDataJson}`;
     return statusMatched && quickMatched && priorityMatched;
   }
 
-  private hasOnlyChecklistFilters(filters: ChecklistFilterId[], source: ChecklistFilterId[]): boolean {
-    if (source.length !== filters.length) return false;
-    const set = new Set(filters);
-    return filters.every((filter) => source.includes(filter)) && source.every((f) => set.has(f));
-  }
-
   private getChecklistFilterGroup(filterId: ChecklistFilterId): ChecklistFilterGroupId {
     if (filterId === 'pending' || filterId === 'confirmed') return 'status';
     if (filterId === 'good' || filterId === 'ok' || filterId === 'attention' || filterId === 'bad') return 'quick';
@@ -3604,7 +3575,6 @@ type ChecklistFilterId =
   | 'priority_normal'
   | 'priority_later';
 type ChecklistFilterGroupId = 'status' | 'quick' | 'priority';
-type ChecklistFilterPreset = 'pending_only' | 'attention_only' | 'priority_high_only' | 'clear';
 
 type PropertyChoiceField =
   | 'buildingType'

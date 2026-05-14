@@ -584,20 +584,6 @@
             </div>
           </div>
         }
-        <div class="property-choice-group">
-          <div class="property-choice-label">快捷</div>
-          <div class="property-choice-chips">
-            <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('pending_only')" (click)="applyChecklistFilterPreset('pending_only')">
-              只看待確認
-            </button>
-            <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('attention_only')" (click)="applyChecklistFilterPreset('attention_only')">
-              只看問題
-            </button>
-            <button type="button" class="property-choice-chip" [class.active]="isChecklistFilterPresetActive('priority_high_only')" (click)="applyChecklistFilterPreset('priority_high_only')">
-              只看高優先
-            </button>
-          </div>
-        </div>
       </div>
       <footer class="category-filter-sheet-foot">
         <button
