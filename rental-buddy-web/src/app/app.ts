@@ -582,43 +582,43 @@ export class App implements OnInit, OnDestroy {
   readonly tutorialSteps: readonly TutorialStepDef[] = [
     {
       anchorId: null,
-      title: '歡迎使用 Rental Buddy',
-      body: '接下來用幾步帶你認識畫面：怎麼填查核、怎麼切清單範圍、怎麼看報告。隨時可點「跳過」結束教學。'
+      title: '歡迎',
+      body: '幾步帶你看主要功能。隨時可「跳過」。'
     },
     {
       anchorId: 'tutorial-anchor-site-header',
       title: '頂部與分頁',
-      body: '進度條顏色會跟著「精簡／標準／完整」變化。右上角是看房紀錄入口（下一步會展開選單，含備份與「操作教學」）。這裡可在「查核表」與「報告」之間切換。'
+      body: '切換「查核表」與「報告」。右上角管理看房紀錄。'
     },
     {
       anchorId: 'tutorial-anchor-record-menu',
       title: '紀錄與備份',
-      body: '點右上角紀錄名稱可開啟此選單：切換／重新命名／新增或刪除紀錄，以及匯出 JSON、從檔案還原。之後想再看引導，請點選單最下方的「操作教學」。'
+      body: '切換、命名、新增或刪除紀錄；可匯出 JSON 或從檔案還原。重看教學點「操作教學」。'
     },
     {
       anchorId: 'tutorial-anchor-overview',
-      title: '現場快速摘要',
-      body: '先看地址與月租；可展開「看房前先記錄」填戶型與條件，多數會和下方查核題互相帶入，減少重複輸入。'
+      title: '快速摘要',
+      body: '填地址與月租；展開「看房前先記錄」可填戶型，部分會帶入下方查核題。'
     },
     {
       anchorId: 'tutorial-anchor-toolbar',
-      title: '分類與清單範圍',
-      body: '預設「精簡」只顯示必須先確認的題目；想看得更細可改「標準」或「完整」。分類可多選，縮小要處理的區塊。'
+      title: '清單範圍',
+      body: '「精簡／標準／完整」控制題目數量。分類可多選。'
     },
     {
       anchorId: 'tutorial-anchor-filter',
-      title: '篩選條件',
-      body: '點「篩選」可依狀態、評等、查核層級再縮小列表；套用後仍會遵守目前的精簡／標準／完整範圍。'
+      title: '篩選',
+      body: '依狀態、評等、層級篩選列表。'
     },
     {
       anchorId: 'tutorial-anchor-checklist-body',
       title: '查核題目',
-      body: '已為你展開上方其中一題作示範：可先選評等，需要時再勾細節選項；備註可寫現場觀察。點標題可收合說明。'
+      body: '選評等、勾選項、寫備註。點標題可收合。'
     },
     {
       anchorId: 'tutorial-anchor-footer',
       title: '統計與報告',
-      body: '下方數字對應目前清單範圍內的完成度。完成查核後點「查看報告」可整理成摘要與列印。'
+      body: '數字為完成度。點「查看報告」看摘要，可分享或存成 PDF。'
     }
   ];
   private readonly tutorialStorageKey = 'rental-buddy-tutorial-completed-v1';
@@ -652,7 +652,7 @@ export class App implements OnInit, OnDestroy {
   isReverseGeocoding = false;
   isLocating = false;
   showIntro = true;
-  /** F-010：PWA 安裝提示（Android/Desktop Chrome 等有原生安裝事件） */
+  /** F-010：PWA 安裝提示（僅手機／平板觸控；iOS 手動加入主畫面、Android 原生安裝） */
   installPromptEvent: BeforeInstallPromptEventLike | null = null;
   showPwaInstallBanner = false;
   /** F-011：離線狀態提示列 */
@@ -3049,6 +3049,14 @@ ${this.reportDataJson}`;
     return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   }
 
+  /** 產品預設僅手機／平板觸控；排除桌面瀏覽器 */
+  private isMobileTouchClient(): boolean {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+    if (this.isIosTouchDevice()) return true;
+    if (/Android/i.test(navigator.userAgent)) return true;
+    return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  }
+
   /** @param immediate 教學剛按「完成」等：不延遲 1 秒再顯示 */
   tryShowPwaInstallBanner(immediate = false): void {
     if (this.pwaInstallRevealTimer) {
@@ -3059,7 +3067,7 @@ ${this.reportDataJson}`;
       this.showPwaInstallBanner = false;
       return;
     }
-    const chromiumInstall = !!this.installPromptEvent;
+    const chromiumInstall = !!this.installPromptEvent && this.isMobileTouchClient();
     const iosManual = this.isIosTouchDevice() && !chromiumInstall;
     const shouldOffer = chromiumInstall || iosManual;
     if (!shouldOffer) {
@@ -3078,7 +3086,7 @@ ${this.reportDataJson}`;
 
   private revealPwaInstallBannerIfEligible(): void {
     if (!this.canOfferPwaInstall()) return;
-    const chromium = !!this.installPromptEvent;
+    const chromium = !!this.installPromptEvent && this.isMobileTouchClient();
     const ios = this.isIosTouchDevice() && !chromium;
     if (!(chromium || ios)) return;
     this.showPwaInstallBanner = true;

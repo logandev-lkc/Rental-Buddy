@@ -1,13 +1,17 @@
 @if (showIntro) {
   <div class="intro-screen">
-    <div class="intro-icon">🏠</div>
-    <h1 class="intro-title">Rental Buddy<br /><span>看房不踩雷</span></h1>
-    <p class="intro-desc">
-      第一次租屋不知道要注意什麼？<br />
-      帶著這份清單去看房，逐項確認，讓你租得安心又放心。
-    </p>
-    <button class="intro-start" (click)="startApp()">開始看房</button>
-    <p class="intro-note">完全免費 · 不需要登入 · 資料存在本機</p>
+    <div class="intro-content">
+      <div class="intro-icon" aria-hidden="true">🏠</div>
+      <h1 class="intro-title">
+        <span class="intro-title-brand">Rental Buddy</span>
+        <span class="intro-title-tagline">看房不踩雷</span>
+      </h1>
+      <p class="intro-desc">
+        第一次租屋不知道要注意什麼？帶著這份清單去看房，逐項確認，讓你租得安心又放心。
+      </p>
+      <button type="button" class="intro-start" (click)="startApp()">開始看房</button>
+      <p class="intro-note">完全免費 · 不需要登入 · 資料存在本機</p>
+    </div>
   </div>
 }
 
@@ -719,7 +723,7 @@
       [class.active]="reportViewMode === 'friendly'"
       (click)="setReportViewMode('friendly')"
     >
-      手機版檢視
+      圖文版
     </button>
     <button
       type="button"
@@ -727,7 +731,7 @@
       [class.active]="reportViewMode === 'compact'"
       (click)="setReportViewMode('compact')"
     >
-      精簡版
+      表格版
     </button>
   </div>
 </div>
@@ -1349,9 +1353,9 @@
     <div id="report-tools-panel" class="report-tools-panel" role="region" aria-labelledby="report-tools-toggle">
       <button type="button" class="btn-outline small" (click)="openMapPickerFromReport()">地圖選址</button>
       @if (reportViewMode === 'friendly') {
-        <button type="button" class="btn-outline small" (click)="setReportViewMode('compact')">切換精簡版</button>
+        <button type="button" class="btn-outline small" (click)="setReportViewMode('compact')">切換表格版</button>
       } @else {
-        <button type="button" class="btn-outline small" (click)="setReportViewMode('friendly')">切換手機版</button>
+        <button type="button" class="btn-outline small" (click)="setReportViewMode('friendly')">切換圖文版</button>
       }
       <button type="button" class="btn-outline small" (click)="copyReportDataJson()">複製 AI JSON</button>
       <button type="button" class="btn-outline small" (click)="copyAiReportPrompt()">複製 ChatGPT Prompt</button>
@@ -1660,7 +1664,7 @@
     <p class="tutorial-step-meta" aria-live="polite">步驟 {{ tutorialStepIndex + 1 }}／{{ tutorialSteps.length }}</p>
     <h2 id="tutorial-step-title" class="tutorial-step-title">{{ currentTutorialStep?.title }}</h2>
     <p class="tutorial-step-body">{{ currentTutorialStep?.body }}</p>
-    <p class="tutorial-step-hint">按 Esc 可結束（與「跳過」相同，之後不會再自動顯示本引導）。</p>
+    <p class="tutorial-step-hint">點「跳過」結束；之後不會再自動顯示。</p>
     <div class="tutorial-step-actions">
       <button type="button" class="btn-outline small" (click)="tutorialSkip()">跳過</button>
       <button type="button" class="btn-outline small" [disabled]="tutorialStepIndex === 0" (click)="tutorialPrevious()">上一步</button>
