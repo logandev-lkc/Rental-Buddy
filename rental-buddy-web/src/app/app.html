@@ -1491,11 +1491,14 @@
 }
 
 @if (showPwaInstallBanner && !showIntro && !tutorialOpen) {
+  <div class="tutorial-backdrop-full" aria-hidden="true"></div>
   <aside
     class="pwa-install-banner tutorial-panel pwa-install-banner--center"
     role="dialog"
+    aria-modal="true"
     aria-labelledby="pwa-install-title"
     aria-label="安裝 Rental Buddy"
+    (click)="$event.stopPropagation()"
   >
     <h2 id="pwa-install-title" class="tutorial-step-title">加到主畫面</h2>
     <p class="tutorial-step-body">

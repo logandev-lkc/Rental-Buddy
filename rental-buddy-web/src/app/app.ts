@@ -1250,7 +1250,7 @@ export class App implements OnInit, OnDestroy {
     }
     this.cdr.markForCheck();
     this.scrollAppToTop();
-    this.tryShowPwaInstallBanner();
+    this.tryShowPwaInstallBanner(true);
   }
 
   /** 教學結束後回到頁面頂部（與點 logo 相同） */
@@ -3011,7 +3011,8 @@ ${this.reportDataJson}`;
     return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   }
 
-  tryShowPwaInstallBanner(): void {
+  /** @param immediate 教學剛按「完成」等：不延遲 1 秒再顯示 */
+  tryShowPwaInstallBanner(immediate = false): void {
     if (this.pwaInstallRevealTimer) {
       window.clearTimeout(this.pwaInstallRevealTimer);
       this.pwaInstallRevealTimer = null;
@@ -3027,15 +3028,23 @@ ${this.reportDataJson}`;
       this.showPwaInstallBanner = false;
       return;
     }
+    if (immediate) {
+      this.revealPwaInstallBannerIfEligible();
+      return;
+    }
     this.pwaInstallRevealTimer = window.setTimeout(() => {
       this.pwaInstallRevealTimer = null;
-      if (!this.canOfferPwaInstall()) return;
-      const chromium = !!this.installPromptEvent;
-      const ios = this.isIosTouchDevice() && !chromium;
-      if (!(chromium || ios)) return;
-      this.showPwaInstallBanner = true;
-      this.cdr.markForCheck();
+      this.revealPwaInstallBannerIfEligible();
     }, this.pwaInstallRevealDelayMs);
+  }
+
+  private revealPwaInstallBannerIfEligible(): void {
+    if (!this.canOfferPwaInstall()) return;
+    const chromium = !!this.installPromptEvent;
+    const ios = this.isIosTouchDevice() && !chromium;
+    if (!(chromium || ios)) return;
+    this.showPwaInstallBanner = true;
+    this.cdr.markForCheck();
   }
 
   private canOfferPwaInstall(): boolean {

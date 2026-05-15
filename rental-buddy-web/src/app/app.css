@@ -1944,6 +1944,7 @@
   top: 50%;
   bottom: auto;
   transform: translateY(-50%);
+  box-shadow: 0 10px 36px rgba(44, 36, 32, 0.18);
 }
 
 .stat-chip {
