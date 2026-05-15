@@ -13,6 +13,9 @@ type BeforeInstallPromptEventLike = Event & {
 /** 查核清單顯示範圍：精簡／標準／完整 */
 type ChecklistScopeMode = 'compact' | 'standard' | 'full';
 
+/** 介面字體：小／中／大（對應 html 根字級 16／18／20px，預設中） */
+type FontScale = 'sm' | 'md' | 'lg';
+
 /** 操作教學單步（anchorId 對應畫面元素 id，null 表示不捲動至特定區塊） */
 interface TutorialStepDef {
   anchorId: string | null;
@@ -548,6 +551,8 @@ export class App implements OnInit, OnDestroy {
   draftChecklistFilters: ChecklistFilterId[] = [];
   /** 查核清單範圍：精簡＝必須審查題、標準＋建議審查、完整＝全部 */
   checklistScopeMode: ChecklistScopeMode = 'compact';
+  /** 介面字體大小（小／中／大） */
+  fontScale: FontScale = 'md';
   /** 首次引導／操作教學 */
   tutorialOpen = false;
   tutorialStepIndex = 0;
@@ -617,6 +622,7 @@ export class App implements OnInit, OnDestroy {
     }
   ];
   private readonly tutorialStorageKey = 'rental-buddy-tutorial-completed-v1';
+  private readonly fontScaleStorageKey = 'rental-buddy-font-scale-v1';
   private tutorialRevealTimer: ReturnType<typeof window.setTimeout> | null = null;
   /** 教學「查核題目」步自動展開的題目 id，離開該步或結束教學時收合 */
   private tutorialAutoExpandedItemId: string | null = null;
@@ -686,6 +692,7 @@ export class App implements OnInit, OnDestroy {
     private readonly appRef: ApplicationRef
   ) {
     this.loadState();
+    this.loadFontScale();
   }
 
   ngOnInit(): void {
@@ -1167,6 +1174,33 @@ export class App implements OnInit, OnDestroy {
 
   get checklistBarTotal(): number {
     return this.itemsInChecklistScope.length;
+  }
+
+  setFontScale(scale: FontScale): void {
+    if (this.fontScale === scale) return;
+    this.fontScale = scale;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.fontScaleStorageKey, scale);
+    }
+    this.applyFontScaleToDocument();
+    this.cdr.markForCheck();
+  }
+
+  private loadFontScale(): void {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem(this.fontScaleStorageKey);
+      if (saved === 'sm' || saved === 'md' || saved === 'lg') {
+        this.fontScale = saved;
+      }
+    }
+    this.applyFontScaleToDocument();
+  }
+
+  private applyFontScaleToDocument(): void {
+    if (typeof document === 'undefined') return;
+    const pxByScale: Record<FontScale, number> = { sm: 16, md: 18, lg: 20 };
+    document.documentElement.setAttribute('data-font-scale', this.fontScale);
+    document.documentElement.style.fontSize = `${pxByScale[this.fontScale]}px`;
   }
 
   setChecklistScopeMode(mode: ChecklistScopeMode): void {

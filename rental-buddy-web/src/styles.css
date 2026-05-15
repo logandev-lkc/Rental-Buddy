@@ -1,5 +1,17 @@
 @import "leaflet/dist/leaflet.css";
 
+html {
+  font-size: 18px;
+}
+
+html[data-font-scale="sm"] {
+  font-size: 16px;
+}
+
+html[data-font-scale="lg"] {
+  font-size: 20px;
+}
+
 html,
 body {
   margin: 0;
@@ -20,7 +32,7 @@ select {
   input,
   textarea,
   select {
-    font-size: 16px !important;
+    font-size: max(16px, 1rem) !important;
   }
 }
 
@@ -70,7 +82,7 @@ select {
 
 .category-filter-sheet-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
   color: var(--ink);
 }
@@ -87,7 +99,7 @@ select {
 }
 
 .category-filter-sheet .property-choice-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   color: var(--ink-mid);
   margin-bottom: 8px;
@@ -126,14 +138,14 @@ select {
 
 .app-confirm-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--ink);
 }
 
 .app-confirm-message {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.5;
   color: var(--ink-mid);
   white-space: pre-line;
@@ -184,7 +196,7 @@ select {
 }
 
 .overview-nm-select-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   color: var(--ink-light);
   cursor: pointer;
@@ -210,7 +222,7 @@ select {
 .quick-status-wrap--compact .quick-status-chip {
   padding: 8px 10px;
   min-height: 44px;
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 /* 左側唯讀狀態條（非按鈕） */
@@ -264,7 +276,7 @@ select {
 }
 .item-unrated-hint {
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: rgba(107, 90, 84, 0.55);
@@ -330,7 +342,7 @@ select {
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink-light);
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1;
   padding: 0;
   cursor: pointer;

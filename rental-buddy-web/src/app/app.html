@@ -92,6 +92,41 @@
               </div>
               <p class="record-menu-backup-hint">匯出 JSON 會一併內嵌附件（檔案可能較大）；還原時會寫回本機瀏覽器。</p>
             </div>
+            <div class="record-menu-font-scale">
+              <div class="record-menu-backup-title">字體大小</div>
+              <div class="checklist-scope-switch font-scale-switch" role="radiogroup" aria-label="字體大小">
+                <button
+                  type="button"
+                  class="scope-mode-btn"
+                  [class.active]="fontScale === 'sm'"
+                  [attr.aria-checked]="fontScale === 'sm'"
+                  role="radio"
+                  (click)="setFontScale('sm')"
+                >
+                  小
+                </button>
+                <button
+                  type="button"
+                  class="scope-mode-btn"
+                  [class.active]="fontScale === 'md'"
+                  [attr.aria-checked]="fontScale === 'md'"
+                  role="radio"
+                  (click)="setFontScale('md')"
+                >
+                  中
+                </button>
+                <button
+                  type="button"
+                  class="scope-mode-btn"
+                  [class.active]="fontScale === 'lg'"
+                  [attr.aria-checked]="fontScale === 'lg'"
+                  role="radio"
+                  (click)="setFontScale('lg')"
+                >
+                  大
+                </button>
+              </div>
+            </div>
             <div class="record-menu-tutorial">
               <button type="button" class="btn-outline small record-menu-tutorial-btn" (click)="replayTutorial()">操作教學</button>
             </div>
