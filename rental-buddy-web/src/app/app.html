@@ -33,7 +33,11 @@
           <span class="record-menu-arrow">▾</span>
         </button>
         @if (isRecordMenuOpen) {
-          <div class="record-menu-panel">
+          <div
+            class="record-menu-panel"
+            id="tutorial-anchor-record-menu"
+            [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-record-menu')"
+          >
             <div class="record-menu-title">紀錄管理</div>
             <div class="record-menu-list">
               @for (record of records; track record.id) {
@@ -1365,7 +1369,7 @@
 <div
   class="content"
   id="tutorial-anchor-checklist-body"
-  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-checklist-body')"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-checklist-body') && tutorialStepIndex !== tutorialChecklistDemoStepIndex"
 >
   @for (group of groupedItems; track group.cat) {
     <section class="section">
@@ -1376,9 +1380,11 @@
         @for (item of group.items; track item.id) {
           <article
             class="check-item"
+            [attr.id]="tutorialChecklistDemoArticleId(item.id)"
             [class.checked]="state[item.id].checked"
             [class.flagged]="state[item.id].flagged"
             [class.expanded]="state[item.id].expanded"
+            [class.tutorial-anchor-highlight]="tutorialChecklistDemoArticleId(item.id) !== null"
             (click)="onChecklistItemRowClick(item.id, $event)"
           >
             <div
@@ -1549,9 +1555,10 @@
     <div class="tutorial-backdrop-full" aria-hidden="true"></div>
   }
   @if (tutorialDimMode === 'hole') {
-    <div class="tutorial-dim tutorial-dim--top" [style.height.px]="tutorialDimTopH" aria-hidden="true"></div>
+    <!-- 矩形分區：全透明但仍攔截點擊；圓角透明洞由下一層 SVG mask 繪製 -->
+    <div class="tutorial-dim tutorial-dim--hit tutorial-dim--top" [style.height.px]="tutorialDimTopH" aria-hidden="true"></div>
     <div
-      class="tutorial-dim tutorial-dim--left"
+      class="tutorial-dim tutorial-dim--hit tutorial-dim--left"
       [style.top.px]="tutorialDimHoleT"
       [style.left.px]="0"
       [style.width.px]="tutorialDimLeftW"
@@ -1559,7 +1566,7 @@
       aria-hidden="true"
     ></div>
     <div
-      class="tutorial-dim tutorial-dim--right"
+      class="tutorial-dim tutorial-dim--hit tutorial-dim--right"
       [style.top.px]="tutorialDimHoleT"
       [style.left.px]="tutorialDimRightLeft"
       [style.width.px]="tutorialDimRightW"
@@ -1567,17 +1574,49 @@
       aria-hidden="true"
     ></div>
     <div
-      class="tutorial-dim tutorial-dim--bottom"
+      class="tutorial-dim tutorial-dim--hit tutorial-dim--bottom"
       [style.top.px]="tutorialDimBottomT"
       [style.height.px]="tutorialDimBottomH"
       aria-hidden="true"
     ></div>
+    <svg
+      class="tutorial-spot-svg"
+      xmlns="http://www.w3.org/2000/svg"
+      [attr.viewBox]="'0 0 ' + tutorialViewportW + ' ' + tutorialViewportH"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <mask
+          id="tutorial-spot-mask"
+          maskUnits="userSpaceOnUse"
+          mask-type="luminance"
+          x="0"
+          y="0"
+          [attr.width]="tutorialViewportW"
+          [attr.height]="tutorialViewportH"
+        >
+          <rect x="0" y="0" [attr.width]="tutorialViewportW" [attr.height]="tutorialViewportH" fill="white" />
+          @if (tutorialHoleMaskPathD) {
+            <path [attr.d]="tutorialHoleMaskPathD" fill="black" />
+          }
+        </mask>
+      </defs>
+      <rect
+        x="0"
+        y="0"
+        [attr.width]="tutorialViewportW"
+        [attr.height]="tutorialViewportH"
+        fill="rgba(44, 36, 32, 0.34)"
+        mask="url(#tutorial-spot-mask)"
+      />
+    </svg>
   }
   <div
     class="tutorial-panel"
     [class.tutorial-panel--edge-top]="tutorialPanelEdge === 'top'"
     [class.tutorial-panel--edge-bottom]="tutorialPanelEdge === 'bottom'"
-    [class.tutorial-panel--checklist-footer-space]="currentPage === 'checklist' && tutorialPanelEdge === 'bottom' && tutorialStepIndex !== 2"
+    [class.tutorial-panel--checklist-footer-space]="currentPage === 'checklist' && tutorialPanelEdge === 'bottom' && tutorialStepIndex !== tutorialChecklistDemoStepIndex"
     role="dialog"
     aria-modal="true"
     aria-labelledby="tutorial-step-title"

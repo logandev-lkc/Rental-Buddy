@@ -307,6 +307,21 @@
   width: 100%;
 }
 
+/* 全螢幕灰幕由 SVG mask 畫圓角洞；此層僅攔截點擊、不顯示 */
+.tutorial-dim.tutorial-dim--hit {
+  opacity: 0;
+  background: rgba(44, 36, 32, 0.34);
+}
+
+.tutorial-spot-svg {
+  position: fixed;
+  inset: 0;
+  z-index: 62;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .tutorial-panel {
   position: fixed;
   left: 12px;
@@ -376,9 +391,13 @@
 }
 
 .tutorial-anchor-highlight {
-  outline: 3px solid var(--rose-deep);
-  outline-offset: 3px;
-  border-radius: 14px;
+  /* outline 畫在內側（負 offset），貼頂錨點時線條不會被視窗裁掉；數值需與 readTutorialSpotOutlineMetrics 備援一致 */
+  --tutorial-outline-width: 3px;
+  --tutorial-outline-offset: -3px;
+  --tutorial-anchor-r: 14px;
+  outline: var(--tutorial-outline-width) solid var(--rose-deep);
+  outline-offset: var(--tutorial-outline-offset);
+  border-radius: var(--tutorial-anchor-r);
   /* 換步時與聚光燈洞同幀對齊，避免 outline transition 造成圈選落後 */
   transition: none;
 }

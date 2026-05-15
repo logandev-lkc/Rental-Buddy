@@ -565,6 +565,15 @@ export class App implements OnInit, OnDestroy {
   tutorialDimRightW = 0;
   tutorialDimBottomT = 0;
   tutorialDimBottomH = 0;
+  /** 聚光燈「透明洞」圓角（px）；外緣與圈選 outline 外緣對齊，見 updateTutorialDimLayout */
+  tutorialDimHoleRx = 14;
+  /** SVG mask 用視窗寬高（userSpaceOnUse） */
+  tutorialViewportW = 0;
+  tutorialViewportH = 0;
+  /** SVG mask 內圓角洞 path（與圈選 outline 外緣對齊） */
+  tutorialHoleMaskPathD = '';
+  /** 教學「查核題目」步在陣列中的索引（含自動展開示範題）；改動步驟順序時一併調整 */
+  readonly tutorialChecklistDemoStepIndex = 6;
   readonly tutorialSteps: readonly TutorialStepDef[] = [
     {
       anchorId: null,
@@ -574,7 +583,12 @@ export class App implements OnInit, OnDestroy {
     {
       anchorId: 'tutorial-anchor-site-header',
       title: '頂部與分頁',
-      body: '進度條顏色會跟著「精簡／標準／完整」變化。右上角可切換看房紀錄、匯出或還原備份。這裡可在「查核表」與「報告」之間切換。'
+      body: '進度條顏色會跟著「精簡／標準／完整」變化。右上角是看房紀錄入口（下一步會展開選單，含備份與「操作教學」）。這裡可在「查核表」與「報告」之間切換。'
+    },
+    {
+      anchorId: 'tutorial-anchor-record-menu',
+      title: '紀錄與備份',
+      body: '點右上角紀錄名稱可開啟此選單：切換／重新命名／新增或刪除紀錄，以及匯出 JSON、從檔案還原。之後想再看引導，請點選單最下方的「操作教學」。'
     },
     {
       anchorId: 'tutorial-anchor-overview',
@@ -604,7 +618,7 @@ export class App implements OnInit, OnDestroy {
   ];
   private readonly tutorialStorageKey = 'rental-buddy-tutorial-completed-v1';
   private tutorialRevealTimer: ReturnType<typeof window.setTimeout> | null = null;
-  /** 教學步驟 6 自動展開的題目 id，離開該步或結束教學時收合 */
+  /** 教學「查核題目」步自動展開的題目 id，離開該步或結束教學時收合 */
   private tutorialAutoExpandedItemId: string | null = null;
   /** 戶型區：與 `.custom-select` 同風格的下拉（layoutType / kitchenType） */
   overviewDropdownOpen: null | 'layoutType' | 'kitchenType' = null;
@@ -1180,6 +1194,14 @@ export class App implements OnInit, OnDestroy {
     return Boolean(this.tutorialOpen && step?.anchorId === anchorId);
   }
 
+  /** 教學「查核題目」步：示範題掛固定 id，聚光燈／捲動對準該題而非整塊清單 */
+  readonly tutorialChecklistDemoDomId = 'tutorial-anchor-checklist-demo-item';
+
+  tutorialChecklistDemoArticleId(itemId: string): string | null {
+    if (!this.tutorialOpen || this.tutorialStepIndex !== this.tutorialChecklistDemoStepIndex) return null;
+    return this.filteredItems[0]?.id === itemId ? this.tutorialChecklistDemoDomId : null;
+  }
+
   private scheduleFirstTutorialIfNeeded(): void {
     if (typeof localStorage === 'undefined') return;
     if (localStorage.getItem(this.tutorialStorageKey) === '1') return;
@@ -1207,8 +1229,8 @@ export class App implements OnInit, OnDestroy {
     this.clearTutorialAutoExpandedItem();
     this.currentPage = 'checklist';
     this.closeChecklistFilterPanel();
-    this.isRecordMenuOpen = false;
     this.closeMapPicker();
+    this.applyTutorialRecordMenuForStep();
     this.focusTutorialAnchorSoon();
     this.cdr.markForCheck();
   }
@@ -1220,6 +1242,7 @@ export class App implements OnInit, OnDestroy {
 
   finishTutorial(markCompleted: boolean): void {
     this.clearTutorialAutoExpandedItem();
+    this.isRecordMenuOpen = false;
     this.tutorialOpen = false;
     this.tutorialDimMode = 'off';
     if (markCompleted && typeof localStorage !== 'undefined') {
@@ -1236,18 +1259,22 @@ export class App implements OnInit, OnDestroy {
     }
     this.tutorialStepIndex += 1;
     this.tutorialDimMode = 'full';
+    this.applyTutorialRecordMenuForStep();
     this.applyTutorialChecklistDemoExpand();
-    this.focusTutorialAnchorSoon();
     this.cdr.markForCheck();
+    this.cdr.detectChanges();
+    this.focusTutorialAnchorSoon();
   }
 
   tutorialPrevious(): void {
     if (this.tutorialStepIndex <= 0) return;
     this.tutorialStepIndex -= 1;
     this.tutorialDimMode = 'full';
+    this.applyTutorialRecordMenuForStep();
     this.applyTutorialChecklistDemoExpand();
-    this.focusTutorialAnchorSoon();
     this.cdr.markForCheck();
+    this.cdr.detectChanges();
+    this.focusTutorialAnchorSoon();
   }
 
   tutorialSkip(): void {
@@ -1262,7 +1289,13 @@ export class App implements OnInit, OnDestroy {
         this.flushTutorialLayoutAfterScroll();
         return;
       }
-      document.getElementById(id)?.scrollIntoView({ block: 'center', behavior: 'auto' });
+      const el = document.getElementById(id);
+      let scrollTarget: Element | null = el;
+      if (id === 'tutorial-anchor-checklist-body' && this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex) {
+        scrollTarget =
+          document.getElementById(this.tutorialChecklistDemoDomId) ?? el?.querySelector('article.check-item') ?? el;
+      }
+      scrollTarget?.scrollIntoView({ block: 'center', behavior: 'auto' });
       this.flushTutorialLayoutAfterScroll();
     }, 0);
   }
@@ -1286,10 +1319,10 @@ export class App implements OnInit, OnDestroy {
     }
   }
 
-  /** 步驟 6（index 5）：自動展開清單第一題；離開該步時收合 */
+  /** 教學「查核題目」步：自動展開清單第一題；離開該步時收合 */
   private applyTutorialChecklistDemoExpand(): void {
     this.clearTutorialAutoExpandedItem();
-    if (!this.tutorialOpen || this.tutorialStepIndex !== 5) return;
+    if (!this.tutorialOpen || this.tutorialStepIndex !== this.tutorialChecklistDemoStepIndex) return;
     const first = this.filteredItems[0];
     if (first && this.state[first.id]) {
       this.state[first.id].expanded = true;
@@ -1298,10 +1331,16 @@ export class App implements OnInit, OnDestroy {
     }
   }
 
+  /** 教學「紀錄與備份」步（index 2）自動展開右上角選單，其餘步驟關閉以免擋版面 */
+  private applyTutorialRecordMenuForStep(): void {
+    if (!this.tutorialOpen) return;
+    this.isRecordMenuOpen = this.tutorialStepIndex === 2;
+  }
+
   private updateTutorialPanelPlacement(): void {
     if (!this.tutorialOpen) return;
-    // 步驟 3／7「現場快速摘要」：固定貼螢幕底，不抬高避開 footer（上方仍易擋住摘要卡）
-    if (this.tutorialStepIndex === 2) {
+    // 「查核題目」步：浮層貼底，聚光燈改對示範題（見 updateTutorialDimLayout）
+    if (this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex) {
       this.tutorialPanelEdge = 'bottom';
       this.cdr.markForCheck();
       this.updateTutorialDimLayout();
@@ -1338,34 +1377,45 @@ export class App implements OnInit, OnDestroy {
   private updateTutorialDimLayout(): void {
     if (!this.tutorialOpen) {
       this.tutorialDimMode = 'off';
+      this.tutorialHoleMaskPathD = '';
       return;
     }
     const id = this.currentTutorialStep?.anchorId;
     if (!id) {
       this.tutorialDimMode = 'full';
+      this.tutorialHoleMaskPathD = '';
       this.cdr.markForCheck();
       return;
     }
     const el = document.getElementById(id);
     if (!el) {
       this.tutorialDimMode = 'full';
+      this.tutorialHoleMaskPathD = '';
       this.cdr.markForCheck();
       return;
     }
-    const pad = 10;
-    const rect = el.getBoundingClientRect();
+    const holeTargetEl: Element =
+      id === 'tutorial-anchor-checklist-body' && this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex
+        ? document.getElementById(this.tutorialChecklistDemoDomId) ??
+          el.querySelector('article.check-item') ??
+          el
+        : el;
+    const holeEl = holeTargetEl as HTMLElement;
+    const rect = holeEl.getBoundingClientRect();
+    const { expandOuter, borderRadiusPx } = this.readTutorialSpotOutlineMetrics(holeEl);
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let l = rect.left - pad;
-    let t = rect.top - pad;
-    let w = rect.width + pad * 2;
-    let h = rect.height + pad * 2;
+    let l = rect.left - expandOuter;
+    let t = rect.top - expandOuter;
+    let w = rect.width + expandOuter * 2;
+    let h = rect.height + expandOuter * 2;
     l = Math.max(0, Math.min(l, vw - 48));
     t = Math.max(0, Math.min(t, vh - 48));
     w = Math.min(Math.max(w, 32), vw - l);
     h = Math.min(Math.max(h, 32), vh - t);
     if (w < 28 || h < 28) {
       this.tutorialDimMode = 'full';
+      this.tutorialHoleMaskPathD = '';
       this.cdr.markForCheck();
       return;
     }
@@ -1379,8 +1429,66 @@ export class App implements OnInit, OnDestroy {
     this.tutorialDimRightW = Math.max(0, vw - l - w);
     this.tutorialDimBottomT = t + h;
     this.tutorialDimBottomH = Math.max(0, vh - t - h);
+    this.tutorialViewportW = vw;
+    this.tutorialViewportH = vh;
+    const rxHole = Math.max(
+      0,
+      Math.min(borderRadiusPx + expandOuter, w / 2 - 0.0001, h / 2 - 0.0001)
+    );
+    this.tutorialDimHoleRx = rxHole;
+    this.tutorialHoleMaskPathD = this.tutorialRoundedRectMaskPathD(l, t, w, h, rxHole);
     this.tutorialDimMode = 'hole';
     this.cdr.markForCheck();
+  }
+
+  /** 讀取圈選樣式：outline-offset ≥0 時洞外擴；負 offset（畫在內側）時洞＝border box，避免貼邊裁切 */
+  private readTutorialSpotOutlineMetrics(el: HTMLElement): {
+    expandOuter: number;
+    borderRadiusPx: number;
+  } {
+    const cs = window.getComputedStyle(el);
+    let ow = this.parseCssLengthPx(cs.outlineWidth, 0);
+    let oo = this.parseCssLengthPx(cs.outlineOffset, -3);
+    if (ow <= 0) ow = 3;
+    const expandOuter = oo >= 0 ? oo + ow : 0;
+    const brRaw = (cs.borderRadius ?? '').trim();
+    let borderRadiusPx = 14;
+    if (brRaw && brRaw !== '0px') {
+      const firstToken = brRaw.split(/\s+/)[0] ?? brRaw;
+      borderRadiusPx = this.parseCssLengthPx(firstToken, 14);
+    }
+    return { expandOuter, borderRadiusPx };
+  }
+
+  private parseCssLengthPx(value: string, fallback: number): number {
+    if (!value) return fallback;
+    const v = value.trim().toLowerCase();
+    if (v === 'medium') return 3;
+    const m = /^(-?[\d.]+)px$/i.exec(v);
+    if (m) {
+      const n = Number(m[1]);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  /** SVG mask 用圓角矩形 path（順時針封閉） */
+  private tutorialRoundedRectMaskPathD(x: number, y: number, w: number, h: number, rxIn: number): string {
+    const r = Math.max(0, Math.min(rxIn, w / 2, h / 2));
+    const x0 = x;
+    const y0 = y;
+    if (r <= 0) {
+      return `M${x0},${y0} H${x0 + w} V${y0 + h} H${x0} Z`;
+    }
+    const rr = +r.toFixed(4);
+    const x1 = +(x0 + rr).toFixed(4);
+    const x2 = +(x0 + w - rr).toFixed(4);
+    const x3 = +(x0 + w).toFixed(4);
+    const y1 = +(y0 + rr).toFixed(4);
+    const y2 = +(y0 + h - rr).toFixed(4);
+    const y3 = +(y0 + h).toFixed(4);
+    return `M${x1},${y0} H${x2} A${rr},${rr} 0 0 1 ${x3},${y1} V${y2} A${rr},${rr} 0 0 1 ${x2},${y3} H${x1} A${rr},${rr} 0 0 1 ${x0},${y2} V${y1} A${rr},${rr} 0 0 1 ${x1},${y0} Z`;
   }
 
   @HostListener('window:resize')
