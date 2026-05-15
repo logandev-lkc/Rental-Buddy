@@ -1651,7 +1651,7 @@
     class="tutorial-panel"
     [class.tutorial-panel--edge-top]="tutorialPanelEdge === 'top'"
     [class.tutorial-panel--edge-bottom]="tutorialPanelEdge === 'bottom'"
-    [class.tutorial-panel--checklist-footer-space]="currentPage === 'checklist' && tutorialPanelEdge === 'bottom' && tutorialStepIndex !== tutorialChecklistDemoStepIndex"
+    [class.tutorial-panel--checklist-footer-space]="currentPage === 'checklist' && tutorialPanelEdge === 'bottom' && tutorialStepIndex > tutorialChecklistDemoStepIndex"
     role="dialog"
     aria-modal="true"
     aria-labelledby="tutorial-step-title"

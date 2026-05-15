@@ -1377,10 +1377,14 @@ export class App implements OnInit, OnDestroy {
     this.isRecordMenuOpen = this.tutorialStepIndex === 2;
   }
 
+  /** 步驟 1–7（index 0–6）：提示卡固定貼底，不抬高避開 footer；步驟 8 仍自動判斷 */
+  private isTutorialPanelForceBottom(): boolean {
+    return this.tutorialStepIndex <= this.tutorialChecklistDemoStepIndex;
+  }
+
   private updateTutorialPanelPlacement(): void {
     if (!this.tutorialOpen) return;
-    // 「查核題目」步：浮層貼底，聚光燈改對示範題（見 updateTutorialDimLayout）
-    if (this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex) {
+    if (this.isTutorialPanelForceBottom()) {
       this.tutorialPanelEdge = 'bottom';
       this.cdr.markForCheck();
       this.updateTutorialDimLayout();
