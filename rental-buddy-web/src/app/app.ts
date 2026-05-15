@@ -16,6 +16,10 @@ type ChecklistScopeMode = 'compact' | 'standard' | 'full';
 /** 介面字體：小／中／大（對應 html 根字級 16／18／20px，預設中） */
 type FontScale = 'sm' | 'md' | 'lg';
 
+/** 主題配色（目前僅暖色；其餘預留） */
+type ThemePalette = 'warm';
+type ThemePaletteOption = ThemePalette | 'cool' | 'neutral';
+
 /** 操作教學單步（anchorId 對應畫面元素 id，null 表示不捲動至特定區塊） */
 interface TutorialStepDef {
   anchorId: string | null;
@@ -37,9 +41,14 @@ export class App implements OnInit, OnDestroy {
   private readonly propertySyncChecklistIds = new Set<string>(['rb_001', 'rb_002', 'rb_023', 'rb_037', 'rb_025']);
   readonly defaultMapCenter: L.LatLngTuple = [25.0478, 121.5319];
   readonly attachmentLimit = 10;
-  /** F-009：外連至 Buy Me a Coffee（請替換為你的個人頁網址） */
   readonly supportAuthorHref = 'https://buymeacoffee.com/';
-  readonly supportAuthorLabel = '請作者喝杯咖啡';
+  readonly supportAuthorLabel = '贊助';
+  readonly contactAuthorHref = 'mailto:hello@example.com';
+  readonly contactAuthorLabel = '聯絡作者';
+  readonly appShareUrl =
+    typeof window !== 'undefined' && window.location?.href
+      ? window.location.href
+      : 'https://logandev-lkc.github.io/Rental-Buddy/';
   readonly categories = [
     { id: 'contract', label: '合約與權責' },
     { id: 'facility', label: '設備與空間' },
@@ -553,6 +562,13 @@ export class App implements OnInit, OnDestroy {
   checklistScopeMode: ChecklistScopeMode = 'compact';
   /** 介面字體大小（小／中／大） */
   fontScale: FontScale = 'md';
+  /** 主題配色（目前僅暖色） */
+  themePalette: ThemePalette = 'warm';
+  readonly themePaletteOptions: readonly { id: ThemePaletteOption; label: string; available: boolean }[] = [
+    { id: 'warm', label: '暖色', available: true },
+    { id: 'cool', label: '冷色', available: false },
+    { id: 'neutral', label: '中性', available: false }
+  ];
   /** 首次引導／操作教學 */
   tutorialOpen = false;
   tutorialStepIndex = 0;
@@ -578,7 +594,7 @@ export class App implements OnInit, OnDestroy {
   /** SVG mask 內圓角洞 path（與圈選 outline 外緣對齊） */
   tutorialHoleMaskPathD = '';
   /** 教學「查核題目」步在陣列中的索引（含自動展開示範題）；改動步驟順序時一併調整 */
-  readonly tutorialChecklistDemoStepIndex = 6;
+  readonly tutorialChecklistDemoStepIndex = 7;
   readonly tutorialSteps: readonly TutorialStepDef[] = [
     {
       anchorId: null,
@@ -587,13 +603,18 @@ export class App implements OnInit, OnDestroy {
     },
     {
       anchorId: 'tutorial-anchor-site-header',
-      title: '頂部與分頁',
-      body: '切換「查核表」與「報告」。右上角管理看房紀錄。'
+      title: '頂部列',
+      body: '進度條反映查核完成度。右上角可管理看房紀錄。'
+    },
+    {
+      anchorId: 'tutorial-anchor-bottom-nav',
+      title: '底部導覽',
+      body: '切換查核、報告與設定。備份、字體與說明在「設定」。'
     },
     {
       anchorId: 'tutorial-anchor-record-menu',
-      title: '紀錄與備份',
-      body: '切換、命名、新增或刪除紀錄；可匯出 JSON 或從檔案還原。重看教學點「操作教學」。'
+      title: '紀錄管理',
+      body: '切換、命名、新增或刪除看房紀錄。'
     },
     {
       anchorId: 'tutorial-anchor-overview',
@@ -617,12 +638,13 @@ export class App implements OnInit, OnDestroy {
     },
     {
       anchorId: 'tutorial-anchor-footer',
-      title: '統計與報告',
-      body: '數字為完成度。點「查看報告」看摘要，可分享或存成 PDF。'
+      title: '完成度',
+      body: '數字為目前範圍內進度。切到「報告」可看摘要與匯出 PDF。'
     }
   ];
   private readonly tutorialStorageKey = 'rental-buddy-tutorial-completed-v1';
   private readonly fontScaleStorageKey = 'rental-buddy-font-scale-v1';
+  private readonly themeStorageKey = 'rental-buddy-theme-v1';
   private tutorialRevealTimer: ReturnType<typeof window.setTimeout> | null = null;
   /** 教學「查核題目」步自動展開的題目 id，離開該步或結束教學時收合 */
   private tutorialAutoExpandedItemId: string | null = null;
@@ -634,7 +656,8 @@ export class App implements OnInit, OnDestroy {
   readonly kitchenTypePresetOptions = ['開放式', '獨立廚房', '半開放式', '共用廚房', '無廚房'];
   /** 空陣列＝未篩選分類（顯示全部）；多選時依陣列順序顯示各分類區塊 */
   selectedCategoryIds: string[] = [];
-  currentPage: 'checklist' | 'report' = 'checklist';
+  currentPage: 'checklist' | 'report' | 'settings' = 'checklist';
+  settingsActionMessage = '';
   reportViewMode: 'friendly' | 'compact' = 'friendly';
   reportDataCopyState = '';
   showAiImportPanel = false;
@@ -693,6 +716,7 @@ export class App implements OnInit, OnDestroy {
   ) {
     this.loadState();
     this.loadFontScale();
+    this.loadThemePalette();
   }
 
   ngOnInit(): void {
@@ -1186,6 +1210,34 @@ export class App implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  setThemePalette(palette: ThemePaletteOption): void {
+    if (palette !== 'warm') return;
+    if (this.themePalette === palette) return;
+    this.themePalette = palette;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.themeStorageKey, palette);
+    }
+    this.applyThemePaletteToDocument();
+    this.cdr.markForCheck();
+  }
+
+  private loadThemePalette(): void {
+    if (typeof localStorage === 'undefined') {
+      this.applyThemePaletteToDocument();
+      return;
+    }
+    const saved = localStorage.getItem(this.themeStorageKey);
+    if (saved === 'warm') {
+      this.themePalette = 'warm';
+    }
+    this.applyThemePaletteToDocument();
+  }
+
+  private applyThemePaletteToDocument(): void {
+    if (typeof document === 'undefined') return;
+    document.documentElement.setAttribute('data-theme', this.themePalette);
+  }
+
   private loadFontScale(): void {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem(this.fontScaleStorageKey);
@@ -1374,7 +1426,7 @@ export class App implements OnInit, OnDestroy {
   /** 教學「紀錄與備份」步（index 2）自動展開右上角選單，其餘步驟關閉以免擋版面 */
   private applyTutorialRecordMenuForStep(): void {
     if (!this.tutorialOpen) return;
-    this.isRecordMenuOpen = this.tutorialStepIndex === 2;
+    this.isRecordMenuOpen = this.tutorialStepIndex === 3;
   }
 
   /** 步驟 1–7（index 0–6）：提示卡固定貼底，不抬高避開 footer；步驟 8 仍自動判斷 */
@@ -1406,7 +1458,8 @@ export class App implements OnInit, OnDestroy {
     }
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
-    const bottomReserve = this.currentPage === 'checklist' ? 230 : 150;
+    const bottomReserve =
+      this.currentPage === 'checklist' ? 200 : this.currentPage === 'report' ? 160 : 120;
     const bottomZoneTop = vh - bottomReserve;
     const anchorMidY = rect.top + rect.height / 2;
     const overlapsLowerUi = rect.bottom > bottomZoneTop - 4;
@@ -1756,14 +1809,20 @@ export class App implements OnInit, OnDestroy {
     return `${cat.label}（${this.countDoneByCategory(cat.id)}）`;
   }
 
-  setPage(page: 'checklist' | 'report'): void {
+  setPage(page: 'checklist' | 'report' | 'settings'): void {
     if (page !== 'report') {
       this.reportToolsExpanded = false;
     }
+    if (page !== 'checklist') {
+      this.closeChecklistFilterPanel();
+    }
+    this.isRecordMenuOpen = false;
     this.currentPage = page;
     if (page === 'report') {
       void this.loadAttachmentThumbs();
     }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    this.cdr.markForCheck();
   }
 
   setReportViewMode(mode: 'friendly' | 'compact'): void {
@@ -2255,8 +2314,43 @@ export class App implements OnInit, OnDestroy {
   }
 
   openReportPage(): void {
-    this.currentPage = 'report';
+    this.setPage('report');
     this.reportViewMode = 'friendly';
+  }
+
+  async shareAppLink(): Promise<void> {
+    const url = this.appShareUrl;
+    const payload = {
+      title: 'Rental Buddy',
+      text: '看房查核清單，幫你租屋不踩雷',
+      url
+    };
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share(payload);
+        this.settingsActionMessage = '已開啟分享';
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        this.settingsActionMessage = '已複製連結';
+      } else {
+        this.settingsActionMessage = url;
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      this.settingsActionMessage = '分享失敗，請稍後再試';
+    }
+    this.cdr.markForCheck();
+    window.setTimeout(() => {
+      if (this.settingsActionMessage === '已開啟分享' || this.settingsActionMessage === '已複製連結') {
+        this.settingsActionMessage = '';
+        this.cdr.markForCheck();
+      }
+    }, 2200);
+  }
+
+  startTutorialFromSettings(): void {
+    this.setPage('checklist');
+    window.setTimeout(() => this.replayTutorial(), 0);
   }
 
   saveNow(): void {

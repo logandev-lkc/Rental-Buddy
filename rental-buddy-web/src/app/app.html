@@ -15,7 +15,14 @@
   </div>
 }
 
-<div class="app-shell" [class.app-shell--inactive]="showIntro" [attr.aria-hidden]="showIntro ? 'true' : null">
+<div
+  class="app-shell"
+  [class.app-shell--inactive]="showIntro"
+  [class.app-shell--checklist]="currentPage === 'checklist' && !showIntro"
+  [class.app-shell--report]="currentPage === 'report' && !showIntro"
+  [class.app-shell--settings]="currentPage === 'settings' && !showIntro"
+  [attr.aria-hidden]="showIntro ? 'true' : null"
+>
 <header
   class="app-header"
   id="tutorial-anchor-site-header"
@@ -69,76 +76,15 @@
               <button type="button" class="btn-outline small" (click)="createRecord()">新增</button>
               <button type="button" class="btn-outline small danger" (click)="deleteActiveRecord()">刪除</button>
             </div>
-            <div class="record-menu-backup">
-              <div class="record-menu-backup-title">資料備份</div>
-              <div class="record-menu-backup-row">
-                <button
-                  type="button"
-                  class="btn-outline small"
-                  [disabled]="backupExportBusy || backupImportBusy"
-                  (click)="exportDataBackup()"
-                >
-                  {{ backupExportBusy ? '打包中…' : '匯出 JSON' }}
-                </button>
-                <label
-                  class="btn-outline small record-menu-import-label"
-                  [class.record-menu-import-busy]="backupImportBusy || backupExportBusy"
-                >
-                  {{ backupImportBusy ? '還原中…' : '從檔案還原' }}
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    class="sr-only"
-                    [disabled]="backupExportBusy || backupImportBusy"
-                    (change)="importDataBackup($event)"
-                  />
-                </label>
-              </div>
-              <p class="record-menu-backup-hint">匯出 JSON 會一併內嵌附件（檔案可能較大）；還原時會寫回本機瀏覽器。</p>
-            </div>
-            <div class="record-menu-font-scale">
-              <div class="record-menu-backup-title">字體大小</div>
-              <div class="checklist-scope-switch font-scale-switch" role="radiogroup" aria-label="字體大小">
-                <button
-                  type="button"
-                  class="scope-mode-btn"
-                  [class.active]="fontScale === 'sm'"
-                  [attr.aria-checked]="fontScale === 'sm'"
-                  role="radio"
-                  (click)="setFontScale('sm')"
-                >
-                  小
-                </button>
-                <button
-                  type="button"
-                  class="scope-mode-btn"
-                  [class.active]="fontScale === 'md'"
-                  [attr.aria-checked]="fontScale === 'md'"
-                  role="radio"
-                  (click)="setFontScale('md')"
-                >
-                  中
-                </button>
-                <button
-                  type="button"
-                  class="scope-mode-btn"
-                  [class.active]="fontScale === 'lg'"
-                  [attr.aria-checked]="fontScale === 'lg'"
-                  role="radio"
-                  (click)="setFontScale('lg')"
-                >
-                  大
-                </button>
-              </div>
-            </div>
-            <div class="record-menu-tutorial">
-              <button type="button" class="btn-outline small record-menu-tutorial-btn" (click)="replayTutorial()">操作教學</button>
+            <div class="record-menu-reset">
+              <button type="button" class="btn-outline small danger" (click)="resetAll()">重置本紀錄</button>
             </div>
           </div>
         }
       </div>
     </div>
   </div>
+  @if (currentPage === 'checklist') {
   <div
     class="progress-bar-bg"
     [class.progress-bar-bg--scope-compact]="currentPage === 'checklist' && checklistScopeMode === 'compact'"
@@ -153,10 +99,7 @@
       [style.width.%]="headerProgressPercent"
     ></div>
   </div>
-  <div class="page-switch">
-    <button class="page-btn" [class.active]="currentPage === 'checklist'" (click)="setPage('checklist')">查核表</button>
-    <button class="page-btn" [class.active]="currentPage === 'report'" (click)="setPage('report')">報告</button>
-  </div>
+  }
 </header>
 
 @if (isOffline || showReconnectBanner) {
@@ -1332,10 +1275,6 @@
   }
 </section>
 <div class="report-actions action-row report-actions--stack">
-  <div class="report-actions-main-row">
-    <button type="button" class="btn-outline" (click)="setPage('checklist')">回到查核表</button>
-    <button type="button" class="btn-primary" (click)="exportReportAsDocument()">匯出文件（PDF）</button>
-  </div>
   <button
     type="button"
     class="btn-outline report-tools-toggle"
@@ -1361,18 +1300,6 @@
       <button type="button" class="btn-outline small" (click)="copyAiReportPrompt()">複製 ChatGPT Prompt</button>
       <button type="button" class="btn-outline small" (click)="copyAiImportPrompt()">複製可匯入 Prompt</button>
       <button type="button" class="btn-outline small" (click)="toggleAiImportPanel()">貼上 AI 回傳</button>
-    </div>
-  }
-  @if (!showIntro) {
-    <div class="report-support">
-      <a
-        class="support-author-link"
-        [href]="supportAuthorHref"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {{ supportAuthorLabel }}
-      </a>
     </div>
   }
 </div>
@@ -1402,6 +1329,84 @@
     }
   </section>
 }
+}
+
+@if (currentPage === 'settings') {
+<section class="settings-page content" aria-label="設定">
+  @if (settingsActionMessage) {
+    <p class="settings-toast" role="status">{{ settingsActionMessage }}</p>
+  }
+  <section class="settings-group">
+    <h2 class="settings-group-title">顯示調整</h2>
+    <div class="settings-block">
+      <div class="settings-block-label">字體大小</div>
+      <div class="checklist-scope-switch font-scale-switch" role="radiogroup" aria-label="字體大小">
+        <button type="button" class="scope-mode-btn" [class.active]="fontScale === 'sm'" role="radio" [attr.aria-checked]="fontScale === 'sm'" (click)="setFontScale('sm')">小</button>
+        <button type="button" class="scope-mode-btn" [class.active]="fontScale === 'md'" role="radio" [attr.aria-checked]="fontScale === 'md'" (click)="setFontScale('md')">中</button>
+        <button type="button" class="scope-mode-btn" [class.active]="fontScale === 'lg'" role="radio" [attr.aria-checked]="fontScale === 'lg'" (click)="setFontScale('lg')">大</button>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-label">主題配色</div>
+      <div class="checklist-scope-switch theme-palette-switch" role="radiogroup" aria-label="主題配色">
+        @for (opt of themePaletteOptions; track opt.id) {
+          <button
+            type="button"
+            class="scope-mode-btn"
+            [class.active]="themePalette === opt.id"
+            [disabled]="!opt.available"
+            role="radio"
+            [attr.aria-checked]="themePalette === opt.id"
+            (click)="setThemePalette(opt.id)"
+          >
+            {{ opt.label }}{{ !opt.available ? '（即將推出）' : '' }}
+          </button>
+        }
+      </div>
+    </div>
+    <div class="settings-block settings-block--placeholder">
+      <div class="settings-block-label">版面風格</div>
+      <p class="settings-placeholder">即將推出</p>
+    </div>
+  </section>
+  <section class="settings-group">
+    <h2 class="settings-group-title">資料</h2>
+    <div class="settings-block">
+      <div class="record-menu-backup-row">
+        <button type="button" class="btn-outline small" [disabled]="backupExportBusy || backupImportBusy" (click)="exportDataBackup()">
+          {{ backupExportBusy ? '打包中…' : '匯出 JSON' }}
+        </button>
+        <label class="btn-outline small record-menu-import-label" [class.record-menu-import-busy]="backupImportBusy || backupExportBusy">
+          {{ backupImportBusy ? '還原中…' : '從檔案還原' }}
+          <input type="file" accept="application/json,.json" class="sr-only" [disabled]="backupExportBusy || backupImportBusy" (change)="importDataBackup($event)" />
+        </label>
+      </div>
+      <p class="settings-hint">匯出會一併內嵌附件；還原時寫回本機瀏覽器。</p>
+    </div>
+  </section>
+  <section class="settings-group">
+    <h2 class="settings-group-title">其他</h2>
+    <div class="settings-link-list">
+      <button type="button" class="settings-link-btn" (click)="startTutorialFromSettings()">操作教學</button>
+      <details class="settings-disclosure" id="settings-faq">
+        <summary class="settings-link-btn settings-disclosure-summary">常見問題</summary>
+        <div class="settings-disclosure-body">
+          <p>資料保存在本機瀏覽器，清除網站資料會一併刪除紀錄。建議定期用「匯出 JSON」備份。</p>
+          <p>精簡／標準／完整只影響查核題顯示範圍，不會刪除已填內容。</p>
+        </div>
+      </details>
+      <details class="settings-disclosure" id="settings-disclaimer">
+        <summary class="settings-link-btn settings-disclosure-summary">免責聲明</summary>
+        <div class="settings-disclosure-body">
+          <p>本工具僅供看房現場整理與個人參考，不構成法律、租賃或投資建議。請以合約與專業意見為準。</p>
+        </div>
+      </details>
+      <button type="button" class="settings-link-btn" (click)="shareAppLink()">分享給朋友</button>
+      <a class="settings-link-btn settings-link-btn--anchor" [href]="supportAuthorHref" target="_blank" rel="noopener noreferrer">{{ supportAuthorLabel }}</a>
+      <a class="settings-link-btn settings-link-btn--anchor" [href]="contactAuthorHref">{{ contactAuthorLabel }}</a>
+    </div>
+  </section>
+</section>
 }
 
 @if (currentPage === 'checklist') {
@@ -1557,34 +1562,63 @@
   </aside>
 }
 
-@if (currentPage === 'checklist') {
-<footer
-  class="bottom-bar"
+@if (currentPage === 'checklist' && !showIntro) {
+<aside
+  class="checklist-stats-bar"
   id="tutorial-anchor-footer"
   [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-footer')"
+  aria-label="查核進度"
 >
   <div class="bottom-stats compact">
     <div class="stat-chip good"><span class="num">{{ checklistBarConfirmed }}</span>已確認</div>
     <div class="stat-chip danger"><span class="num">{{ checklistBarFlagged }}</span>問題</div>
     <div class="stat-chip"><span class="num">{{ checklistBarLeft }}</span>待確認</div>
   </div>
-  <div class="action-row">
-    <button class="btn-primary" (click)="openReportPage()">查看報告</button>
-    <button class="btn-outline" (click)="resetAll()">重置</button>
-  </div>
-  @if (!showIntro) {
-    <div class="bottom-support">
-      <a
-        class="support-author-link"
-        [href]="supportAuthorHref"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {{ supportAuthorLabel }}
-      </a>
-    </div>
-  }
+</aside>
+}
+
+@if (currentPage === 'report' && !showIntro) {
+<footer class="report-bottom-bar" aria-label="報告操作">
+  <button type="button" class="btn-primary" (click)="exportReportAsDocument()">匯出 PDF</button>
 </footer>
+}
+
+@if (!showIntro) {
+<nav
+  class="app-bottom-nav"
+  id="tutorial-anchor-bottom-nav"
+  [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-bottom-nav')"
+  role="navigation"
+  aria-label="主導覽"
+>
+  <button type="button" class="app-bottom-nav-btn" [class.active]="currentPage === 'checklist'" (click)="setPage('checklist')">
+    <span class="app-bottom-nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+        <path d="M9 3h6a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1z" />
+        <path d="M9 12h6M9 16h4" />
+      </svg>
+    </span>
+    <span class="app-bottom-nav-label">查核</span>
+  </button>
+  <button type="button" class="app-bottom-nav-btn" [class.active]="currentPage === 'report'" (click)="setPage('report')">
+    <span class="app-bottom-nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path d="M6 20V10M12 20V4M18 20v-6" />
+      </svg>
+    </span>
+    <span class="app-bottom-nav-label">報告</span>
+  </button>
+  <button type="button" class="app-bottom-nav-btn" [class.active]="currentPage === 'settings'" (click)="setPage('settings')">
+    <span class="app-bottom-nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </svg>
+    </span>
+    <span class="app-bottom-nav-label">設定</span>
+  </button>
+</nav>
 }
 
 </div>

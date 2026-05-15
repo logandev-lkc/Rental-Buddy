@@ -4,6 +4,10 @@ html {
   font-size: 18px;
 }
 
+html[data-theme="warm"] {
+  color-scheme: light;
+}
+
 html[data-font-scale="sm"] {
   font-size: 16px;
 }
