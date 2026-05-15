@@ -1918,7 +1918,7 @@
 
 @keyframes pwa-install-rise {
   from {
-    transform: translate3d(0, calc(100% + 18px), 0);
+    transform: translate3d(0, 12px, 0);
     opacity: 0;
   }
   to {
@@ -1927,72 +1927,23 @@
   }
 }
 
-.pwa-install-banner {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 45;
-  padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px));
-  pointer-events: none;
+/* 與 .tutorial-panel 共用版面；僅保留進場動畫 */
+.pwa-install-banner.tutorial-panel {
+  z-index: 63;
   animation: pwa-install-rise 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pwa-install-banner {
+  .pwa-install-banner.tutorial-panel {
     animation: none;
-    opacity: 1;
-    transform: none;
   }
 }
 
-.pwa-install-banner .pwa-install-inner {
-  pointer-events: auto;
-  max-width: var(--desktop-max, 720px);
-  margin: 0 auto;
-  padding: 12px 14px 14px;
-  border-radius: 16px 16px 0 0;
-  border: 1px solid rgba(217, 123, 108, 0.28);
-  border-bottom: 0;
-  background: rgba(255, 253, 252, 0.99);
-  box-shadow: 0 -10px 36px rgba(44, 36, 32, 0.16);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.pwa-install-copy {
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-.pwa-install-title {
-  display: block;
-  font-size: 14px;
-  color: var(--ink);
-  margin-bottom: 4px;
-}
-
-.pwa-install-desc {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ink-mid);
-}
-
-.pwa-install-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  flex: 1 1 220px;
-  justify-content: flex-end;
-}
-
-.pwa-install-actions .btn-outline.small,
-.pwa-install-actions .btn-primary.small {
-  flex: 0 0 auto;
+/* 置中顯示：用於「加到主畫面」提示框 */
+.pwa-install-banner--center {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
 }
 
 .stat-chip {

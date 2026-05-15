@@ -1492,28 +1492,25 @@
 
 @if (showPwaInstallBanner && !showIntro && !tutorialOpen) {
   <aside
-    class="pwa-install-banner"
-    role="region"
+    class="pwa-install-banner tutorial-panel pwa-install-banner--center"
+    role="dialog"
+    aria-labelledby="pwa-install-title"
     aria-label="安裝 Rental Buddy"
   >
-    <div class="pwa-install-inner">
-      <div class="pwa-install-copy">
-        <strong class="pwa-install-title">加到主畫面</strong>
-        <p class="pwa-install-desc">
-          @if (installPromptEvent) {
-            像 App 一樣快速開啟，資料仍保存在本機。
-          } @else {
-            使用 Safari 下方「分享」→「加入主畫面」，看房更方便。
-          }
-        </p>
-      </div>
-      <div class="pwa-install-actions">
-        @if (installPromptEvent) {
-          <button type="button" class="btn-primary small" (click)="promptPwaInstall()">安裝</button>
-        }
-        <button type="button" class="btn-outline small" (click)="snoozePwaInstall()">稍後</button>
-        <button type="button" class="btn-outline small" (click)="dismissPwaInstallForever()">不再顯示</button>
-      </div>
+    <h2 id="pwa-install-title" class="tutorial-step-title">加到主畫面</h2>
+    <p class="tutorial-step-body">
+      @if (installPromptEvent) {
+        像 App 一樣快速開啟，資料仍保存在本機。
+      } @else {
+        使用 Safari 下方「分享」→「加入主畫面」，看房更方便。
+      }
+    </p>
+    <div class="tutorial-step-actions">
+      @if (installPromptEvent) {
+        <button type="button" class="btn-primary small" (click)="promptPwaInstall()">安裝</button>
+      }
+      <button type="button" class="btn-outline small" (click)="snoozePwaInstall()">稍後</button>
+      <button type="button" class="btn-outline small" (click)="dismissPwaInstallForever()">不再顯示</button>
     </div>
   </aside>
 }

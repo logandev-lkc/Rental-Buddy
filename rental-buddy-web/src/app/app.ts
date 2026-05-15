@@ -1249,7 +1249,13 @@ export class App implements OnInit, OnDestroy {
       localStorage.setItem(this.tutorialStorageKey, '1');
     }
     this.cdr.markForCheck();
+    this.scrollAppToTop();
     this.tryShowPwaInstallBanner();
+  }
+
+  /** 教學結束後回到頁面頂部（與點 logo 相同） */
+  private scrollAppToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   tutorialNext(): void {
