@@ -477,6 +477,10 @@
   box-shadow: 0 -10px 36px rgba(44, 36, 32, 0.18);
 }
 
+.tutorial-panel--edge-bottom.tutorial-panel--avoid-bottom-nav {
+  bottom: calc(var(--app-bottom-nav-h) + 18px + env(safe-area-inset-bottom, 0px));
+}
+
 .tutorial-panel--edge-bottom.tutorial-panel--checklist-footer-space {
   bottom: calc(
     var(--app-bottom-nav-h) + var(--checklist-stats-bar-h) + 18px + env(safe-area-inset-bottom, 0px)

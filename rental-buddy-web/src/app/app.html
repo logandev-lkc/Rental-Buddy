@@ -38,17 +38,13 @@
       } @else {
         <span class="sr-only">進度 {{ checklistBarConfirmed }} / {{ checklistBarTotal }} 項已確認（清單範圍：{{ checklistScopeModeLabel }}）</span>
       }
-      <div class="record-menu">
+      <div class="record-menu" id="tutorial-anchor-record-menu" [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-record-menu')">
         <button type="button" class="record-menu-trigger" (click)="toggleRecordMenu($event)">
           <span class="record-menu-name">{{ activeRecord.name }}</span>
           <span class="record-menu-arrow">▾</span>
         </button>
         @if (isRecordMenuOpen) {
-          <div
-            class="record-menu-panel"
-            id="tutorial-anchor-record-menu"
-            [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-record-menu')"
-          >
+          <div class="record-menu-panel">
             <div class="record-menu-title">紀錄管理</div>
             <button type="button" class="record-menu-add" (click)="createRecord()">＋ 新增看房紀錄</button>
             <p class="record-menu-section-label" id="record-menu-switch-label">切換紀錄</p>
@@ -1719,7 +1715,8 @@
     class="tutorial-panel"
     [class.tutorial-panel--edge-top]="tutorialPanelEdge === 'top'"
     [class.tutorial-panel--edge-bottom]="tutorialPanelEdge === 'bottom'"
-    [class.tutorial-panel--checklist-footer-space]="currentPage === 'checklist' && tutorialPanelEdge === 'bottom' && tutorialStepIndex > tutorialChecklistDemoStepIndex"
+    [class.tutorial-panel--avoid-bottom-nav]="tutorialPanelAvoidBottomNav"
+    [class.tutorial-panel--checklist-footer-space]="tutorialPanelAvoidChecklistFooter"
     role="dialog"
     aria-modal="true"
     aria-labelledby="tutorial-step-title"

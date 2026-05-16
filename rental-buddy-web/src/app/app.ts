@@ -597,6 +597,9 @@ export class App implements OnInit, OnDestroy {
   tutorialHoleMaskPathD = '';
   /** 教學「查核題目」步在陣列中的索引（含自動展開示範題）；改動步驟順序時一併調整 */
   readonly tutorialChecklistDemoStepIndex = 7;
+  readonly tutorialBottomNavStepIndex = 2;
+  readonly tutorialRecordMenuStepIndex = 3;
+  readonly tutorialFilterStepIndex = 6;
   readonly tutorialSteps: readonly TutorialStepDef[] = [
     {
       anchorId: null,
@@ -616,7 +619,7 @@ export class App implements OnInit, OnDestroy {
     {
       anchorId: 'tutorial-anchor-record-menu',
       title: '紀錄管理',
-      body: '切換、命名、新增或刪除看房紀錄。'
+      body: '點列表切換紀錄；上方「＋ 新增」建立紀錄；「重新命名…」可改目前名稱。'
     },
     {
       anchorId: 'tutorial-anchor-overview',
@@ -625,8 +628,8 @@ export class App implements OnInit, OnDestroy {
     },
     {
       anchorId: 'tutorial-anchor-toolbar',
-      title: '清單範圍',
-      body: '上方為清單範圍（精簡／標準／完整）；分類可多選。'
+      title: '清單範圍與分類',
+      body: '上方切換清單範圍（精簡／標準／完整）；下方分類可多選，未選＝全部。'
     },
     {
       anchorId: 'tutorial-anchor-filter',
@@ -1318,7 +1321,7 @@ export class App implements OnInit, OnDestroy {
     this.currentPage = 'checklist';
     this.closeChecklistFilterPanel();
     this.closeMapPicker();
-    this.applyTutorialRecordMenuForStep();
+    this.applyTutorialUiForStep();
     this.focusTutorialAnchorSoon();
     this.cdr.markForCheck();
   }
@@ -1353,7 +1356,7 @@ export class App implements OnInit, OnDestroy {
     }
     this.tutorialStepIndex += 1;
     this.tutorialDimMode = 'full';
-    this.applyTutorialRecordMenuForStep();
+    this.applyTutorialUiForStep();
     this.applyTutorialChecklistDemoExpand();
     this.cdr.markForCheck();
     this.cdr.detectChanges();
@@ -1364,7 +1367,7 @@ export class App implements OnInit, OnDestroy {
     if (this.tutorialStepIndex <= 0) return;
     this.tutorialStepIndex -= 1;
     this.tutorialDimMode = 'full';
-    this.applyTutorialRecordMenuForStep();
+    this.applyTutorialUiForStep();
     this.applyTutorialChecklistDemoExpand();
     this.cdr.markForCheck();
     this.cdr.detectChanges();
@@ -1385,6 +1388,9 @@ export class App implements OnInit, OnDestroy {
       }
       const el = document.getElementById(id);
       let scrollTarget: Element | null = el;
+      if (id === 'tutorial-anchor-record-menu' && this.isRecordMenuOpen) {
+        scrollTarget = document.querySelector('.record-menu-panel') ?? el;
+      }
       if (id === 'tutorial-anchor-checklist-body' && this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex) {
         scrollTarget =
           document.getElementById(this.tutorialChecklistDemoDomId) ?? el?.querySelector('article.check-item') ?? el;
@@ -1425,20 +1431,79 @@ export class App implements OnInit, OnDestroy {
     }
   }
 
-  /** 教學「紀錄與備份」步（index 2）自動展開右上角選單，其餘步驟關閉以免擋版面 */
-  private applyTutorialRecordMenuForStep(): void {
+  /** 依目前步驟調整頁面、紀錄選單、篩選面板等，避免教學錨點不在 DOM 或與改版 UI 衝突 */
+  private applyTutorialUiForStep(): void {
     if (!this.tutorialOpen) return;
-    const open = this.tutorialStepIndex === 3;
-    this.isRecordMenuOpen = open;
+    const anchor = this.currentTutorialStep?.anchorId;
+    const checklistAnchors = new Set([
+      'tutorial-anchor-site-header',
+      'tutorial-anchor-record-menu',
+      'tutorial-anchor-overview',
+      'tutorial-anchor-toolbar',
+      'tutorial-anchor-filter',
+      'tutorial-anchor-checklist-body',
+      'tutorial-anchor-footer',
+      'tutorial-anchor-bottom-nav'
+    ]);
+    if ((anchor === null || checklistAnchors.has(anchor ?? '')) && this.currentPage !== 'checklist') {
+      this.currentPage = 'checklist';
+      this.closeMapPicker();
+    }
+    const openRecordMenu = this.tutorialStepIndex === this.tutorialRecordMenuStepIndex;
+    this.isRecordMenuOpen = openRecordMenu;
     this.recordMenuRenameOpen = false;
-    if (open) {
+    if (openRecordMenu) {
       this.syncEditingRecordName();
+    }
+    if (this.tutorialStepIndex !== this.tutorialFilterStepIndex) {
+      this.closeChecklistFilterPanel();
     }
   }
 
-  /** 步驟 1–7（index 0–6）：提示卡固定貼底，不抬高避開 footer；步驟 8 仍自動判斷 */
+  /** 貼底提示卡時避開底部導覽（改版後必開，否則會遮住導覽列） */
+  get tutorialPanelAvoidBottomNav(): boolean {
+    return this.tutorialOpen && this.tutorialPanelEdge === 'bottom' && !this.showIntro;
+  }
+
+  /** 完成度步：再避開查核進度列 */
+  get tutorialPanelAvoidChecklistFooter(): boolean {
+    return (
+      this.tutorialPanelAvoidBottomNav &&
+      this.currentPage === 'checklist' &&
+      this.tutorialStepIndex > this.tutorialChecklistDemoStepIndex
+    );
+  }
+
+  /** 底部導覽／完成度步改由版面演算法決定上下；其餘步驟貼底 */
   private isTutorialPanelForceBottom(): boolean {
+    const anchor = this.currentTutorialStep?.anchorId;
+    if (anchor === 'tutorial-anchor-bottom-nav' || anchor === 'tutorial-anchor-footer') {
+      return false;
+    }
     return this.tutorialStepIndex <= this.tutorialChecklistDemoStepIndex;
+  }
+
+  private tutorialBottomChromePx(): number {
+    const root = document.documentElement;
+    const nav = this.cssVarToPx(getComputedStyle(root).getPropertyValue('--app-bottom-nav-h'), 56);
+    if (this.currentPage !== 'checklist' || this.showIntro) {
+      return nav;
+    }
+    const stats = this.cssVarToPx(getComputedStyle(root).getPropertyValue('--checklist-stats-bar-h'), 64);
+    return nav + stats;
+  }
+
+  private cssVarToPx(raw: string, fallback: number): number {
+    const v = raw.trim();
+    if (!v) return fallback;
+    const rem = /^([\d.]+)rem$/i.exec(v);
+    if (rem) {
+      const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      return parseFloat(rem[1]) * rootPx;
+    }
+    const px = /^([\d.]+)px$/i.exec(v);
+    if (px) return parseFloat(px[1]);
+    return fallback;
   }
 
   private updateTutorialPanelPlacement(): void {
@@ -1465,8 +1530,7 @@ export class App implements OnInit, OnDestroy {
     }
     const rect = el.getBoundingClientRect();
     const vh = window.innerHeight || 1;
-    const bottomReserve =
-      this.currentPage === 'checklist' ? 200 : this.currentPage === 'report' ? 160 : 120;
+    const bottomReserve = this.tutorialBottomChromePx() + 168;
     const bottomZoneTop = vh - bottomReserve;
     const anchorMidY = rect.top + rect.height / 2;
     const overlapsLowerUi = rect.bottom > bottomZoneTop - 4;
@@ -1498,12 +1562,15 @@ export class App implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    const holeTargetEl: Element =
-      id === 'tutorial-anchor-checklist-body' && this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex
-        ? document.getElementById(this.tutorialChecklistDemoDomId) ??
-          el.querySelector('article.check-item') ??
-          el
-        : el;
+    let holeTargetEl: Element = el;
+    if (id === 'tutorial-anchor-checklist-body' && this.tutorialStepIndex === this.tutorialChecklistDemoStepIndex) {
+      holeTargetEl =
+        document.getElementById(this.tutorialChecklistDemoDomId) ??
+        el.querySelector('article.check-item') ??
+        el;
+    } else if (id === 'tutorial-anchor-record-menu' && this.isRecordMenuOpen) {
+      holeTargetEl = document.querySelector('.record-menu-panel') ?? el;
+    }
     const holeEl = holeTargetEl as HTMLElement;
     const rect = holeEl.getBoundingClientRect();
     const { expandOuter, borderRadiusPx } = this.readTutorialSpotOutlineMetrics(holeEl);

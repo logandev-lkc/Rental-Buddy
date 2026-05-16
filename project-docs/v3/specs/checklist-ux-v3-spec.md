@@ -1,6 +1,6 @@
 # 查核表 UX 優化（第三版）— 討論稿與規格
 
-最後更新：2026-05-10（路徑 `v3/specs/checklist-ux-v3-spec.md`；總覽見 [README.md](../README.md)）
+最後更新：2026-05-16（v3 已結案；實作基線 `main` @ `2ec8c8e`；總覽見 [README.md](../README.md)）
 
 ## 1) 文件目的
 
