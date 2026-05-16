@@ -1,6 +1,6 @@
 # Rental Buddy 專案文件索引
 
-本資料夾依**開發階段**分子目錄：`v1/` 為產品主軸與查核，`v2/` 為報告／InBody 規格，`v3/` 為第三版範圍與新 Backlog。檔名一律使用**英文**（kebab-case），方便版本控制與跨平台路徑。
+本資料夾依**開發階段**分子目錄：`v1/` 為產品主軸與查核，`v2/` 為報告／InBody 規格，`v3/` 為查核表第三版（已結案），`v4/` 為報告頁第四版（規劃中）。檔名一律使用**英文**（kebab-case），方便版本控制與跨平台路徑。
 
 ## v1
 
@@ -30,6 +30,20 @@
 | [v3/specs/](./v3/specs/) | 其他長篇專題規格（見目錄內說明） |
 
 單一專題篇幅過長時，於 [v3/specs/](./v3/specs/) 新增 `*-spec.md`，並於 [v3/README.md](./v3/README.md) 文件索引補列連結。
+
+## v4
+
+**狀態：規劃中（2026-05-16 開案；基線 `main` @ `2ec8c8e`）**
+
+| 檔案／目錄 | 說明 |
+| --- | --- |
+| [v4/README.md](./v4/README.md) | 第四版入口：報告頁範圍、與 v1～v3 關係、開發原則 |
+| [v4/feature-roadmap.md](./v4/feature-roadmap.md) | 第四版 Backlog（F-020 起）、切片與 Out of scope |
+| [v4/progress.md](./v4/progress.md) | 第四版進度總表 |
+| [v4/decisions.md](./v4/decisions.md) | 第四版決策（D-005 起） |
+| [v4/specs/report-v4-spec.md](./v4/specs/report-v4-spec.md) | 報告 IA、單頁 PDF、手機閱讀 |
+| [v4/specs/checklist-change-impact.md](./v4/specs/checklist-change-impact.md) | 查核題變更對報告的維護清單 |
+| [v4/specs/](./v4/specs/) | 其他長篇專題規格 |
 
 ## 路徑沿革（對照）
 

@@ -64,6 +64,6 @@
 | **程式基線** | `main` @ `2ec8c8e` |
 | **進度總表** | [progress.md](./progress.md) |
 | **Backlog** | [feature-roadmap.md](./feature-roadmap.md)（F-015～F-019 均 **done**） |
-| **後續** | 新需求請另開 v4 目錄或於 v1 路線圖新增功能 ID 並標註版本 |
+| **後續** | 報告頁需求見 [v4/](../v4/)（F-020 起）；其餘可於 v1 路線圖新增 F-0xx 並標註版本 |
 
 單一專題若另需長篇拆分，可在 [specs/](./specs/) 新增檔案並於上表「文件索引」補列。
