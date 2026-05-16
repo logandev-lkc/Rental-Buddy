@@ -43,7 +43,7 @@ export class App implements OnInit, OnDestroy {
   readonly attachmentLimit = 10;
   readonly supportAuthorHref = 'https://buymeacoffee.com/';
   readonly supportAuthorLabel = '贊助';
-  readonly contactAuthorHref = 'mailto:hello@example.com';
+  readonly contactAuthorHref = 'mailto:logan.lkc.dev@gmail.com';
   readonly contactAuthorLabel = '聯絡作者';
   readonly appShareUrl =
     typeof window !== 'undefined' && window.location?.href
