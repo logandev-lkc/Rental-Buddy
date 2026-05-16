@@ -624,7 +624,7 @@ export class App implements OnInit, OnDestroy {
     {
       anchorId: 'tutorial-anchor-toolbar',
       title: '清單範圍',
-      body: '「精簡／標準／完整」控制題目數量。分類可多選。'
+      body: '上方為清單範圍（精簡／標準／完整）；分類可多選。'
     },
     {
       anchorId: 'tutorial-anchor-filter',

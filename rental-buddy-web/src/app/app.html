@@ -546,44 +546,52 @@
   [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-toolbar')"
 >
   <div class="category-toolbar-head">
-    <div class="category-toolbar-head-text">
-      <div class="category-toolbar-title-row">
-        <div class="category-toolbar-title" id="category-toolbar-heading">分類</div>
-        <div class="checklist-scope-switch" role="radiogroup" aria-label="清單範圍">
-          <button
-            type="button"
-            class="scope-mode-btn scope-mode-btn--compact"
-            [class.active]="checklistScopeMode === 'compact'"
-            [attr.aria-checked]="checklistScopeMode === 'compact'"
-            role="radio"
-            (click)="setChecklistScopeMode('compact')"
-          >
-            精簡
-          </button>
-          <button
-            type="button"
-            class="scope-mode-btn scope-mode-btn--standard"
-            [class.active]="checklistScopeMode === 'standard'"
-            [attr.aria-checked]="checklistScopeMode === 'standard'"
-            role="radio"
-            (click)="setChecklistScopeMode('standard')"
-          >
-            標準
-          </button>
-          <button
-            type="button"
-            class="scope-mode-btn scope-mode-btn--full"
-            [class.active]="checklistScopeMode === 'full'"
-            [attr.aria-checked]="checklistScopeMode === 'full'"
-            role="radio"
-            (click)="setChecklistScopeMode('full')"
-          >
-            完整
-          </button>
-        </div>
+    <div class="scope-range-block">
+      <div class="scope-range-label" id="scope-range-label">清單範圍</div>
+      <div
+        class="checklist-scope-switch checklist-scope-switch--segmented"
+        role="radiogroup"
+        aria-labelledby="scope-range-label"
+      >
+        <button
+          type="button"
+          class="scope-mode-btn scope-mode-btn--compact"
+          [class.active]="checklistScopeMode === 'compact'"
+          [attr.aria-checked]="checklistScopeMode === 'compact'"
+          role="radio"
+          (click)="setChecklistScopeMode('compact')"
+        >
+          <span class="scope-mode-btn__text">精簡</span>
+          <span class="scope-mode-btn__hint">必查</span>
+        </button>
+        <button
+          type="button"
+          class="scope-mode-btn scope-mode-btn--standard"
+          [class.active]="checklistScopeMode === 'standard'"
+          [attr.aria-checked]="checklistScopeMode === 'standard'"
+          role="radio"
+          (click)="setChecklistScopeMode('standard')"
+        >
+          <span class="scope-mode-btn__text">標準</span>
+          <span class="scope-mode-btn__hint">建議</span>
+        </button>
+        <button
+          type="button"
+          class="scope-mode-btn scope-mode-btn--full"
+          [class.active]="checklistScopeMode === 'full'"
+          [attr.aria-checked]="checklistScopeMode === 'full'"
+          role="radio"
+          (click)="setChecklistScopeMode('full')"
+        >
+          <span class="scope-mode-btn__text">完整</span>
+          <span class="scope-mode-btn__hint">全部</span>
+        </button>
       </div>
-      <p class="category-toolbar-hint" title="可多選分類；未選＝顯示全部；多選時依點選順序顯示各分類。清單範圍可縮小題數。">
-        可多選；未選＝全部 · 精簡／標準／完整切換題數
+    </div>
+    <div class="category-toolbar-section-head">
+      <h2 class="category-toolbar-title" id="category-toolbar-heading">分類</h2>
+      <p class="category-toolbar-hint-inline" title="可多選分類；未選＝顯示全部；多選時依點選順序顯示各分類。">
+        可多選；未選＝全部
       </p>
     </div>
   </div>
@@ -1569,10 +1577,19 @@
   [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-footer')"
   aria-label="查核進度"
 >
-  <div class="bottom-stats compact">
-    <div class="stat-chip good"><span class="num">{{ checklistBarConfirmed }}</span>已確認</div>
-    <div class="stat-chip danger"><span class="num">{{ checklistBarFlagged }}</span>問題</div>
-    <div class="stat-chip"><span class="num">{{ checklistBarLeft }}</span>待確認</div>
+  <div class="checklist-stats-surface" role="group">
+    <div class="checklist-stat checklist-stat--confirmed">
+      <span class="checklist-stat__value">{{ checklistBarConfirmed }}</span>
+      <span class="checklist-stat__label">已確認</span>
+    </div>
+    <div class="checklist-stat checklist-stat--flagged">
+      <span class="checklist-stat__value">{{ checklistBarFlagged }}</span>
+      <span class="checklist-stat__label">問題</span>
+    </div>
+    <div class="checklist-stat checklist-stat--pending">
+      <span class="checklist-stat__value">{{ checklistBarLeft }}</span>
+      <span class="checklist-stat__label">待確認</span>
+    </div>
   </div>
 </aside>
 }
