@@ -554,6 +554,8 @@ export class App implements OnInit, OnDestroy {
   draftRecordName = '';
   editingRecordName = '';
   isRecordMenuOpen = false;
+  /** 紀錄選單內「重新命名」區是否展開 */
+  recordMenuRenameOpen = false;
   isCategoryMenuOpen = false;
   checklistFilterPanelOpen = false;
   activeChecklistFilters: ChecklistFilterId[] = [];
@@ -1322,13 +1324,13 @@ export class App implements OnInit, OnDestroy {
   }
 
   replayTutorial(): void {
-    this.isRecordMenuOpen = false;
+    this.closeRecordMenu();
     this.beginTutorial();
   }
 
   finishTutorial(markCompleted: boolean): void {
     this.clearTutorialAutoExpandedItem();
-    this.isRecordMenuOpen = false;
+    this.closeRecordMenu();
     this.tutorialOpen = false;
     this.tutorialDimMode = 'off';
     if (markCompleted && typeof localStorage !== 'undefined') {
@@ -1426,7 +1428,12 @@ export class App implements OnInit, OnDestroy {
   /** 教學「紀錄與備份」步（index 2）自動展開右上角選單，其餘步驟關閉以免擋版面 */
   private applyTutorialRecordMenuForStep(): void {
     if (!this.tutorialOpen) return;
-    this.isRecordMenuOpen = this.tutorialStepIndex === 3;
+    const open = this.tutorialStepIndex === 3;
+    this.isRecordMenuOpen = open;
+    this.recordMenuRenameOpen = false;
+    if (open) {
+      this.syncEditingRecordName();
+    }
   }
 
   /** 步驟 1–7（index 0–6）：提示卡固定貼底，不抬高避開 footer；步驟 8 仍自動判斷 */
@@ -1816,7 +1823,7 @@ export class App implements OnInit, OnDestroy {
     if (page !== 'checklist') {
       this.closeChecklistFilterPanel();
     }
-    this.isRecordMenuOpen = false;
+    this.closeRecordMenu();
     this.currentPage = page;
     if (page === 'report') {
       void this.loadAttachmentThumbs();
@@ -1922,6 +1929,11 @@ export class App implements OnInit, OnDestroy {
     return `${confirmed}/${items.length}`;
   }
 
+  private closeRecordMenu(): void {
+    this.isRecordMenuOpen = false;
+    this.recordMenuRenameOpen = false;
+  }
+
   switchRecord(recordId: string): void {
     if (!this.records.some((record) => record.id === recordId)) return;
     this.closeMapPicker();
@@ -1929,7 +1941,7 @@ export class App implements OnInit, OnDestroy {
     this.activeRecordId = recordId;
     this.syncEditingRecordName();
     this.reconcileLinkedChecklistFromProperty();
-    this.isRecordMenuOpen = false;
+    this.closeRecordMenu();
     this.overviewDropdownOpen = null;
     this.overviewLayoutExtraExpanded = false;
     this.overviewPropertyMoreExpanded = false;
@@ -1939,23 +1951,36 @@ export class App implements OnInit, OnDestroy {
 
   toggleRecordMenu(event: Event): void {
     event.stopPropagation();
-    this.isRecordMenuOpen = !this.isRecordMenuOpen;
     if (this.isRecordMenuOpen) {
-      this.isCategoryMenuOpen = false;
-      this.overviewDropdownOpen = null;
+      this.closeRecordMenu();
+      this.cdr.markForCheck();
+      return;
     }
+    this.isRecordMenuOpen = true;
+    this.recordMenuRenameOpen = false;
+    this.syncEditingRecordName();
+    this.isCategoryMenuOpen = false;
+    this.overviewDropdownOpen = null;
+    this.cdr.markForCheck();
+  }
+
+  toggleRecordMenuRename(): void {
+    this.recordMenuRenameOpen = !this.recordMenuRenameOpen;
+    if (this.recordMenuRenameOpen) {
+      this.syncEditingRecordName();
+    }
+    this.cdr.markForCheck();
   }
 
   selectRecordOption(recordId: string): void {
     this.switchRecord(recordId);
-    this.isRecordMenuOpen = false;
   }
 
   toggleCategoryMenu(event: Event): void {
     event.stopPropagation();
     this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
     if (this.isCategoryMenuOpen) {
-      this.isRecordMenuOpen = false;
+      this.closeRecordMenu();
     }
   }
 
@@ -2027,7 +2052,7 @@ export class App implements OnInit, OnDestroy {
 
   onBrandClick(): void {
     this.closeMapPicker();
-    this.isRecordMenuOpen = false;
+    this.closeRecordMenu();
     this.isCategoryMenuOpen = false;
     this.overviewDropdownOpen = null;
     this.overviewLayoutExtraExpanded = false;
@@ -2270,6 +2295,7 @@ export class App implements OnInit, OnDestroy {
     this.activeRecordId = record.id;
     this.draftRecordName = '';
     this.syncEditingRecordName();
+    this.recordMenuRenameOpen = false;
     this.saveState();
     this.tryShowPwaInstallBanner();
     void this.loadAttachmentThumbs();
@@ -2284,6 +2310,8 @@ export class App implements OnInit, OnDestroy {
     }
     this.activeRecord.name = nextName;
     this.touchActiveRecord();
+    this.recordMenuRenameOpen = false;
+    this.cdr.markForCheck();
   }
 
   async deleteActiveRecord(): Promise<void> {
@@ -3353,7 +3381,7 @@ ${this.reportDataJson}`;
       anchor.download = `rental-buddy-backup-${new Date().toISOString().slice(0, 10)}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
-      this.isRecordMenuOpen = false;
+      this.closeRecordMenu();
     } catch {
       window.alert('匯出失敗，請稍後再試。');
     } finally {
@@ -3387,7 +3415,7 @@ ${this.reportDataJson}`;
     } finally {
       this.backupImportBusy = false;
       if (input) input.value = '';
-      this.isRecordMenuOpen = false;
+      this.closeRecordMenu();
     }
   }
 
@@ -4118,7 +4146,7 @@ ${this.reportDataJson}`;
   onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement | null;
     if (!target?.closest('.custom-select') && !target?.closest('.record-menu')) {
-      this.isRecordMenuOpen = false;
+      this.closeRecordMenu();
       this.isCategoryMenuOpen = false;
       this.overviewDropdownOpen = null;
     }

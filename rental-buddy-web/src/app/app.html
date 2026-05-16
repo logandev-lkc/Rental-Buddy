@@ -50,7 +50,9 @@
             [class.tutorial-anchor-highlight]="tutorialAnchorActive('tutorial-anchor-record-menu')"
           >
             <div class="record-menu-title">紀錄管理</div>
-            <div class="record-menu-list">
+            <button type="button" class="record-menu-add" (click)="createRecord()">＋ 新增看房紀錄</button>
+            <p class="record-menu-section-label" id="record-menu-switch-label">切換紀錄</p>
+            <div class="record-menu-list" role="group" aria-labelledby="record-menu-switch-label">
               @for (record of records; track record.id) {
                 <button
                   type="button"
@@ -62,21 +64,32 @@
                 </button>
               }
             </div>
-            <div class="record-menu-edit-row">
-              <input
-                class="record-menu-input"
-                type="text"
-                [ngModel]="editingRecordName"
-                (ngModelChange)="editingRecordName = $event"
-                placeholder="修改目前紀錄名稱"
-              />
-              <button type="button" class="btn-primary small" (click)="renameActiveRecord()">儲存</button>
+            <div class="record-menu-rename-section" aria-labelledby="record-menu-rename-label">
+              <p class="record-menu-section-label record-menu-section-label--subtle" id="record-menu-rename-label">名稱</p>
+              <button
+                type="button"
+                class="record-menu-rename-toggle"
+                [attr.aria-expanded]="recordMenuRenameOpen"
+                (click)="toggleRecordMenuRename()"
+              >
+                <span class="record-menu-rename-toggle-text">重新命名…</span>
+                <span class="record-menu-chevron" [class.open]="recordMenuRenameOpen" aria-hidden="true">▾</span>
+              </button>
+              @if (recordMenuRenameOpen) {
+                <div class="record-menu-edit-row record-menu-rename-body">
+                  <input
+                    class="record-menu-input"
+                    type="text"
+                    [ngModel]="editingRecordName"
+                    (ngModelChange)="editingRecordName = $event"
+                    placeholder="修改目前紀錄名稱"
+                  />
+                  <button type="button" class="btn-primary small" (click)="renameActiveRecord()">儲存</button>
+                </div>
+              }
             </div>
-            <div class="record-menu-actions">
-              <button type="button" class="btn-outline small" (click)="createRecord()">新增</button>
-              <button type="button" class="btn-outline small danger" (click)="deleteActiveRecord()">刪除</button>
-            </div>
-            <div class="record-menu-reset">
+            <div class="record-menu-danger">
+              <button type="button" class="btn-outline small danger" (click)="deleteActiveRecord()">刪除目前紀錄</button>
               <button type="button" class="btn-outline small danger" (click)="resetAll()">重置本紀錄</button>
             </div>
           </div>
