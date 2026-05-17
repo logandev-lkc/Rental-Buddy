@@ -65,6 +65,15 @@ export class App implements OnInit, OnDestroy {
     neighbor: '環境與管理'
   };
 
+  /** 列印版雷達圖外圈短標（對齊 InBody 範例） */
+  readonly printRadarShortLabel: Record<string, string> = {
+    contract: '租約',
+    facility: '設備',
+    safety: '安全',
+    living: '生活',
+    neighbor: '環境'
+  };
+
   // 5 個分類對應到「五角形」雷達圖軸
   readonly radarAxisIds = ['contract', 'facility', 'safety', 'living', 'neighbor'] as const;
   /**
@@ -663,7 +672,41 @@ export class App implements OnInit, OnDestroy {
   selectedCategoryIds: string[] = [];
   currentPage: 'checklist' | 'report' | 'settings' = 'checklist';
   settingsActionMessage = '';
-  reportViewMode: 'friendly' | 'compact' = 'friendly';
+  /** v4：列印版全螢幕預覽（取代圖文／表格雙模式） */
+  printPreviewOpen = false;
+  printPreviewZoom = 1;
+  printPreviewBaseScale = 1;
+  printExportBusy = false;
+  private printPreviewPinchDistance = 0;
+  /** 螢幕預覽／排版邏輯尺寸（約 96dpi A4 直向） */
+  private readonly printDocWidthPx = 794;
+  private readonly printDocHeightPx = 1123;
+  /** 圖片／PDF 點陣匯出尺寸（300dpi A4 直向：2480×3508） */
+  private readonly printExportWidthPx = 2480;
+  private readonly printExportHeightPx = 3508;
+  /**
+   * 列印單頁各區高度比例（合計 100）。
+   * header＝頁首｜overview＝總覽｜ai＝分析總結｜category＝五分類｜checklist＝明細表｜bottom＝下一步／備註
+   */
+  readonly printRowPercents = {
+    header: 12,
+    overview: 10,
+    ai: 20,
+    category: 20,
+    checklist: 25,
+    bottom: 13
+  } as const;
+  readonly printScoreBarSlots = [1, 2, 3, 4, 5, 6] as const;
+  /** v4：報告詳細區塊預設收合 */
+  reportDetailExpanded = false;
+  reportCompareExpanded = false;
+  reportProsExpanded = false;
+  reportConsExpanded = false;
+  reportPendingExpanded = false;
+  readonly reportDetailPreviewLimit = 3;
+  readonly printNoteMaxChars = 28;
+  readonly printChecklistMaxRows = 8;
+  readonly printActionDescMaxChars = 48;
   reportDataCopyState = '';
   showAiImportPanel = false;
   aiReportDraftInput = '';
@@ -1157,11 +1200,99 @@ export class App implements OnInit, OnDestroy {
   }
 
   get chartRecords(): HouseRecord[] {
+    if (!this.reportCompareExpanded || !this.canCompare) {
+      return [this.activeRecord];
+    }
     const ids = [this.activeRecord.id, ...this.compareRecords.map((r) => r.id)];
     const uniqIds = Array.from(new Set(ids)).slice(0, 3);
     return uniqIds
       .map((id) => this.records.find((record) => record.id === id))
       .filter((record): record is HouseRecord => Boolean(record));
+  }
+
+  get printLayoutLine(): string {
+    const layoutParts = [
+      this.layoutType || '',
+      `${this.layoutRooms || '-'}/${this.layoutLivingRooms || '-'}/${this.layoutBathrooms || '-'}`,
+      [this.layoutKitchenType, this.layoutAreaPing].filter(Boolean).join(' · ')
+    ].filter((part) => part && part !== '-/-/-');
+    return layoutParts.length > 0 ? layoutParts.join(' · ') : '未填寫';
+  }
+
+  get printAttachmentThumb(): AttachmentThumb | null {
+    return this.attachmentThumbs[0] ?? null;
+  }
+
+  get displayReportStrengthsForPrint(): ReportSummaryBullet[] {
+    return this.displayReportStrengths.slice(0, 3).map((item) => ({
+      ...item,
+      description: this.truncateForPrint(item.description, 40)
+    }));
+  }
+
+  get displayReportRisksForPrint(): ReportSummaryBullet[] {
+    return this.displayReportRisks.slice(0, 3).map((item) => ({
+      ...item,
+      description: this.truncateForPrint(item.description, 40)
+    }));
+  }
+
+  get displayReportConclusionDescForPrint(): string {
+    return this.truncateForPrint(this.displayReportConclusionDesc, 120);
+  }
+
+  get reportImportantChecklistRowsForPrint(): ReportChecklistRow[] {
+    return this.reportImportantChecklistRows
+      .slice(0, this.printChecklistMaxRows)
+      .map((row) => ({
+        ...row,
+        note: this.truncateForPrint(row.note)
+      }));
+  }
+
+  get reportImportantChecklistCol1(): ReportChecklistRow[] {
+    const rows = this.reportImportantChecklistRowsForPrint;
+    const mid = Math.ceil(rows.length / 2);
+    return rows.slice(0, mid);
+  }
+
+  get reportImportantChecklistCol2(): ReportChecklistRow[] {
+    const rows = this.reportImportantChecklistRowsForPrint;
+    const mid = Math.ceil(rows.length / 2);
+    return rows.slice(mid);
+  }
+
+  get printCandidateAverageDisplay(): string {
+    return this.candidateAverageScore === null
+      ? '—'
+      : `${this.candidateAverageScore} / 100`;
+  }
+
+  get printCandidateAverageSub(): string {
+    if (this.candidateAverageScore === null) return '（尚無比較資料）';
+    return this.truncateForPrint(this.candidateAverageHint, 18);
+  }
+
+  get printScoreBarActiveCount(): number {
+    return Math.min(6, Math.max(0, Math.round((this.reportScore100 / 100) * 6)));
+  }
+
+  printStatusClass(status: string): string {
+    if (status === 'checked') return 'status-pass';
+    if (status === 'flagged') return 'status-risk';
+    return 'status-pending';
+  }
+
+  get reportNextActionsForPrint(): ReportNextAction[] {
+    return this.reportNextActions.map((action) => ({
+      title: this.truncateForPrint(action.title, 24),
+      description: this.truncateForPrint(action.description, this.printActionDescMaxChars)
+    }));
+  }
+
+  hasReportDetailNote(note: string): boolean {
+    const trimmed = (note || '').trim();
+    return Boolean(trimmed) && trimmed !== '—';
   }
 
   get itemsInChecklistScope(): ChecklistItem[] {
@@ -1886,6 +2017,9 @@ export class App implements OnInit, OnDestroy {
   setPage(page: 'checklist' | 'report' | 'settings'): void {
     if (page !== 'report') {
       this.reportToolsExpanded = false;
+      if (this.printPreviewOpen) {
+        this.closePrintPreview();
+      }
     }
     if (page !== 'checklist') {
       this.closeChecklistFilterPanel();
@@ -1899,8 +2033,110 @@ export class App implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  setReportViewMode(mode: 'friendly' | 'compact'): void {
-    this.reportViewMode = mode;
+  get printPreviewZoomPercent(): number {
+    return Math.round(this.printPreviewBaseScale * this.printPreviewZoom * 100);
+  }
+
+  /** 列印頁 grid 列高：以 fr 分配，數值等同％且合計 100 */
+  get printSheetGridStyle(): { gridTemplateRows: string } {
+    const p = this.printRowPercents;
+    return {
+      gridTemplateRows: [
+        `minmax(0, ${p.header}fr)`,
+        `minmax(0, ${p.overview}fr)`,
+        `minmax(0, ${p.ai}fr)`,
+        `minmax(0, ${p.category}fr)`,
+        `minmax(0, ${p.checklist}fr)`,
+        `minmax(0, ${p.bottom}fr)`
+      ].join(' ')
+    };
+  }
+
+  openPrintPreview(): void {
+    this.printPreviewOpen = true;
+    this.printPreviewZoom = 1;
+    document.body.classList.add('print-preview-open');
+    void this.loadAttachmentThumbs();
+    this.cdr.markForCheck();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.fitPrintPreviewToViewport());
+    });
+  }
+
+  closePrintPreview(): void {
+    this.printPreviewOpen = false;
+    this.printPreviewZoom = 1;
+    this.printPreviewBaseScale = 1;
+    document.body.classList.remove('print-preview-open');
+    this.resetPrintSheetScale();
+    this.cdr.markForCheck();
+  }
+
+  zoomPrintPreviewIn(): void {
+    this.setPrintPreviewZoom(this.printPreviewZoom + 0.12);
+  }
+
+  zoomPrintPreviewOut(): void {
+    this.setPrintPreviewZoom(this.printPreviewZoom - 0.12);
+  }
+
+  zoomPrintPreviewFit(): void {
+    this.printPreviewZoom = 1;
+    this.fitPrintPreviewToViewport();
+    this.cdr.markForCheck();
+  }
+
+  onPrintPreviewWheel(event: WheelEvent): void {
+    if (!this.printPreviewOpen) return;
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 0.1 : -0.1;
+    this.setPrintPreviewZoom(this.printPreviewZoom + delta);
+  }
+
+  onPrintPreviewTouchStart(event: TouchEvent): void {
+    if (event.touches.length === 2) {
+      this.printPreviewPinchDistance = this.getPrintPreviewTouchDistance(event);
+    }
+  }
+
+  onPrintPreviewTouchMove(event: TouchEvent): void {
+    if (event.touches.length !== 2 || this.printPreviewPinchDistance <= 0) return;
+    event.preventDefault();
+    const distance = this.getPrintPreviewTouchDistance(event);
+    const ratio = distance / this.printPreviewPinchDistance;
+    this.printPreviewPinchDistance = distance;
+    this.setPrintPreviewZoom(this.printPreviewZoom * ratio);
+  }
+
+  onPrintPreviewTouchEnd(): void {
+    this.printPreviewPinchDistance = 0;
+  }
+
+  toggleReportCompareExpanded(): void {
+    this.reportCompareExpanded = !this.reportCompareExpanded;
+  }
+
+  toggleReportDetailExpanded(): void {
+    this.reportDetailExpanded = !this.reportDetailExpanded;
+  }
+
+  toggleReportProsExpanded(): void {
+    this.reportProsExpanded = !this.reportProsExpanded;
+  }
+
+  toggleReportConsExpanded(): void {
+    this.reportConsExpanded = !this.reportConsExpanded;
+  }
+
+  toggleReportPendingExpanded(): void {
+    this.reportPendingExpanded = !this.reportPendingExpanded;
+  }
+
+  truncateForPrint(text: string, max = this.printNoteMaxChars): string {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return '—';
+    if (trimmed.length <= max) return trimmed;
+    return `${trimmed.slice(0, Math.max(0, max - 1))}…`;
   }
 
   onChecklistItemRowClick(id: string, event: Event): void {
@@ -2410,7 +2646,7 @@ export class App implements OnInit, OnDestroy {
 
   openReportPage(): void {
     this.setPage('report');
-    this.reportViewMode = 'friendly';
+    this.printPreviewOpen = false;
   }
 
   async shareAppLink(): Promise<void> {
@@ -2789,31 +3025,52 @@ export class App implements OnInit, OnDestroy {
       .slice(0, 5);
   }
 
-  get reportPros(): ReportRow[] {
-    return this.items
-      .filter((item) => this.state[item.id]?.checked)
-      .map((item) => ({
-        title: item.title,
-        note: this.state[item.id]?.note?.trim() || ''
-      }));
+  get reportPros(): ReportDetailRow[] {
+    return this.buildSortedReportDetailRows('checked');
   }
 
-  get reportCons(): ReportRow[] {
-    return this.items
-      .filter((item) => this.state[item.id]?.flagged)
-      .map((item) => ({
-        title: item.title,
-        note: this.state[item.id]?.note?.trim() || ''
-      }));
+  get reportCons(): ReportDetailRow[] {
+    return this.buildSortedReportDetailRows('flagged');
   }
 
-  get reportPending(): ReportRow[] {
-    return this.items
-      .filter((item) => !this.state[item.id]?.checked && !this.state[item.id]?.flagged)
-      .map((item) => ({
-        title: item.title,
-        note: this.state[item.id]?.note?.trim() || ''
-      }));
+  get reportPending(): ReportDetailRow[] {
+    return this.buildSortedReportDetailRows('pending');
+  }
+
+  get reportProsPreview(): ReportDetailRow[] {
+    return this.reportPros.slice(0, this.reportDetailPreviewLimit);
+  }
+
+  get reportConsPreview(): ReportDetailRow[] {
+    return this.reportCons.slice(0, this.reportDetailPreviewLimit);
+  }
+
+  get reportPendingPreview(): ReportDetailRow[] {
+    return this.reportPending.slice(0, this.reportDetailPreviewLimit);
+  }
+
+  get reportProsHasMore(): boolean {
+    return this.reportPros.length > this.reportDetailPreviewLimit;
+  }
+
+  get reportConsHasMore(): boolean {
+    return this.reportCons.length > this.reportDetailPreviewLimit;
+  }
+
+  get reportPendingHasMore(): boolean {
+    return this.reportPending.length > this.reportDetailPreviewLimit;
+  }
+
+  get reportProsVisible(): ReportDetailRow[] {
+    return this.reportProsExpanded ? this.reportPros : this.reportProsPreview;
+  }
+
+  get reportConsVisible(): ReportDetailRow[] {
+    return this.reportConsExpanded ? this.reportCons : this.reportConsPreview;
+  }
+
+  get reportPendingVisible(): ReportDetailRow[] {
+    return this.reportPendingExpanded ? this.reportPending : this.reportPendingPreview;
   }
 
   get reportImportantChecklistRows(): ReportChecklistRow[] {
@@ -3816,6 +4073,154 @@ ${this.reportDataJson}`;
     return this.quickStatusOptions.find((option) => option.value === status)?.label ?? '尚未確認';
   }
 
+  private buildSortedReportDetailRows(kind: 'checked' | 'flagged' | 'pending'): ReportDetailRow[] {
+    const filtered = this.items.filter((item) => {
+      const state = this.state[item.id];
+      if (kind === 'checked') return Boolean(state?.checked);
+      if (kind === 'flagged') return Boolean(state?.flagged);
+      return !state?.checked && !state?.flagged;
+    });
+
+    return filtered
+      .map((item) => {
+        const state = this.state[item.id];
+        const status: ReportChecklistStatus = state?.flagged ? 'flagged' : state?.checked ? 'checked' : 'pending';
+        const config = this.getItemRiskConfig(item);
+        const quickStatusLabel =
+          state?.quickStatus && state.quickStatus !== 'unknown'
+            ? this.getQuickStatusLabel(state.quickStatus)
+            : '';
+        return {
+          title: item.title,
+          note: this.formatChecklistNote(state, status),
+          quickStatusLabel,
+          priority: config.weight + (state?.note?.trim() ? 2 : 0)
+        };
+      })
+      .sort((a, b) => b.priority - a.priority);
+  }
+
+  private setPrintPreviewZoom(next: number): void {
+    this.printPreviewZoom = Math.min(2.5, Math.max(0.45, next));
+    this.applyPrintPreviewTransform();
+    this.cdr.markForCheck();
+  }
+
+  private getPrintPreviewTouchDistance(event: TouchEvent): number {
+    const [a, b] = [event.touches[0], event.touches[1]];
+    const dx = a.clientX - b.clientX;
+    const dy = a.clientY - b.clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  private fitPrintPreviewToViewport(): void {
+    const scaler = document.querySelector(
+      '#reportExportArea .print-preview-scaler--active'
+    ) as HTMLElement | null;
+    const sheet = this.getPrintSheetElement();
+    if (!scaler || !sheet) return;
+
+    sheet.style.width = `${this.printDocWidthPx}px`;
+    sheet.style.height = `${this.printDocHeightPx}px`;
+    const available = scaler.clientWidth - 12;
+    this.printPreviewBaseScale = Math.min(1, available / this.printDocWidthPx);
+    this.applyPrintPreviewTransform();
+  }
+
+  private applyPrintPreviewTransform(): void {
+    const sheet = this.getPrintSheetElement();
+    if (!sheet) return;
+
+    const stage = sheet.parentElement;
+    const viewport = stage?.parentElement;
+    const scaler = document.querySelector(
+      '#reportExportArea .print-preview-scaler--active'
+    ) as HTMLElement | null;
+    const totalScale = this.printPreviewBaseScale * this.printPreviewZoom;
+    const scaledW = Math.ceil(this.printDocWidthPx * totalScale);
+    const scaledH = Math.ceil(this.printDocHeightPx * totalScale);
+    const supportsZoom =
+      typeof CSS !== 'undefined' && CSS.supports('zoom', '1');
+
+    sheet.style.transform = '';
+    sheet.style.transformOrigin = '';
+    sheet.style.width = '';
+    sheet.style.height = '';
+
+    if (stage?.classList.contains('print-preview-stage')) {
+      stage.style.width = `${this.printDocWidthPx}px`;
+      stage.style.height = `${this.printDocHeightPx}px`;
+      if (supportsZoom) {
+        stage.style.transform = '';
+        stage.style.transformOrigin = '';
+        stage.style.zoom = `${totalScale}`;
+      } else {
+        stage.style.zoom = '';
+        stage.style.transformOrigin = 'top left';
+        stage.style.transform = `scale(${totalScale})`;
+      }
+    }
+
+    if (viewport?.classList.contains('print-preview-viewport')) {
+      if (supportsZoom) {
+        viewport.style.width = '';
+        viewport.style.height = '';
+      } else {
+        viewport.style.width = `${scaledW}px`;
+        viewport.style.height = `${scaledH}px`;
+      }
+    }
+
+    if (scaler) {
+      requestAnimationFrame(() => {
+        scaler.scrollLeft = 0;
+        scaler.scrollTop = 0;
+      });
+    }
+  }
+
+  private fitPrintSheetToOnePage(): void {
+    const sheet = this.getPrintSheetElement();
+    if (!sheet) return;
+    sheet.style.transform = '';
+    sheet.style.transformOrigin = 'top center';
+    sheet.style.width = `${this.printDocWidthPx}px`;
+    sheet.style.height = `${this.printDocHeightPx}px`;
+    const contentHeight = sheet.scrollHeight;
+    if (contentHeight > this.printDocHeightPx) {
+      const scale = Math.max(0.92, this.printDocHeightPx / contentHeight);
+      sheet.style.transform = `scale(${scale})`;
+      sheet.style.width = `${this.printDocWidthPx / scale}px`;
+    }
+  }
+
+  private resetPrintSheetScale(): void {
+    const sheet = this.getPrintSheetElement();
+    const stage = sheet?.parentElement;
+    const viewport = stage?.parentElement;
+    if (sheet) {
+      sheet.style.transform = '';
+      sheet.style.transformOrigin = '';
+      sheet.style.width = '';
+      sheet.style.height = '';
+    }
+    if (stage?.classList.contains('print-preview-stage')) {
+      stage.style.width = '';
+      stage.style.height = '';
+      stage.style.zoom = '';
+      stage.style.transform = '';
+      stage.style.transformOrigin = '';
+    }
+    if (viewport?.classList.contains('print-preview-viewport')) {
+      viewport.style.width = '';
+      viewport.style.height = '';
+    }
+  }
+
+  private getPrintSheetElement(): HTMLElement | null {
+    return document.getElementById('printSheetRoot');
+  }
+
   private formatChecklistNote(state: ItemState | undefined, status: ReportChecklistStatus): string {
     const note = state?.note?.trim();
     const selectedOptions = state?.selectedOptions?.length ? `細節：${state.selectedOptions.join('、')}` : '';
@@ -3988,6 +4393,34 @@ ${this.reportDataJson}`;
     return 'middle';
   }
 
+  getPrintRadarLabel(axisId: string): string {
+    return this.printRadarShortLabel[axisId] ?? this.categoryMap[axisId] ?? axisId;
+  }
+
+  getPrintRadarScore100(axisId: string): number {
+    return Math.round(this.getRecordCategoryScoreRatio(this.activeRecord, axisId) * 100);
+  }
+
+  getPrintRadarScoreX(axisId: string): number {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const r = this.radarRadius * this.getRecordCategoryScoreRatio(this.activeRecord, axisId);
+    return this.radarCenter + r * Math.cos(angle);
+  }
+
+  getPrintRadarScoreY(axisId: string): number {
+    const idx = this.radarAxisIds.indexOf(axisId as (typeof this.radarAxisIds)[number]);
+    const n = this.radarAxisIds.length;
+    const step = (Math.PI * 2) / n;
+    const start = -Math.PI / 2;
+    const angle = start + idx * step;
+    const r = this.radarRadius * this.getRecordCategoryScoreRatio(this.activeRecord, axisId);
+    return this.radarCenter + r * Math.sin(angle);
+  }
+
   private getRadarRanked(record: HouseRecord): Array<{ axisId: string; pct: number }> {
     return this.radarAxisIds
       .map((axisId) => ({
@@ -4031,48 +4464,159 @@ ${this.reportDataJson}`;
     return idx === 0 ? 2.4 : 2;
   }
 
-  async exportReportAsDocument(): Promise<void> {
-    const reportElement = document.getElementById('reportExportArea');
-    if (!reportElement) return;
+  async exportReportAsImage(): Promise<void> {
+    const sheet = this.getPrintSheetElement();
+    if (!sheet || this.printExportBusy) return;
 
+    this.printExportBusy = true;
+    this.cdr.markForCheck();
     await this.loadAttachmentThumbs();
 
-    reportElement.classList.add('report-export-formal');
-    document.body.classList.add('printing-report');
-    document.documentElement.classList.add('printing-report');
-    const previousTitle = document.title;
-    document.title = `${this.activeRecord.name}-report`;
+    const restore = this.preparePrintSheetForExport(sheet);
+    try {
+      const canvas = await this.capturePrintSheetCanvas(sheet);
+      const safeName = this.getPrintExportFileName();
+      const link = document.createElement('a');
+      link.download = `${safeName}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch {
+      this.reportDataCopyState = '圖片匯出失敗，請再試一次';
+      window.setTimeout(() => {
+        this.reportDataCopyState = '';
+        this.cdr.markForCheck();
+      }, 2000);
+    } finally {
+      restore();
+      if (this.printPreviewOpen) {
+        this.applyPrintPreviewTransform();
+      }
+      this.printExportBusy = false;
+      this.cdr.markForCheck();
+    }
+  }
 
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+  /** 匯出滿版 A4 PDF（與範例圖相同版型，html2canvas + jsPDF） */
+  async exportReportAsDocument(): Promise<void> {
+    const sheet = this.getPrintSheetElement();
+    if (!sheet || this.printExportBusy) return;
 
-    const cleanup = (): void => {
-      reportElement.classList.remove('report-export-formal');
-      document.body.classList.remove('printing-report');
-      document.documentElement.classList.remove('printing-report');
-      document.title = previousTitle;
-    };
+    this.printExportBusy = true;
+    this.cdr.markForCheck();
+    await this.loadAttachmentThumbs();
+
+    const restore = this.preparePrintSheetForExport(sheet);
+    try {
+      const canvas = await this.capturePrintSheetCanvas(sheet);
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+      const img = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
+      pdf.save(`${this.getPrintExportFileName()}.pdf`);
+    } catch {
+      this.reportDataCopyState = 'PDF 匯出失敗，請再試一次';
+      window.setTimeout(() => {
+        this.reportDataCopyState = '';
+        this.cdr.markForCheck();
+      }, 2000);
+    } finally {
+      restore();
+      if (this.printPreviewOpen) {
+        this.applyPrintPreviewTransform();
+      }
+      this.printExportBusy = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private getPrintExportFileName(): string {
+    return (this.activeRecord.name || 'report').replace(/[^\w\u4e00-\u9fff-]+/g, '_');
+  }
+
+  /** 將 html2canvas 結果縮放為精確的 300dpi 直向匯出尺寸 */
+  private normalizePrintExportCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
+    if (
+      source.width === this.printExportWidthPx &&
+      source.height === this.printExportHeightPx
+    ) {
+      return source;
+    }
+    const out = document.createElement('canvas');
+    out.width = this.printExportWidthPx;
+    out.height = this.printExportHeightPx;
+    const ctx = out.getContext('2d');
+    if (!ctx) return source;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(source, 0, 0, out.width, out.height);
+    return out;
+  }
+
+  private preparePrintSheetForExport(sheet: HTMLElement): () => void {
+    sheet.classList.add('print-sheet--exporting');
+    return () => sheet.classList.remove('print-sheet--exporting');
+  }
+
+  private async capturePrintSheetCanvas(sheet: HTMLElement): Promise<HTMLCanvasElement> {
+    const liveSheetId = sheet.id;
+    sheet.id = 'printSheetRootLive';
+
+    const clone = sheet.cloneNode(true) as HTMLElement;
+    clone.id = 'printSheetRoot';
+    clone.classList.remove('print-sheet--preview');
+    clone.classList.add('print-sheet--exporting');
+    clone.style.cssText = [
+      'display:grid',
+      `width:${this.printDocWidthPx}px`,
+      `height:${this.printDocHeightPx}px`,
+      'transform:none',
+      'zoom:1',
+      'margin:0',
+      'box-shadow:none',
+      'border:none'
+    ].join(';');
+
+    const mount = document.createElement('div');
+    mount.setAttribute('aria-hidden', 'true');
+    mount.style.cssText = [
+      'position:fixed',
+      'left:0',
+      'top:0',
+      `width:${this.printDocWidthPx}px`,
+      `height:${this.printDocHeightPx}px`,
+      'overflow:hidden',
+      'z-index:2147483646',
+      'pointer-events:none',
+      'background:#fff'
+    ].join(';');
+    mount.appendChild(clone);
+    document.body.appendChild(mount);
+
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     try {
-      await new Promise<void>((resolve) => {
-        let settled = false;
-        const finish = (): void => {
-          if (settled) return;
-          settled = true;
-          resolve();
-        };
-        window.addEventListener('afterprint', finish, { once: true });
-        window.print();
-        // 某些瀏覽器不一定觸發 afterprint，避免卡住。
-        window.setTimeout(finish, 1200);
+      const { default: html2canvas } = await import('html2canvas');
+      const captureScale = this.printExportWidthPx / this.printDocWidthPx;
+      const raw = await html2canvas(clone, {
+        scale: captureScale,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: this.printDocWidthPx,
+        height: this.printDocHeightPx,
+        windowWidth: this.printDocWidthPx,
+        windowHeight: this.printDocHeightPx
       });
-    } catch {
-      cleanup();
-      return;
+      return this.normalizePrintExportCanvas(raw);
+    } finally {
+      mount.remove();
+      sheet.id = liveSheetId;
     }
-
-    cleanup();
   }
 
   private copyTextWithFallback(text: string): void {
@@ -4406,6 +4950,11 @@ interface BackupFileV2 extends BackupFileV1 {
 interface ReportRow {
   title: string;
   note: string;
+}
+
+interface ReportDetailRow extends ReportRow {
+  quickStatusLabel: string;
+  priority: number;
 }
 
 type ReportChecklistStatus = 'checked' | 'flagged' | 'pending';

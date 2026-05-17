@@ -1,0 +1,452 @@
+/* 列印版 InBody 單頁文件 */
+.print-sheet {
+  display: none;
+}
+
+.print-preview-scaler {
+  width: 100%;
+}
+
+.print-preview-scaler--active {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 16px;
+}
+
+.print-sheet.print-sheet--document {
+  box-sizing: border-box;
+  width: 210mm;
+  max-width: 210mm;
+  padding: 4mm 6mm 5mm;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 7.5pt;
+  line-height: 1.25;
+}
+
+.print-sheet--preview {
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  border: 1px solid #bbb;
+  transform-origin: top center;
+}
+
+/* Header */
+.print-head--inbody {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.5fr) 76px;
+  gap: 8px;
+  align-items: start;
+  padding: 6px 8px 7px;
+  border: 1px solid #333;
+}
+
+.print-head--inbody .print-brand-name {
+  font-size: 12pt;
+  font-weight: 900;
+  color: #8d2b1e;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+}
+
+.print-head--inbody .print-brand-sub {
+  margin-top: 2px;
+  font-size: 6.5pt;
+  color: #555;
+}
+
+.print-meta--inbody {
+  border-left: 1px solid #ccc;
+  padding-left: 8px;
+}
+
+.print-meta--inbody .print-meta-row {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 4px;
+  margin-bottom: 1px;
+  font-size: 6.5pt;
+}
+
+.print-meta--inbody .print-meta-row .k {
+  color: #666;
+}
+
+.print-meta--inbody .print-meta-row .v {
+  font-weight: 600;
+}
+
+.print-score--inbody {
+  border: 1px solid #333;
+  padding: 6px 5px;
+  text-align: center;
+  background: linear-gradient(180deg, #fff9f5 0%, #fff 100%);
+}
+
+.print-score--inbody .print-score-num {
+  font-size: 15pt;
+  font-weight: 900;
+  color: #8d2b1e;
+  line-height: 1;
+}
+
+.print-score--inbody .print-score-denom {
+  font-size: 7pt;
+  font-weight: 600;
+  color: #555;
+}
+
+.print-score--inbody .print-grade {
+  margin-top: 4px;
+  padding-top: 3px;
+  border-top: 1px solid #e0c4b8;
+  font-size: 7pt;
+  font-weight: 800;
+  color: #8d3d2f;
+}
+
+.print-score--inbody .print-risk-label {
+  margin-top: 2px;
+  font-size: 6.5pt;
+  font-weight: 800;
+  color: #9f2a1e;
+}
+
+/* Section bands */
+.print-band {
+  margin-top: 4px;
+  border: 1px solid #333;
+}
+
+.print-band-title {
+  margin: 0;
+  padding: 3px 6px;
+  font-size: 7pt;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7d2c1f;
+  border-bottom: 1px solid #333;
+  background: #faf8f6;
+}
+
+/* Overview 5 KPIs */
+.print-overview-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.print-overview-kpi {
+  padding: 5px 4px 4px;
+  text-align: center;
+  border-right: 1px solid #ccc;
+}
+
+.print-overview-kpi:last-child {
+  border-right: 0;
+}
+
+.print-overview-kpi-label {
+  font-size: 5.5pt;
+  font-weight: 800;
+  color: #666;
+  letter-spacing: 0.02em;
+}
+
+.print-overview-kpi-value {
+  margin-top: 2px;
+  font-size: 9pt;
+  font-weight: 900;
+  color: #111;
+}
+
+.print-overview-kpi-value--grade {
+  font-size: 11pt;
+  color: #8d2b1e;
+}
+
+.print-overview-kpi-sub {
+  margin-top: 1px;
+  font-size: 5pt;
+  color: #777;
+  line-height: 1.2;
+}
+
+.print-score-bar {
+  margin: 3px auto 0;
+  width: 88%;
+  height: 4px;
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.print-score-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8d2b1e, #c45a4a);
+}
+
+/* AI 三欄 */
+.print-ai-grid--3 {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr 1fr;
+  gap: 0;
+}
+
+.print-ai-grid--3 .print-ai-col {
+  padding: 5px 6px;
+  border-right: 1px solid #ccc;
+  min-height: 52px;
+}
+
+.print-ai-grid--3 .print-ai-col:last-child {
+  border-right: 0;
+}
+
+.print-ai-label {
+  font-size: 6pt;
+  font-weight: 800;
+  color: #666;
+}
+
+.print-ai-title {
+  margin-top: 2px;
+  font-size: 7pt;
+  font-weight: 900;
+  color: #8d2b1e;
+  line-height: 1.2;
+}
+
+.print-ai-col p {
+  margin: 2px 0 0;
+  font-size: 6pt;
+  line-height: 1.35;
+  color: #222;
+}
+
+.print-ai-list {
+  margin: 3px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.print-ai-list li {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  margin-bottom: 2px;
+  font-size: 5.8pt;
+  line-height: 1.3;
+}
+
+.print-ai-icon {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 10px;
+  text-align: center;
+}
+
+.print-ai-icon--ok {
+  background: #0b5d3b;
+  color: #fff;
+}
+
+.print-ai-icon--risk {
+  background: #9f2a1e;
+  color: #fff;
+}
+
+/* 五分類：雷達 + 表 */
+.print-radar-split {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 6px;
+  padding: 4px 6px 5px;
+  align-items: center;
+}
+
+.print-radar-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.print-radar-svg {
+  width: 112px;
+  height: 112px;
+  display: block;
+}
+
+.print-radar-label {
+  font-size: 7px;
+  fill: #444;
+  font-weight: 600;
+}
+
+.print-table--cats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 6pt;
+}
+
+.print-table--cats th,
+.print-table--cats td {
+  border: 1px solid #ccc;
+  padding: 2px 4px;
+}
+
+.print-table--cats th {
+  background: #f2f2f2;
+  font-weight: 800;
+}
+
+.print-table--cats .c {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.print-table--cats .score-cell {
+  color: #8d2b1e;
+  font-weight: 900;
+}
+
+/* Checklist 雙欄 */
+.print-checklist-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+}
+
+.print-important-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 5.5pt;
+}
+
+.print-important-table th,
+.print-important-table td {
+  border: 1px solid #ccc;
+  padding: 1px 3px;
+  vertical-align: top;
+}
+
+.print-important-table th {
+  background: #f2f2f2;
+  font-weight: 800;
+}
+
+.status-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid #999;
+  padding: 0 3px;
+  font-size: 5pt;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-pill.pass {
+  color: #0b5d3b;
+  border-color: #0b5d3b;
+  background: #e8f5ee;
+}
+
+.status-pill.risk {
+  color: #9f2a1e;
+  border-color: #9f2a1e;
+  background: #fdecea;
+}
+
+.status-pill.pending {
+  color: #8a6d00;
+  border-color: #c9a227;
+  background: #fff8e6;
+}
+
+/* 底部：下一步 + 備註 */
+.print-bottom-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.print-bottom-col {
+  padding: 4px 6px 5px;
+  border-right: 1px solid #ccc;
+}
+
+.print-bottom-col:last-child {
+  border-right: 0;
+}
+
+.print-bottom-col .print-band-title {
+  border: 0;
+  background: transparent;
+  padding: 0 0 3px;
+  margin-bottom: 2px;
+}
+
+.print-next-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.print-next-list li {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 3px;
+  font-size: 6pt;
+  line-height: 1.35;
+}
+
+.print-next-index {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #8d2b1e;
+  color: #fff;
+  font-size: 6pt;
+  font-weight: 900;
+  text-align: center;
+  line-height: 12px;
+}
+
+.print-notes-box {
+  min-height: 42px;
+  border: 1px dashed #bbb;
+  padding: 4px 6px;
+  background: #fafafa;
+}
+
+.print-notes-line {
+  height: 10px;
+  border-bottom: 1px dotted #ccc;
+  margin-bottom: 6px;
+}
+
+.print-notes-line:last-child {
+  margin-bottom: 0;
+}
+
+.print-foot--inbody {
+  margin-top: 4px;
+  padding-top: 3px;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  font-size: 5.5pt;
+  color: #666;
+}
+
+.report-page--print-preview {
+  padding-top: 48px;
+  padding-bottom: 24px;
+}

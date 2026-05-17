@@ -1,0 +1,210 @@
+  <section
+    id="printSheetRoot"
+    class="report-page"
+    [class.print-sheet--preview]="printPreviewOpen"
+    aria-label="列印版報告"
+  >
+    <header class="report-header">
+      <div class="brand">
+        <motion class="brand-title">Rental Buddy</div>
+        <div class="brand-subtitle">看房分析報告 (InBody Style)</motion>
+      </div>
+      <div class="property-info">
+        <div class="property-row">
+          <span class="label">房源名稱</span>
+          <span class="value">{{ activeRecord.name }}</span>
+        </div>
+        <motion class="property-row">
+          <span class="label">地址</span>
+          <span class="value">{{ address || '未填寫' }}</span>
+        </div>
+        <div class="property-row">
+          <span class="label">月租金</span>
+          <span class="value">{{ monthlyRent ? 'NT$ ' + monthlyRent : '未填寫' }}</span>
+        </div>
+        <div class="property-row">
+          <span class="label">格局</span>
+          <span class="value">{{ printLayoutLine }}</span>
+        </div>
+        <div class="property-row">
+          <span class="label">坪數</span>
+          <span class="value">{{ layoutAreaPing ? layoutAreaPing + ' 坪' : '未填寫' }}</span>
+        </div>
+        <div class="property-row">
+          <span class="label">更新時間</span>
+          <span class="value">{{ activeRecord.updatedAt | date:'yyyy/MM/dd HH:mm' }}</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="score-main">{{ reportScore100 }}<span> / 100</span></div>
+        <div class="score-grade red">{{ reportGrade }}</div>
+        <motion class="score-risk">{{ reportRiskLevelLabel }}</div>
+      </div>
+    </header>
+
+    <section class="section section--overview">
+      <div class="section-title"><span class="num">1.</span> OVERVIEW 總覽</div>
+      <div class="overview-content">
+        <div class="metric-card">
+          <div class="metric-label">RENTAL SCORE™</div>
+          <div class="metric-value">{{ reportScore100 }}<span> / 100</span></div>
+          <div class="score-bar" aria-hidden="true">
+            @for (slot of printScoreBarSlots; track slot) {
+              <div [class.active]="slot <= printScoreBarActiveCount"></div>
+            }
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">等級</div>
+          <div class="metric-value red">{{ reportGrade }}</div>
+        </motion>
+        <div class="metric-card">
+          <div class="metric-label">已確認項目</div>
+          <div class="metric-value">{{ confirmedCount }}<span> / {{ totalCount }}</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">待確認項目</div>
+          <div class="metric-value">{{ leftCount }}</div>
+        </div>
+        <div class="area-average">
+          <div class="metric-label">同區域平均分數</div>
+          <div class="metric-value">{{ printCandidateAverageDisplay }}</div>
+          <div class="small-text muted">{{ printCandidateAverageSub }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--ai">
+      <div class="section-title"><span class="num">2.</span> AI 分析總結</div>
+      <div class="ai-content">
+        <div class="ai-box">
+          <div class="ai-box-title">整體結論</motion>
+          <motion class="ai-result">{{ displayReportConclusionTitle }}</div>
+          <p>{{ displayReportConclusionDescForPrint }}</p>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-title">主要優勢</div>
+          <ul class="ai-list">
+            @for (item of displayReportStrengthsForPrint; track item.title) {
+              <li>
+                <span class="ai-icon good" aria-hidden="true">✓</span>
+                <span><strong>{{ item.title }}</strong> {{ item.description }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-title">主要風險</div>
+          <ul class="ai-list">
+            @for (item of displayReportRisksForPrint; track item.title) {
+              <li>
+                <span class="ai-icon risk" aria-hidden="true">!</span>
+                <span><strong>{{ item.title }}</strong> {{ item.description }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--category">
+      <div class="section-title"><span class="num">3.</span> 五分類分析</div>
+      <div class="category-content">
+        <div class="radar-area">
+          <svg class="radar-svg" viewBox="0 0 300 300" aria-label="五分類雷達圖">
+            <polygon [attr.points]="getRadarPointsAtRatio(0.25)" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+            <polygon [attr.points]="getRadarPointsAtRatio(0.5)" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+            <polygon [attr.points]="getRadarPointsAtRatio(0.75)" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+            <polygon [attr.points]="getRadarPointsAtRatio(1)" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="1.2" />
+            @for (axisId of radarAxisIds; track axisId) {
+              <line [attr.x1]="radarCenter" [attr.y1]="radarCenter" [attr.x2]="getRadarAxisXEnd(axisId)" [attr.y2]="getRadarAxisYEnd(axisId)" stroke="rgba(0,0,0,0.12)" stroke-width="1" />
+              <text class="radar-label-text" [attr.x]="getRadarAxisXLabel(axisId)" [attr.y]="getRadarAxisYLabel(axisId)" [attr.text-anchor]="getRadarAxisLabelAnchor(axisId)">{{ getPrintRadarLabel(axisId) }}</text>
+              <text [attr.x]="getPrintRadarScoreX(axisId)" [attr.y]="getPrintRadarScoreY(axisId)" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#9b1c1c">{{ getPrintRadarScore100(axisId) }}</text>
+            }
+            <polygon [attr.points]="getRadarPolygonPoints(getRadarValues(activeRecord))" fill="rgba(155,28,28,0.15)" stroke="#9b1c1c" stroke-width="2" />
+          </svg>
+        </div>
+        <table class="analysis-table" aria-label="分類統計表">
+          <thead>
+            <tr>
+              <th>分類</th>
+              <th>分數</th>
+              <th>已確認 / 總數</th>
+              <th>分析重點</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of reportCategoryStats; track row.label) {
+              <tr>
+                <td>{{ row.label }}</td>
+                <td class="red">{{ row.score }}</td>
+                <td>{{ row.confirmed }} / {{ row.total }}</td>
+                <td>{{ truncateForPrint(row.analysis, 28) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section section--checklist">
+      <div class="section-title"><span class="num">4.</span> CHECKLIST 明細表（重點項目）</div>
+      <div class="checklist-content">
+        <div class="checklist-grid">
+          <table class="checklist-table" aria-label="重要檢查項目左欄">
+            <thead>
+              <tr><th>分類</th><th>檢查項目</th><th>狀態</th><th>備註</th></tr>
+            </thead>
+            <tbody>
+              @for (row of reportImportantChecklistCol1; track row.title) {
+                <tr>
+                  <td>{{ row.category }}</td>
+                  <td>{{ row.title }}</td>
+                  <td><span [class]="printStatusClass(row.status)">{{ row.statusLabel }}</span></td>
+                  <td>{{ truncateForPrint(row.note, 20) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <table class="checklist-table" aria-label="重要檢查項目右欄">
+            <thead>
+              <tr><th>分類</th><th>檢查項目</th><th>狀態</th><th>備註</th></tr>
+            </thead>
+            <tbody>
+              @for (row of reportImportantChecklistCol2; track row.title) {
+                <tr>
+                  <td>{{ row.category }}</td>
+                  <td>{{ row.title }}</td>
+                  <td><span [class]="printStatusClass(row.status)">{{ row.statusLabel }}</span></td>
+                  <td>{{ truncateForPrint(row.note, 20) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--bottom">
+      <div class="section-title"><span class="num">5.</span> 建議下一步 · <span class="num">6.</span> 備註</div>
+      <div class="bottom-content">
+        <motion class="next-steps">
+          @for (action of reportNextActionsForPrint; track action.title; let i = $index) {
+            <motion class="step">
+              <span class="step-num">{{ i + 1 }}</span>
+              <div>
+                <div class="step-title">{{ action.title }}</div>
+                <div class="small-text">{{ action.description }}</motion>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="notes-box" aria-label="手寫備註區"></div>
+      </div>
+    </section>
+
+    <footer class="report-footer">
+      <span>Rental Buddy 看房分析報告</span>
+      <span>本報告由 Rental Buddy 生成，僅供參考</span>
+    </footer>
+  </section>

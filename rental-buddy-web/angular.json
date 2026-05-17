@@ -26,7 +26,7 @@
               }
             ],
             "styles": ["src/styles.css"],
-            "allowedCommonJsDependencies": ["html2canvas", "leaflet"],
+            "allowedCommonJsDependencies": ["html2canvas", "jspdf", "leaflet"],
             "baseHref": "./"
           },
           "configurations": {
@@ -40,7 +40,7 @@
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "72kB",
-                  "maximumError": "80kB"
+                  "maximumError": "82kB"
                 }
               ],
               "outputHashing": "all",
