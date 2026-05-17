@@ -3970,6 +3970,19 @@ body.print-preview-open {
   overflow: hidden;
 }
 
+#printSheetRoot.report-page.print-sheet--flow .section--overview {
+  height: 28mm;
+  min-height: 28mm;
+  max-height: 28mm;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .section--overview .overview-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 #printSheetRoot.report-page.print-sheet--flow .overview-content,
 #printSheetRoot.report-page.print-sheet--flow .ai-content,
 #printSheetRoot.report-page.print-sheet--flow .category-content,
@@ -4196,6 +4209,20 @@ body.print-preview-open {
 }
 
 /* —— §1 Overview —— */
+#printSheetRoot.report-page .section--overview {
+  box-sizing: border-box;
+  height: 28mm;
+  min-height: 28mm;
+  max-height: 28mm;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page .section--overview .overview-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 #printSheetRoot.report-page .overview-content {
   flex: 1 1 auto;
   min-height: 0;
