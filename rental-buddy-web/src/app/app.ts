@@ -684,18 +684,6 @@ export class App implements OnInit, OnDestroy {
   /** 圖片／PDF 點陣匯出尺寸（300dpi A4 直向：2480×3508） */
   private readonly printExportWidthPx = 2480;
   private readonly printExportHeightPx = 3508;
-  /**
-   * 列印單頁各區高度比例（合計 100）。
-   * header＝頁首｜overview＝總覽｜ai＝分析總結｜category＝五分類｜checklist＝明細表｜bottom＝下一步／備註
-   */
-  readonly printRowPercents = {
-    header: 12,
-    overview: 10,
-    ai: 20,
-    category: 20,
-    checklist: 25,
-    bottom: 13
-  } as const;
   readonly printScoreBarSlots = [1, 2, 3, 4, 5, 6] as const;
   /** v4：報告詳細區塊預設收合 */
   reportDetailExpanded = false;
@@ -704,9 +692,6 @@ export class App implements OnInit, OnDestroy {
   reportConsExpanded = false;
   reportPendingExpanded = false;
   readonly reportDetailPreviewLimit = 3;
-  readonly printNoteMaxChars = 28;
-  readonly printChecklistMaxRows = 8;
-  readonly printActionDescMaxChars = 48;
   reportDataCopyState = '';
   showAiImportPanel = false;
   aiReportDraftInput = '';
@@ -1223,41 +1208,39 @@ export class App implements OnInit, OnDestroy {
     return this.attachmentThumbs[0] ?? null;
   }
 
-  get displayReportStrengthsForPrint(): ReportSummaryBullet[] {
-    return this.displayReportStrengths.slice(0, 3).map((item) => ({
-      ...item,
-      description: this.truncateForPrint(item.description, 40)
-    }));
+  /** 列印版：依優先度列出全部檢查項（不截列數） */
+  get reportPrintChecklistRows(): ReportChecklistRow[] {
+    return this.items
+      .map((item) => {
+        const state = this.state[item.id];
+        const config = this.getItemRiskConfig(item);
+        const status: ReportChecklistStatus = state?.flagged ? 'flagged' : state?.checked ? 'checked' : 'pending';
+        const boost = this.itemReportPriorityBoost[item.id] ?? 0;
+        const priority =
+          (status === 'flagged' ? 300 : status === 'pending' ? 200 : 100) +
+          config.weight * 10 +
+          boost +
+          (state?.note?.trim() ? 5 : 0);
+        return {
+          category: this.categoryMap[item.cat] ?? item.cat,
+          title: item.title,
+          status,
+          statusLabel: this.getChecklistStatusLabel(status),
+          note: this.formatChecklistNote(state, status),
+          priority
+        };
+      })
+      .sort((a, b) => b.priority - a.priority);
   }
 
-  get displayReportRisksForPrint(): ReportSummaryBullet[] {
-    return this.displayReportRisks.slice(0, 3).map((item) => ({
-      ...item,
-      description: this.truncateForPrint(item.description, 40)
-    }));
-  }
-
-  get displayReportConclusionDescForPrint(): string {
-    return this.truncateForPrint(this.displayReportConclusionDesc, 120);
-  }
-
-  get reportImportantChecklistRowsForPrint(): ReportChecklistRow[] {
-    return this.reportImportantChecklistRows
-      .slice(0, this.printChecklistMaxRows)
-      .map((row) => ({
-        ...row,
-        note: this.truncateForPrint(row.note)
-      }));
-  }
-
-  get reportImportantChecklistCol1(): ReportChecklistRow[] {
-    const rows = this.reportImportantChecklistRowsForPrint;
+  get reportPrintChecklistCol1(): ReportChecklistRow[] {
+    const rows = this.reportPrintChecklistRows;
     const mid = Math.ceil(rows.length / 2);
     return rows.slice(0, mid);
   }
 
-  get reportImportantChecklistCol2(): ReportChecklistRow[] {
-    const rows = this.reportImportantChecklistRowsForPrint;
+  get reportPrintChecklistCol2(): ReportChecklistRow[] {
+    const rows = this.reportPrintChecklistRows;
     const mid = Math.ceil(rows.length / 2);
     return rows.slice(mid);
   }
@@ -1270,7 +1253,7 @@ export class App implements OnInit, OnDestroy {
 
   get printCandidateAverageSub(): string {
     if (this.candidateAverageScore === null) return '（尚無比較資料）';
-    return this.truncateForPrint(this.candidateAverageHint, 18);
+    return this.formatPrintCell(this.candidateAverageHint);
   }
 
   get printScoreBarActiveCount(): number {
@@ -1281,13 +1264,6 @@ export class App implements OnInit, OnDestroy {
     if (status === 'checked') return 'status-pass';
     if (status === 'flagged') return 'status-risk';
     return 'status-pending';
-  }
-
-  get reportNextActionsForPrint(): ReportNextAction[] {
-    return this.reportNextActions.map((action) => ({
-      title: this.truncateForPrint(action.title, 24),
-      description: this.truncateForPrint(action.description, this.printActionDescMaxChars)
-    }));
   }
 
   hasReportDetailNote(note: string): boolean {
@@ -2037,21 +2013,6 @@ export class App implements OnInit, OnDestroy {
     return Math.round(this.printPreviewBaseScale * this.printPreviewZoom * 100);
   }
 
-  /** 列印頁 grid 列高：以 fr 分配，數值等同％且合計 100 */
-  get printSheetGridStyle(): { gridTemplateRows: string } {
-    const p = this.printRowPercents;
-    return {
-      gridTemplateRows: [
-        `minmax(0, ${p.header}fr)`,
-        `minmax(0, ${p.overview}fr)`,
-        `minmax(0, ${p.ai}fr)`,
-        `minmax(0, ${p.category}fr)`,
-        `minmax(0, ${p.checklist}fr)`,
-        `minmax(0, ${p.bottom}fr)`
-      ].join(' ')
-    };
-  }
-
   openPrintPreview(): void {
     this.printPreviewOpen = true;
     this.printPreviewZoom = 1;
@@ -2059,7 +2020,10 @@ export class App implements OnInit, OnDestroy {
     void this.loadAttachmentThumbs();
     this.cdr.markForCheck();
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => this.fitPrintPreviewToViewport());
+      requestAnimationFrame(() => {
+        this.fitPrintPreviewToViewport();
+        requestAnimationFrame(() => this.applyPrintPreviewTransform());
+      });
     });
   }
 
@@ -2132,11 +2096,9 @@ export class App implements OnInit, OnDestroy {
     this.reportPendingExpanded = !this.reportPendingExpanded;
   }
 
-  truncateForPrint(text: string, max = this.printNoteMaxChars): string {
+  formatPrintCell(text: string): string {
     const trimmed = (text || '').trim();
-    if (!trimmed) return '—';
-    if (trimmed.length <= max) return trimmed;
-    return `${trimmed.slice(0, Math.max(0, max - 1))}…`;
+    return trimmed || '—';
   }
 
   onChecklistItemRowClick(id: string, event: Event): void {
@@ -4137,8 +4099,9 @@ ${this.reportDataJson}`;
       '#reportExportArea .print-preview-scaler--active'
     ) as HTMLElement | null;
     const totalScale = this.printPreviewBaseScale * this.printPreviewZoom;
+    const docHeight = this.getPrintSheetContentHeight(sheet);
     const scaledW = Math.ceil(this.printDocWidthPx * totalScale);
-    const scaledH = Math.ceil(this.printDocHeightPx * totalScale);
+    const scaledH = Math.ceil(docHeight * totalScale);
     const supportsZoom =
       typeof CSS !== 'undefined' && CSS.supports('zoom', '1');
 
@@ -4149,7 +4112,7 @@ ${this.reportDataJson}`;
 
     if (stage?.classList.contains('print-preview-stage')) {
       stage.style.width = `${this.printDocWidthPx}px`;
-      stage.style.height = `${this.printDocHeightPx}px`;
+      stage.style.height = `${docHeight}px`;
       if (supportsZoom) {
         stage.style.transform = '';
         stage.style.transformOrigin = '';
@@ -4179,19 +4142,8 @@ ${this.reportDataJson}`;
     }
   }
 
-  private fitPrintSheetToOnePage(): void {
-    const sheet = this.getPrintSheetElement();
-    if (!sheet) return;
-    sheet.style.transform = '';
-    sheet.style.transformOrigin = 'top center';
-    sheet.style.width = `${this.printDocWidthPx}px`;
-    sheet.style.height = `${this.printDocHeightPx}px`;
-    const contentHeight = sheet.scrollHeight;
-    if (contentHeight > this.printDocHeightPx) {
-      const scale = Math.max(0.92, this.printDocHeightPx / contentHeight);
-      sheet.style.transform = `scale(${scale})`;
-      sheet.style.width = `${this.printDocWidthPx / scale}px`;
-    }
+  private getPrintSheetContentHeight(sheet: HTMLElement): number {
+    return Math.max(this.printDocHeightPx, sheet.scrollHeight);
   }
 
   private resetPrintSheetScale(): void {
@@ -4508,6 +4460,7 @@ ${this.reportDataJson}`;
     const restore = this.preparePrintSheetForExport(sheet);
     try {
       const canvas = await this.capturePrintSheetCanvas(sheet);
+      const pages = this.slicePrintCanvasToA4Pages(canvas);
       const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -4515,8 +4468,10 @@ ${this.reportDataJson}`;
         format: 'a4',
         compress: true
       });
-      const img = canvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
+      pages.forEach((page, index) => {
+        if (index > 0) pdf.addPage();
+        pdf.addImage(page.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297);
+      });
       pdf.save(`${this.getPrintExportFileName()}.pdf`);
     } catch {
       this.reportDataCopyState = 'PDF 匯出失敗，請再試一次';
@@ -4538,28 +4493,44 @@ ${this.reportDataJson}`;
     return (this.activeRecord.name || 'report').replace(/[^\w\u4e00-\u9fff-]+/g, '_');
   }
 
-  /** 將 html2canvas 結果縮放為精確的 300dpi 直向匯出尺寸 */
-  private normalizePrintExportCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
-    if (
-      source.width === this.printExportWidthPx &&
-      source.height === this.printExportHeightPx
-    ) {
-      return source;
+  /** 將完整高度 canvas 依 A4 直向頁高切片（300dpi） */
+  private slicePrintCanvasToA4Pages(source: HTMLCanvasElement): HTMLCanvasElement[] {
+    const pageW = this.printExportWidthPx;
+    const pageH = this.printExportHeightPx;
+    if (source.width !== pageW) {
+      const scaled = document.createElement('canvas');
+      scaled.width = pageW;
+      scaled.height = Math.round((source.height * pageW) / source.width);
+      const sctx = scaled.getContext('2d');
+      if (sctx) {
+        sctx.fillStyle = '#ffffff';
+        sctx.fillRect(0, 0, scaled.width, scaled.height);
+        sctx.drawImage(source, 0, 0, scaled.width, scaled.height);
+      }
+      source = scaled;
     }
-    const out = document.createElement('canvas');
-    out.width = this.printExportWidthPx;
-    out.height = this.printExportHeightPx;
-    const ctx = out.getContext('2d');
-    if (!ctx) return source;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(source, 0, 0, out.width, out.height);
-    return out;
+
+    const pages: HTMLCanvasElement[] = [];
+    let offsetY = 0;
+    while (offsetY < source.height) {
+      const sliceH = Math.min(pageH, source.height - offsetY);
+      const page = document.createElement('canvas');
+      page.width = pageW;
+      page.height = pageH;
+      const ctx = page.getContext('2d');
+      if (!ctx) break;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageW, pageH);
+      ctx.drawImage(source, 0, offsetY, pageW, sliceH, 0, 0, pageW, sliceH);
+      pages.push(page);
+      offsetY += pageH;
+    }
+    return pages.length > 0 ? pages : [source];
   }
 
   private preparePrintSheetForExport(sheet: HTMLElement): () => void {
-    sheet.classList.add('print-sheet--exporting');
-    return () => sheet.classList.remove('print-sheet--exporting');
+    sheet.classList.add('print-sheet--exporting', 'print-sheet--flow');
+    return () => sheet.classList.remove('print-sheet--exporting', 'print-sheet--flow');
   }
 
   private async capturePrintSheetCanvas(sheet: HTMLElement): Promise<HTMLCanvasElement> {
@@ -4569,16 +4540,19 @@ ${this.reportDataJson}`;
     const clone = sheet.cloneNode(true) as HTMLElement;
     clone.id = 'printSheetRoot';
     clone.classList.remove('print-sheet--preview');
-    clone.classList.add('print-sheet--exporting');
+    clone.classList.add('print-sheet--exporting', 'print-sheet--flow');
     clone.style.cssText = [
-      'display:grid',
+      'display:block',
       `width:${this.printDocWidthPx}px`,
-      `height:${this.printDocHeightPx}px`,
+      'height:auto',
+      'min-height:auto',
+      'max-height:none',
       'transform:none',
       'zoom:1',
       'margin:0',
       'box-shadow:none',
-      'border:none'
+      'border:none',
+      'overflow:visible'
     ].join(';');
 
     const mount = document.createElement('div');
@@ -4588,8 +4562,8 @@ ${this.reportDataJson}`;
       'left:0',
       'top:0',
       `width:${this.printDocWidthPx}px`,
-      `height:${this.printDocHeightPx}px`,
-      'overflow:hidden',
+      'height:auto',
+      'overflow:visible',
       'z-index:2147483646',
       'pointer-events:none',
       'background:#fff'
@@ -4598,6 +4572,12 @@ ${this.reportDataJson}`;
     document.body.appendChild(mount);
 
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+    const contentHeight = Math.max(
+      this.printDocHeightPx,
+      clone.scrollHeight,
+      clone.getBoundingClientRect().height
+    );
 
     try {
       const { default: html2canvas } = await import('html2canvas');
@@ -4608,11 +4588,11 @@ ${this.reportDataJson}`;
         backgroundColor: '#ffffff',
         logging: false,
         width: this.printDocWidthPx,
-        height: this.printDocHeightPx,
+        height: contentHeight,
         windowWidth: this.printDocWidthPx,
-        windowHeight: this.printDocHeightPx
+        windowHeight: contentHeight
       });
-      return this.normalizePrintExportCanvas(raw);
+      return raw;
     } finally {
       mount.remove();
       sheet.id = liveSheetId;

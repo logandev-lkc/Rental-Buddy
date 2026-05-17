@@ -3924,7 +3924,6 @@ body.print-preview-open {
   padding: 6mm 8mm 9mm;
   overflow: hidden;
   position: relative;
-  /* grid-template-rows：由 app.ts printSheetGridStyle（Nfr 比例，合計 100） */
   gap: 0;
   border: 1px solid #333;
   font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
@@ -3936,7 +3935,87 @@ body.print-preview-open {
 
 #printSheetRoot.report-page.print-sheet--preview,
 #printSheetRoot.report-page.print-sheet--exporting {
-  display: grid;
+  display: block;
+}
+
+/* 內容自適應高度：不裁切，匯出時依實際高度分頁 */
+#printSheetRoot.report-page.print-sheet--flow {
+  display: block;
+  width: 210mm;
+  height: auto;
+  min-height: 297mm;
+  max-width: 210mm;
+  max-height: none;
+  overflow: visible;
+  padding-bottom: 10mm;
+}
+
+#printSheetRoot.report-page.print-sheet--flow * {
+  max-height: none;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .section {
+  overflow: visible;
+  min-height: auto;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .section-title {
+  flex: 0 0 auto;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .report-header {
+  height: 45mm;
+  min-height: 45mm;
+  max-height: 45mm;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .overview-content,
+#printSheetRoot.report-page.print-sheet--flow .ai-content,
+#printSheetRoot.report-page.print-sheet--flow .category-content,
+#printSheetRoot.report-page.print-sheet--flow .checklist-content,
+#printSheetRoot.report-page.print-sheet--flow .checklist-grid,
+#printSheetRoot.report-page.print-sheet--flow .bottom-content {
+  flex: none;
+  min-height: auto;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .ai-box {
+  overflow: visible;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .category-content {
+  align-items: start;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .radar-area svg {
+  width: 44mm;
+  height: 44mm;
+  max-width: 44mm;
+  max-height: 44mm;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .analysis-table td,
+#printSheetRoot.report-page.print-sheet--flow .checklist-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .notes-box {
+  min-height: 28mm;
+  height: auto;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .report-footer {
+  position: static;
+  margin-top: 4mm;
+  padding-top: 2mm;
+  border-top: 1px solid #ddd;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .next-steps {
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
 }
 
 #printSheetRoot.report-page.print-sheet--preview {
@@ -4007,14 +4086,17 @@ body.print-preview-open {
 /* —— Header —— */
 #printSheetRoot.report-page .report-header {
   display: grid;
-  grid-template-columns: 31% 42% 27%;
+  /* fr 避免 % + column-gap 總寬超出導致右欄框線被裁切 */
+  grid-template-columns: 31fr 49fr 20fr;
   align-items: start;
   align-content: start;
-  column-gap: 5mm;
+  column-gap: 4mm;
   border-bottom: 2px solid #333;
   padding-bottom: 4mm;
-  min-height: 0;
-  height: 100%;
+  box-sizing: border-box;
+  height: 45mm;
+  min-height: 45mm;
+  max-height: 45mm;
   overflow: hidden;
 }
 
@@ -4039,15 +4121,25 @@ body.print-preview-open {
 
 #printSheetRoot.report-page .property-info {
   border-left: 1px solid #bbb;
-  padding-left: 5mm;
-  font-size: 11px;
+  padding-left: 4mm;
+  font-size: 14px;
   line-height: 1.55;
+  min-width: 0;
 }
 
 #printSheetRoot.report-page .property-row {
   display: grid;
-  grid-template-columns: 20mm 1fr;
+  grid-template-columns: 18mm 1fr;
   margin-bottom: 0.8mm;
+}
+
+#printSheetRoot.report-page .property-row--address {
+  grid-template-columns: 16mm 1fr;
+}
+
+#printSheetRoot.report-page .property-row--address .value {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 #printSheetRoot.report-page .property-row .label {
@@ -4061,19 +4153,21 @@ body.print-preview-open {
 }
 
 #printSheetRoot.report-page .score-box {
-  justify-self: end;
+  justify-self: stretch;
   align-self: center;
-  width: 52mm;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   max-height: 100%;
   height: auto;
-  min-height: 24mm;
+  min-height: 23mm;
   border: 1.5px solid #666;
   display: grid;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: auto auto auto;
   align-items: center;
   justify-items: center;
-  padding: 3mm 2mm;
-  gap: 1mm;
+  padding: 1.2mm 1mm;
+  gap: 0.4mm;
 }
 
 #printSheetRoot.report-page .score-main {
@@ -4458,7 +4552,7 @@ body.print-preview-open {
   border-radius: 0 !important;
 }
 
-#printSheetRoot.report-page * {
+#printSheetRoot.report-page:not(.print-sheet--flow) * {
   max-height: 100%;
 }
 
@@ -4566,17 +4660,25 @@ body.print-preview-open {
   }
 
   #printSheetRoot.report-page {
-    display: grid !important;
+    display: block !important;
     width: 210mm !important;
-    height: 297mm !important;
+    height: auto !important;
+    min-height: 297mm !important;
     max-width: none !important;
     max-height: none !important;
     margin: 0 !important;
     border: none !important;
     box-shadow: none !important;
     transform: none !important;
-    page-break-after: avoid;
-    break-after: avoid;
+    overflow: visible !important;
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  #printSheetRoot.report-page .section {
+    overflow: visible !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .print-preview-scaler {

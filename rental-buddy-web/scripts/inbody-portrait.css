@@ -97,14 +97,16 @@
 /* —— Header —— */
 #printSheetRoot.report-page .report-header {
   display: grid;
-  grid-template-columns: 31% 42% 27%;
+  grid-template-columns: 31fr 49fr 20fr;
   align-items: start;
   align-content: start;
-  column-gap: 5mm;
+  column-gap: 4mm;
   border-bottom: 2px solid #333;
   padding-bottom: 4mm;
-  min-height: 0;
-  height: 100%;
+  box-sizing: border-box;
+  height: 45mm;
+  min-height: 45mm;
+  max-height: 45mm;
   overflow: hidden;
 }
 
@@ -129,15 +131,25 @@
 
 #printSheetRoot.report-page .property-info {
   border-left: 1px solid #bbb;
-  padding-left: 5mm;
-  font-size: 11px;
+  padding-left: 4mm;
+  font-size: 14px;
   line-height: 1.55;
+  min-width: 0;
 }
 
 #printSheetRoot.report-page .property-row {
   display: grid;
-  grid-template-columns: 20mm 1fr;
+  grid-template-columns: 18mm 1fr;
   margin-bottom: 0.8mm;
+}
+
+#printSheetRoot.report-page .property-row--address {
+  grid-template-columns: 16mm 1fr;
+}
+
+#printSheetRoot.report-page .property-row--address .value {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 #printSheetRoot.report-page .property-row .label {
@@ -151,19 +163,21 @@
 }
 
 #printSheetRoot.report-page .score-box {
-  justify-self: end;
+  justify-self: stretch;
   align-self: center;
-  width: 52mm;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   max-height: 100%;
   height: auto;
-  min-height: 24mm;
+  min-height: 23mm;
   border: 1.5px solid #666;
   display: grid;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: auto auto auto;
   align-items: center;
   justify-items: center;
-  padding: 3mm 2mm;
-  gap: 1mm;
+  padding: 1.2mm 1mm;
+  gap: 0.4mm;
 }
 
 #printSheetRoot.report-page .score-main {

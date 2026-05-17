@@ -683,7 +683,7 @@
 @if (printPreviewOpen) {
   <div class="print-preview-chrome" role="dialog" aria-modal="true" aria-label="列印版預覽">
     <div class="print-preview-chrome-inner">
-      <span class="print-preview-title">列印版預覽（A4 直向單頁）</span>
+      <span class="print-preview-title">列印版預覽（A4 直向，過長自動分頁）</span>
       <div class="print-preview-zoom" aria-label="預覽縮放">
         <button type="button" class="btn-outline small print-zoom-btn" (click)="zoomPrintPreviewOut()" aria-label="縮小">−</button>
         <span class="print-zoom-label">{{ printPreviewZoomPercent }}%</span>
@@ -715,7 +715,7 @@
     id="printSheetRoot"
     class="report-page"
     [class.print-sheet--preview]="printPreviewOpen"
-    [style]="printSheetGridStyle"
+    [class.print-sheet--flow]="printPreviewOpen || printExportBusy"
     aria-label="列印版報告"
   >
     <header class="report-header">
@@ -728,7 +728,7 @@
           <span class="label">房源名稱</span>
           <span class="value">{{ activeRecord.name }}</span>
         </div>
-        <div class="property-row">
+        <div class="property-row property-row--address">
           <span class="label">地址</span>
           <span class="value">{{ address || '未填寫' }}</span>
         </div>
@@ -794,12 +794,12 @@
         <div class="ai-box">
           <div class="ai-box-title">整體結論</div>
           <div class="ai-result">{{ displayReportConclusionTitle }}</div>
-          <p>{{ displayReportConclusionDescForPrint }}</p>
+          <p>{{ displayReportConclusionDesc }}</p>
         </div>
         <div class="ai-box">
           <div class="ai-box-title">主要優勢</div>
           <ul class="ai-list">
-            @for (item of displayReportStrengthsForPrint; track item.title) {
+            @for (item of displayReportStrengths; track item.title) {
               <li>
                 <span class="ai-icon good" aria-hidden="true">✓</span>
                 <span><strong>{{ item.title }}</strong> {{ item.description }}</span>
@@ -810,7 +810,7 @@
         <div class="ai-box">
           <div class="ai-box-title">主要風險</div>
           <ul class="ai-list">
-            @for (item of displayReportRisksForPrint; track item.title) {
+            @for (item of displayReportRisks; track item.title) {
               <li>
                 <span class="ai-icon risk" aria-hidden="true">!</span>
                 <span><strong>{{ item.title }}</strong> {{ item.description }}</span>
@@ -853,7 +853,7 @@
                 <td>{{ row.label }}</td>
                 <td class="red">{{ row.score }}</td>
                 <td>{{ row.confirmed }} / {{ row.total }}</td>
-                <td>{{ truncateForPrint(row.analysis, 28) }}</td>
+                <td>{{ formatPrintCell(row.analysis) }}</td>
               </tr>
             }
           </tbody>
@@ -870,12 +870,12 @@
               <tr><th>分類</th><th>檢查項目</th><th>狀態</th><th>備註</th></tr>
             </thead>
             <tbody>
-              @for (row of reportImportantChecklistCol1; track row.title) {
+              @for (row of reportPrintChecklistCol1; track row.title) {
                 <tr>
                   <td>{{ row.category }}</td>
                   <td>{{ row.title }}</td>
                   <td><span [class]="printStatusClass(row.status)">{{ row.statusLabel }}</span></td>
-                  <td>{{ truncateForPrint(row.note, 20) }}</td>
+                  <td>{{ formatPrintCell(row.note) }}</td>
                 </tr>
               }
             </tbody>
@@ -885,12 +885,12 @@
               <tr><th>分類</th><th>檢查項目</th><th>狀態</th><th>備註</th></tr>
             </thead>
             <tbody>
-              @for (row of reportImportantChecklistCol2; track row.title) {
+              @for (row of reportPrintChecklistCol2; track row.title) {
                 <tr>
                   <td>{{ row.category }}</td>
                   <td>{{ row.title }}</td>
                   <td><span [class]="printStatusClass(row.status)">{{ row.statusLabel }}</span></td>
-                  <td>{{ truncateForPrint(row.note, 20) }}</td>
+                  <td>{{ formatPrintCell(row.note) }}</td>
                 </tr>
               }
             </tbody>
@@ -903,7 +903,7 @@
       <div class="section-title"><span class="num">5.</span> 建議下一步 · <span class="num">6.</span> 備註</div>
       <div class="bottom-content">
         <div class="next-steps">
-          @for (action of reportNextActionsForPrint; track action.title; let i = $index) {
+          @for (action of reportNextActions; track action.title; let i = $index) {
             <div class="step">
               <span class="step-num">{{ i + 1 }}</span>
               <div>
