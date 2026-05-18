@@ -298,6 +298,25 @@
 }
 
 /* —— §2 AI —— */
+#printSheetRoot.report-page .section--ai {
+  box-sizing: border-box;
+  height: 38mm;
+  min-height: 38mm;
+  max-height: 38mm;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page .section--ai .ai-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page .section--ai .ai-box {
+  min-height: 0;
+  overflow: hidden;
+}
+
 #printSheetRoot.report-page .ai-content {
   flex: 1 1 auto;
   min-height: 0;

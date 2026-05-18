@@ -3983,6 +3983,19 @@ body.print-preview-open {
   overflow: hidden;
 }
 
+#printSheetRoot.report-page.print-sheet--flow .section--ai {
+  height: 38mm;
+  min-height: 38mm;
+  max-height: 38mm;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page.print-sheet--flow .section--ai .ai-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 #printSheetRoot.report-page.print-sheet--flow .overview-content,
 #printSheetRoot.report-page.print-sheet--flow .ai-content,
 #printSheetRoot.report-page.print-sheet--flow .category-content,
@@ -4301,6 +4314,25 @@ body.print-preview-open {
 }
 
 /* —— §2 AI —— */
+#printSheetRoot.report-page .section--ai {
+  box-sizing: border-box;
+  height: 38mm;
+  min-height: 38mm;
+  max-height: 38mm;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page .section--ai .ai-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#printSheetRoot.report-page .section--ai .ai-box {
+  min-height: 0;
+  overflow: hidden;
+}
+
 #printSheetRoot.report-page .ai-content {
   flex: 1 1 auto;
   min-height: 0;
@@ -4380,6 +4412,22 @@ body.print-preview-open {
 
 #printSheetRoot.report-page .ai-icon.risk {
   background: #9b1c1c;
+}
+
+/* 中／右欄精簡排版 */
+#printSheetRoot.report-page .ai-box--side {
+  padding: 3mm 3.5mm;
+}
+
+#printSheetRoot.report-page .ai-box--side .ai-box-title {
+  margin-bottom: 1.5mm;
+}
+
+#printSheetRoot.report-page .ai-box--side .ai-list li {
+  font-size: 10px;
+  line-height: 1.4;
+  margin-bottom: 1.5mm;
+  column-gap: 1.5mm;
 }
 
 /* —— §3 Category —— */

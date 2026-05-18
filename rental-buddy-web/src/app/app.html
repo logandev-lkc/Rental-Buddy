@@ -796,24 +796,28 @@
           <div class="ai-result">{{ displayReportConclusionTitle }}</div>
           <p>{{ displayReportConclusionDesc }}</p>
         </div>
-        <div class="ai-box">
+        <div class="ai-box ai-box--side">
           <div class="ai-box-title">主要優勢</div>
           <ul class="ai-list">
-            @for (item of displayReportStrengths; track item.title) {
+            @for (item of displayReportStrengthsForPrint; track item.title) {
               <li>
                 <span class="ai-icon good" aria-hidden="true">✓</span>
-                <span><strong>{{ item.title }}</strong> {{ item.description }}</span>
+                <span>
+                  <strong>{{ item.title }}</strong>@if (item.description) { {{ ' ' }}{{ item.description }} }
+                </span>
               </li>
             }
           </ul>
         </div>
-        <div class="ai-box">
+        <div class="ai-box ai-box--side">
           <div class="ai-box-title">主要風險</div>
           <ul class="ai-list">
-            @for (item of displayReportRisks; track item.title) {
+            @for (item of displayReportRisksForPrint; track item.title) {
               <li>
                 <span class="ai-icon risk" aria-hidden="true">!</span>
-                <span><strong>{{ item.title }}</strong> {{ item.description }}</span>
+                <span>
+                  <strong>{{ item.title }}</strong>@if (item.description) { {{ ' ' }}{{ item.description }} }
+                </span>
               </li>
             }
           </ul>

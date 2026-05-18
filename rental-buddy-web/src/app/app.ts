@@ -685,6 +685,10 @@ export class App implements OnInit, OnDestroy {
   private readonly printExportWidthPx = 2480;
   private readonly printExportHeightPx = 3508;
   readonly printScoreBarSlots = [1, 2, 3, 4, 5, 6] as const;
+  /** 列印版 AI 中／右欄：最多條數與字數上限 */
+  readonly printAiSideMaxItems = 3;
+  readonly printAiSideTitleMaxChars = 16;
+  readonly printAiSideDescMaxChars = 32;
   /** v4：報告詳細區塊預設收合 */
   reportDetailExpanded = false;
   reportCompareExpanded = false;
@@ -1206,6 +1210,24 @@ export class App implements OnInit, OnDestroy {
 
   get printAttachmentThumb(): AttachmentThumb | null {
     return this.attachmentThumbs[0] ?? null;
+  }
+
+  /** 列印版：主要優勢（中欄，精簡） */
+  get displayReportStrengthsForPrint(): ReportSummaryBullet[] {
+    return this.displayReportStrengths.slice(0, this.printAiSideMaxItems).map((item) => ({
+      ...item,
+      title: this.truncatePrintText(item.title, this.printAiSideTitleMaxChars),
+      description: this.truncatePrintText(item.description, this.printAiSideDescMaxChars)
+    }));
+  }
+
+  /** 列印版：主要風險（右欄，精簡） */
+  get displayReportRisksForPrint(): ReportSummaryBullet[] {
+    return this.displayReportRisks.slice(0, this.printAiSideMaxItems).map((item) => ({
+      ...item,
+      title: this.truncatePrintText(item.title, this.printAiSideTitleMaxChars),
+      description: this.truncatePrintText(item.description, this.printAiSideDescMaxChars)
+    }));
   }
 
   /** 列印版：依優先度列出全部檢查項（不截列數） */
@@ -2099,6 +2121,13 @@ export class App implements OnInit, OnDestroy {
   formatPrintCell(text: string): string {
     const trimmed = (text || '').trim();
     return trimmed || '—';
+  }
+
+  truncatePrintText(text: string, max: number): string {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return '—';
+    if (trimmed.length <= max) return trimmed;
+    return `${trimmed.slice(0, Math.max(0, max - 1))}…`;
   }
 
   onChecklistItemRowClick(id: string, event: Event): void {
@@ -3067,7 +3096,7 @@ export class App implements OnInit, OnDestroy {
         const config = this.getItemRiskConfig(item);
         return {
           title: item.title,
-          description: this.state[item.id]?.note?.trim() || this.getStrengthDescription(item),
+          description: this.resolveReportBulletDescription(item, this.state[item.id], 'strength'),
           priority: config.weight
         };
       })
@@ -3084,18 +3113,36 @@ export class App implements OnInit, OnDestroy {
   }
 
   get reportSummaryRisks(): ReportSummaryBullet[] {
-    const risks = this.items
+    const flagged = this.items
       .filter((item) => this.state[item.id]?.flagged)
       .map((item) => {
         const config = this.getItemRiskConfig(item);
         return {
           title: item.title,
-          description: this.state[item.id]?.note?.trim() || this.getRiskDescription(item),
-          priority: config.weight
+          description: this.resolveReportBulletDescription(item, this.state[item.id], 'risk'),
+          priority: config.weight + 1000
         };
       })
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, 3);
+      .sort((a, b) => b.priority - a.priority);
+
+    const usedTitles = new Set(flagged.map((row) => row.title));
+    const pendingFill = this.items
+      .filter((item) => {
+        const state = this.state[item.id];
+        return state && !state.checked && !state.flagged && !usedTitles.has(item.title);
+      })
+      .map((item) => {
+        const config = this.getItemRiskConfig(item);
+        const boost = this.itemReportPriorityBoost[item.id] ?? 0;
+        return {
+          title: item.title,
+          description: this.resolveReportBulletDescription(item, this.state[item.id], 'pending'),
+          priority: config.weight * 10 + boost
+        };
+      })
+      .sort((a, b) => b.priority - a.priority);
+
+    const risks = [...flagged, ...pendingFill].slice(0, 3);
 
     if (risks.length > 0) return risks;
 
@@ -3119,7 +3166,7 @@ export class App implements OnInit, OnDestroy {
     if (strengths.length === 0) return this.reportSummaryStrengths;
     return strengths.map((item, index) => ({
       title: item.title,
-      description: item.description,
+      description: this.sanitizeAiBulletDescription(item.title, item.description, 'strength'),
       priority: strengths.length - index
     }));
   }
@@ -3129,7 +3176,7 @@ export class App implements OnInit, OnDestroy {
     if (risks.length === 0) return this.reportSummaryRisks;
     return risks.map((item, index) => ({
       title: item.title,
-      description: item.description,
+      description: this.sanitizeAiBulletDescription(item.title, item.description, 'risk'),
       priority: risks.length - index
     }));
   }
@@ -4203,19 +4250,48 @@ ${this.reportDataJson}`;
     state.flagged = false;
   }
 
-  private getStrengthDescription(item: ChecklistItem): string {
-    const copy = this.itemReportCopyConfig[item.id];
-    if (copy?.positiveText) return copy.positiveText;
-    return `${this.categoryMap[item.cat] ?? '此分類'}條件已確認，對整體評估有加分。`;
+  /** 中／右欄說明：備註與查核細節優先，否則一行狀態（不用重複模板句） */
+  private resolveReportBulletDescription(
+    item: ChecklistItem,
+    state: ItemState | undefined,
+    kind: 'strength' | 'risk' | 'pending'
+  ): string {
+    const note = state?.note?.trim();
+    if (note) {
+      const options = state?.selectedOptions?.length ? `（${state.selectedOptions.join('、')}）` : '';
+      return `${note}${options}`;
+    }
+    if (state?.selectedOptions?.length) {
+      return `細節：${state.selectedOptions.join('、')}`;
+    }
+    if (state?.quickStatus && state.quickStatus !== 'unknown') {
+      return `評等：${this.getQuickStatusLabel(state.quickStatus)}`;
+    }
+    const category = this.categoryMap[item.cat] ?? '查核';
+    if (kind === 'strength') return `已確認 · ${category}`;
+    if (kind === 'risk') return `標記風險 · ${category}`;
+    return `待確認 · ${category}`;
   }
 
-  private getRiskDescription(item: ChecklistItem): string {
-    const copy = this.itemReportCopyConfig[item.id];
-    if (copy?.riskText) return copy.riskText;
-    const config = this.getItemRiskConfig(item);
-    if (config.riskLevel === 'high') return '屬於高權重風險，建議簽約前優先複查。';
-    if (config.riskLevel === 'medium') return '此項可能影響居住品質，建議與房東確認改善方式。';
-    return '此項影響較小，但仍建議納入比較。';
+  private isRepetitiveReportDescription(text: string): boolean {
+    const trimmed = (text || '').trim();
+    return (
+      trimmed.includes('已掌握現場狀況') ||
+      trimmed.includes('仍有疑慮或未釐清') ||
+      trimmed.includes('有利於後續比較與簽約判斷')
+    );
+  }
+
+  private sanitizeAiBulletDescription(
+    title: string,
+    description: string,
+    kind: 'strength' | 'risk'
+  ): string {
+    const trimmed = (description || '').trim();
+    if (!trimmed || !this.isRepetitiveReportDescription(trimmed)) return trimmed;
+    const item = this.items.find((candidate) => candidate.title === title);
+    if (!item) return kind === 'strength' ? '已確認' : '標記風險 · 建議複查';
+    return this.resolveReportBulletDescription(item, this.state[item.id], kind);
   }
 
   getRecordDone(record: HouseRecord): number {
